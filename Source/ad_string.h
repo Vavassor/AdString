@@ -65,6 +65,20 @@ typedef struct AdMaybeUtf32String
 
 bool ad_ascii_check(const AdString* string);
 bool ad_ascii_check_range(const AdString* string, const AdStringRange* range);
+int ad_ascii_compare_alphabetic(const AdString* a, const AdString* b);
+int ad_ascii_digit_to_int(char c);
+bool ad_ascii_is_alphabetic(char c);
+bool ad_ascii_is_alphanumeric(char c);
+bool ad_ascii_is_lowercase(char c);
+bool ad_ascii_is_newline(char c);
+bool ad_ascii_is_numeric(char c);
+bool ad_ascii_is_space_or_tab(char c);
+bool ad_ascii_is_uppercase(char c);
+bool ad_ascii_is_whitespace(char c);
+void ad_ascii_to_lowercase(AdString* string);
+char ad_ascii_to_lowercase_char(char c);
+void ad_ascii_to_uppercase(AdString* string);
+char ad_ascii_to_uppercase_char(char c);
 AdMaybeUint64 ad_ascii_uint64_from_string(const AdString* string);
 AdMaybeUint64 ad_ascii_uint64_from_string_range(const AdString* string,
         const AdStringRange* range);

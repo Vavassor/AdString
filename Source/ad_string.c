@@ -206,6 +206,133 @@ bool ad_ascii_check_range(const AdString* string, const AdStringRange* range)
     return true;
 }
 
+int ad_ascii_compare_alphabetic(const AdString* a, const AdString* b)
+{
+    AD_ASSERT(a);
+    AD_ASSERT(b);
+
+    const char* a_contents = ad_string_get_contents_const(a);
+    const char* b_contents = ad_string_get_contents_const(b);
+
+    for(int char_index = 0; char_index < a->count; char_index += 1)
+    {
+        char c0 = ad_ascii_to_uppercase_char(a_contents[char_index]);
+        char c1 = ad_ascii_to_uppercase_char(b_contents[char_index]);
+
+        if(c0 != c1)
+        {
+            return c0 - c1;
+        }
+    }
+
+    return a->count - b->count;
+}
+
+int ad_ascii_digit_to_int(char c)
+{
+    if('0' <= c && c <= '9')
+    {
+        return c - '0';
+    }
+    else if('a' <= c && c <= 'z')
+    {
+        return c - 'a' + 10;
+    }
+    else if('A' <= c && c <= 'Z')
+    {
+        return c - 'A' + 10;
+    }
+    return 0;
+}
+
+bool ad_ascii_is_alphabetic(char c)
+{
+    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+}
+
+bool ad_ascii_is_alphanumeric(char c)
+{
+    return ad_ascii_is_alphabetic(c) || ad_ascii_is_numeric(c);
+}
+
+bool ad_ascii_is_lowercase(char c)
+{
+    return c >= 'a' && c <= 'z';
+}
+
+bool ad_ascii_is_newline(char c)
+{
+    return c >= '\n' && c <= '\r';
+}
+
+bool ad_ascii_is_numeric(char c)
+{
+    return c >= '0' && c <= '9';
+}
+
+bool ad_ascii_is_space_or_tab(char c)
+{
+    return c == ' ' || c == '\t';
+}
+
+bool ad_ascii_is_uppercase(char c)
+{
+    return c >= 'A' && c <= 'Z';
+}
+
+bool ad_ascii_is_whitespace(char c)
+{
+    return c == ' ' || c - 9 <= 5;
+}
+
+void ad_ascii_to_lowercase(AdString* string)
+{
+    AD_ASSERT(string);
+
+    char* contents = ad_string_get_contents(string);
+
+    for(int char_index = 0; string->count; char_index += 1)
+    {
+        contents[char_index] = ad_ascii_to_lowercase_char(contents[char_index]);
+    }
+}
+
+char ad_ascii_to_lowercase_char(char c)
+{
+    if(ad_ascii_is_uppercase(c))
+    {
+        return 'A' + (c - 'a');
+    }
+    else
+    {
+        return c;
+    }
+}
+
+void ad_ascii_to_uppercase(AdString* string)
+{
+    AD_ASSERT(string);
+
+    char* contents = ad_string_get_contents(string);
+
+    for(int char_index = 0; string->count; char_index += 1)
+    {
+        contents[char_index] = ad_ascii_to_uppercase_char(contents[char_index]);
+    }
+}
+
+char ad_ascii_to_uppercase_char(char c)
+{
+    if(ad_ascii_is_lowercase(c))
+    {
+        return 'A' + (c - 'a');
+    }
+    else
+    {
+        return c;
+    }
+}
+
 AdMaybeUint64 ad_ascii_uint64_from_string(const AdString* string)
 {
     AdStringRange range = {0, string->count};
