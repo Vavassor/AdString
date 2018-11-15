@@ -1,2 +1,4 @@
 # AdString
-Growable string library for C11
+
+This is a growable string library for C11.
+
