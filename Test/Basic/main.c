@@ -11,6 +11,8 @@
 
 typedef enum TestType
 {
+    TEST_TYPE_COPY,
+    TEST_TYPE_FROM_BUFFER,
     TEST_TYPE_FROM_C_STRING,
     TEST_TYPE_INITIALISE,
     TEST_TYPE_COUNT,
@@ -33,10 +35,24 @@ static const char* describe_test(TestType type)
 {
     switch(type)
     {
+        case TEST_TYPE_COPY:          return "Copy";
+        case TEST_TYPE_FROM_BUFFER:   return "From Buffer";
         case TEST_TYPE_FROM_C_STRING: return "From C String";
         case TEST_TYPE_INITIALISE:    return "Initialise";
         default:                      return "Unknown";
     }
+}
+
+static int string_size(const char* string)
+{
+    if(string)
+    {
+        const char* s;
+        for(s = string; *s; s += 1);
+        return (int) (s - string);
+    }
+
+    return 0;
 }
 
 static bool strings_match(const char* a, const char* b)
@@ -49,6 +65,20 @@ static bool strings_match(const char* a, const char* b)
     return *a == *b;
 }
 
+static bool test_copy(Test* test)
+{
+    const char* reference = u8"a猫🍌";
+    AdMaybeString original =
+            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    AdMaybeString copy = ad_string_copy(&original.value);
+    const char* original_contents = ad_string_as_c_string(&original.value);
+    const char* copy_contents = ad_string_as_c_string(&copy.value);
+    return copy.valid
+            && strings_match(original_contents, copy_contents)
+            && original.value.count == copy.value.count
+            && original.value.allocator == copy.value.allocator;
+}
+
 static bool test_from_c_string(Test* test)
 {
     const char* reference = u8"a猫🍌";
@@ -57,6 +87,20 @@ static bool test_from_c_string(Test* test)
     const char* contents = ad_string_as_c_string(&result.value);
     return result.valid && strings_match(contents, reference);
 }
+
+static bool test_from_buffer(Test* test)
+{
+    const char* reference = u8"a猫🍌";
+    int bytes = string_size(reference);
+    AdMaybeString result =
+            ad_string_from_buffer_with_allocator(reference, bytes,
+                    &test->allocator);
+    const char* contents = ad_string_as_c_string(&result.value);
+    return result.valid
+            && strings_match(contents, reference)
+            && result.value.count == bytes;
+}
+
 
 static bool test_initialise(Test* test)
 {
@@ -70,6 +114,8 @@ static bool run_test(Test* test)
 {
     switch(test->type)
     {
+        case TEST_TYPE_COPY:          return test_copy(test);
+        case TEST_TYPE_FROM_BUFFER:   return test_from_buffer(test);
         case TEST_TYPE_FROM_C_STRING: return test_from_c_string(test);
         case TEST_TYPE_INITIALISE:    return test_initialise(test);
         default:                      return false;
@@ -80,6 +126,9 @@ static bool run_tests()
 {
     TestType tests[TEST_TYPE_COUNT] =
     {
+        TEST_TYPE_COPY,
+        TEST_TYPE_FROM_BUFFER,
+        TEST_TYPE_FROM_C_STRING,
         TEST_TYPE_INITIALISE,
     };
     bool tests_failed[TEST_TYPE_COUNT];
@@ -93,6 +142,7 @@ static bool run_tests()
         };
         bool failure = !run_test(&test);
         total_failed += failure;
+        tests_failed[test_index] = failure;
     }
 
     FILE* file = stdout;

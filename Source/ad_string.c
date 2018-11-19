@@ -675,6 +675,7 @@ AdMaybeString ad_string_from_buffer_with_allocator(const char* buffer,
     else
     {
         copy_memory(result.value.small.contents, buffer, bytes);
+        result.value.small.contents[bytes] = '\0';
         result.value.count = bytes;
     }
 
