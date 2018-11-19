@@ -9,6 +9,12 @@
 #define AD_STRING_SMALL_CAP 16
 
 
+typedef struct AdMemoryBlock
+{
+    void* memory;
+    uint64_t bytes;
+} AdMemoryBlock;
+
 typedef struct AdStringBig
 {
     char* contents;
@@ -120,6 +126,10 @@ char* ad_string_to_c_string_with_allocator(const AdString* string,
 bool ad_string_range_check(const AdString* string, const AdStringRange* range);
 
 bool ad_strings_match(const AdString* a, const AdString* b);
+
+AdMaybeString ad_utf32_to_utf8(const AdUtf32String* string);
+AdMaybeString ad_utf32_to_utf8_with_allocator(const AdUtf32String* string,
+        void* allocator);
 
 bool ad_utf8_check(const AdString* string);
 int ad_utf8_codepoint_count(const AdString* string);
