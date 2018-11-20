@@ -963,6 +963,21 @@ bool ad_strings_match(const AdString* a, const AdString* b)
 }
 
 
+bool ad_utf32_destroy(AdUtf32String* string)
+{
+    return ad_utf32_destroy_with_allocator(string, NULL);
+}
+
+bool ad_utf32_destroy_with_allocator(AdUtf32String* string, void* allocator)
+{
+    AdMemoryBlock block =
+    {
+        .memory = string->contents,
+        .bytes = string->count,
+    };
+    return AD_STRING_DEALLOCATE(allocator, block);
+}
+
 AdMaybeString ad_utf32_to_utf8(const AdUtf32String* string)
 {
     return ad_utf32_to_utf8_with_allocator(string, NULL);
@@ -1089,7 +1104,6 @@ AdMaybeUtf32String ad_utf8_to_utf32(const AdString* string)
     }
 
     result.value.contents = result_contents;
-    result.value.cap = count;
     result.value.count = count;
     result_contents[0] = U'\ufeff';
     result_contents[count - 1] = U'\0';

@@ -46,7 +46,6 @@ typedef struct AdStringRange
 typedef struct AdUtf32String
 {
     char32_t* contents;
-    int cap;
     int count;
 } AdUtf32String;
 
@@ -127,6 +126,8 @@ bool ad_string_range_check(const AdString* string, const AdStringRange* range);
 
 bool ad_strings_match(const AdString* a, const AdString* b);
 
+bool ad_utf32_destroy(AdUtf32String* string);
+bool ad_utf32_destroy_with_allocator(AdUtf32String* string, void* allocator);
 AdMaybeString ad_utf32_to_utf8(const AdUtf32String* string);
 AdMaybeString ad_utf32_to_utf8_with_allocator(const AdUtf32String* string,
         void* allocator);

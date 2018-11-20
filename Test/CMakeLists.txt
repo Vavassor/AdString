@@ -4,9 +4,9 @@ target_sources(
     TestBasic
     PRIVATE
     Basic/main.c
+    Basic/random.c
+    ../../Source/ad_string.c
 )
-
-target_link_libraries(TestBasic AdString)
 
 add_test(Basic TestBasic)
 
