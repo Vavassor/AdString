@@ -1,6 +1,7 @@
 #include "ad_string.h"
 
 #include <assert.h>
+#include <stddef.h>
 
 
 #define AD_ASSERT(expression) \
@@ -9,17 +10,11 @@
 #define UINT64_MAX_DIGITS 20
 
 
-#if !defined(AD_STRING_ALLOCATE) && !defined(AD_STRING_DEALLOCATE)
+#if !defined(AD_USE_CUSTOM_ALLOCATOR)
 
 #include <stdlib.h>
 
-#define AD_STRING_ALLOCATE(allocator, bytes) \
-    ad_string_allocate(allocator, bytes)
-
-#define AD_STRING_DEALLOCATE(allocator, block) \
-    ad_string_deallocate(allocator, block)
-
-static AdMemoryBlock ad_string_allocate(void* allocator, uint64_t bytes)
+AdMemoryBlock ad_string_allocate(void* allocator, uint64_t bytes)
 {
     (void) allocator;
     AdMemoryBlock block =
@@ -34,18 +29,14 @@ static AdMemoryBlock ad_string_allocate(void* allocator, uint64_t bytes)
     return block;
 }
 
-static bool ad_string_deallocate(void* allocator, AdMemoryBlock block)
+bool ad_string_deallocate(void* allocator, AdMemoryBlock block)
 {
     (void) allocator;
     free(block.memory);
     return true;
 }
 
-#elif defined(AD_STRING_ALLOCATE) != defined(AD_STRING_DEALLOCATE)
-
-#error AD_STRING_ALLOCATE and AD_STRING_DEALLOCATE must both be defined.
-
-#endif // !defined(AD_STRING_ALLOCATE) && !defined(AD_STRING_DEALLOCATE)
+#endif // !defined(AD_USE_CUSTOM_ALLOCATOR)
 
 
 static const int invalid_index = -1;
@@ -392,7 +383,7 @@ bool ad_c_string_deallocate_with_allocator(void* allocator, char* string)
         .memory = string,
         .bytes = string_size(string),
     };
-    return AD_STRING_DEALLOCATE(allocator, block);
+    return ad_string_deallocate(allocator, block);
 }
 
 
@@ -539,7 +530,7 @@ bool ad_string_destroy(AdString* string)
             .memory = string->big.contents,
             .bytes = string->big.cap,
         };
-        result = AD_STRING_DEALLOCATE(string->allocator, block);
+        result = ad_string_deallocate(string->allocator, block);
     }
 
     ad_string_initialise_with_allocator(string, string->allocator);
@@ -656,7 +647,7 @@ AdMaybeString ad_string_from_buffer_with_allocator(const char* buffer,
 
     if(cap > AD_STRING_SMALL_CAP)
     {
-        AdMemoryBlock block = AD_STRING_ALLOCATE(allocator, cap);
+        AdMemoryBlock block = ad_string_allocate(allocator, cap);
         char* copy = block.memory;
 
         if(!copy)
@@ -700,7 +691,7 @@ AdMaybeString ad_string_from_c_string_with_allocator(const char* original,
 
     if(cap > AD_STRING_SMALL_CAP)
     {
-        AdMemoryBlock block = AD_STRING_ALLOCATE(allocator, cap);
+        AdMemoryBlock block = ad_string_allocate(allocator, cap);
         char* copy = block.memory;
 
         if(!copy)
@@ -836,7 +827,7 @@ bool ad_string_reserve(AdString* string, int space)
     {
         int prior_cap = existing_cap;
         int cap = int_max(2 * prior_cap, needed_cap);
-        AdMemoryBlock block = AD_STRING_ALLOCATE(string->allocator, cap);
+        AdMemoryBlock block = ad_string_allocate(string->allocator, cap);
         char* contents = block.memory;
 
         if(!contents)
@@ -855,7 +846,7 @@ bool ad_string_reserve(AdString* string, int space)
                     .memory = prior_contents,
                     .bytes = string->big.cap,
                 };
-                AD_STRING_DEALLOCATE(string->allocator, block);
+                ad_string_deallocate(string->allocator, block);
             }
             else
             {
@@ -914,7 +905,7 @@ char* ad_string_to_c_string_with_allocator(const AdString* string,
 {
     AD_ASSERT(string);
 
-    AdMemoryBlock block = AD_STRING_ALLOCATE(allocator, string->count + 1);
+    AdMemoryBlock block = ad_string_allocate(allocator, string->count + 1);
     char* result = block.memory;
 
     if(!result)
@@ -973,9 +964,9 @@ bool ad_utf32_destroy_with_allocator(AdUtf32String* string, void* allocator)
     AdMemoryBlock block =
     {
         .memory = string->contents,
-        .bytes = string->count,
+        .bytes = sizeof(char32_t) * string->count,
     };
-    return AD_STRING_DEALLOCATE(allocator, block);
+    return ad_string_deallocate(allocator, block);
 }
 
 AdMaybeString ad_utf32_to_utf8(const AdUtf32String* string)
@@ -1094,7 +1085,7 @@ AdMaybeUtf32String ad_utf8_to_utf32(const AdString* string)
 
     int count = ad_utf8_codepoint_count(string) + 2;
     int bytes = sizeof(char32_t) * count;
-    AdMemoryBlock block = AD_STRING_ALLOCATE(string->allocator, bytes);
+    AdMemoryBlock block = ad_string_allocate(string->allocator, bytes);
     char32_t* result_contents = block.memory;
 
     if(!result_contents)

@@ -7,6 +7,7 @@
 
 
 #define AD_STRING_SMALL_CAP 16
+#define AD_USE_CUSTOM_ALLOCATOR
 
 
 typedef struct AdMemoryBlock
@@ -90,6 +91,9 @@ AdMaybeUint64 ad_ascii_uint64_from_string_range(const AdString* string,
 
 bool ad_c_string_deallocate(char* string);
 bool ad_c_string_deallocate_with_allocator(void* allocator, char* string);
+
+AdMemoryBlock ad_string_allocate(void* allocator, uint64_t bytes);
+bool ad_string_deallocate(void* allocator, AdMemoryBlock block);
 
 bool ad_string_add(AdString* to, const AdString* from, int index);
 bool ad_string_append(AdString* to, const AdString* from);

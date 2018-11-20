@@ -1,8 +1,3 @@
-#define AD_STRING_ALLOCATE(allocator, bytes) \
-        my_allocate(allocator, bytes)
-#define AD_STRING_DEALLOCATE(allocator, block) \
-        my_deallocate(allocator, block)
-
 #include "../../Source/ad_string.h"
 
 #include "random.h"
@@ -10,10 +5,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-
-AdMemoryBlock my_allocate(void* allocator_pointer, uint64_t bytes);
-bool my_deallocate(void* allocator_pointer, AdMemoryBlock block);
 
 
 #define ASSERT(expression) \
@@ -67,7 +58,7 @@ static AdMaybeString make_random_string(RandomGenerator* generator,
     int codepoint_count = random_int_range(generator, 1, 128);
     uint64_t bytes = sizeof(char32_t) * codepoint_count;
 
-    AdMemoryBlock block = AD_STRING_ALLOCATE(allocator, bytes);
+    AdMemoryBlock block = ad_string_allocate(allocator, bytes);
 
     if(!block.memory)
     {
@@ -258,6 +249,8 @@ static bool run_tests()
         bool failure = !run_test(&test);
         total_failed += failure;
         tests_failed[test_index] = failure;
+
+        ASSERT(test.allocator.bytes_used == 0);
     }
 
     FILE* file = stdout;
@@ -315,7 +308,7 @@ int main(int argc, const char** argv)
     return !success;
 }
 
-AdMemoryBlock my_allocate(void* allocator_pointer, uint64_t bytes)
+AdMemoryBlock ad_string_allocate(void* allocator_pointer, uint64_t bytes)
 {
     Allocator* allocator = (Allocator*) allocator_pointer;
     allocator->bytes_used += bytes;
@@ -334,7 +327,7 @@ AdMemoryBlock my_allocate(void* allocator_pointer, uint64_t bytes)
     return block;
 }
 
-bool my_deallocate(void* allocator_pointer, AdMemoryBlock block)
+bool ad_string_deallocate(void* allocator_pointer, AdMemoryBlock block)
 {
     Allocator* allocator = (Allocator*) allocator_pointer;
     allocator->bytes_used -= block.bytes;
