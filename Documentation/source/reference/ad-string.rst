@@ -1,6 +1,48 @@
 AdString
 ========
 
+* Types
+    * :c:type:`AdMaybeString`
+    * :c:type:`AdMemoryBlock`
+    * :c:type:`AdString`
+    * :c:type:`AdStringRange`
+* Functions
+    * C string
+        * :c:func:`ad_c_string_deallocate`
+        * :c:func:`ad_c_string_deallocate_with_allocator`
+    * Memory Allocation
+        * :c:func:`ad_string_allocate`
+        * :c:func:`ad_string_deallocate`
+    * String
+        * :c:func:`ad_string_add`
+        * :c:func:`ad_string_append`
+        * :c:func:`ad_string_append_c_string`
+        * :c:func:`ad_string_as_c_string`
+        * :c:func:`ad_string_assign`
+        * :c:func:`ad_string_copy`
+        * :c:func:`ad_string_destroy`
+        * :c:func:`ad_string_ends_with`
+        * :c:func:`ad_string_find_first_char`
+        * :c:func:`ad_string_find_first_string`
+        * :c:func:`ad_string_find_last_char`
+        * :c:func:`ad_string_find_last_string`
+        * :c:func:`ad_string_from_buffer`
+        * :c:func:`ad_string_from_buffer_with_allocator`
+        * :c:func:`ad_string_get_contents`
+        * :c:func:`ad_string_get_contents_const`
+        * :c:func:`ad_string_initialise`
+        * :c:func:`ad_string_initialise_with_allocator`
+        * :c:func:`ad_string_remove`
+        * :c:func:`ad_string_reserve`
+        * :c:func:`ad_string_starts_with`
+        * :c:func:`ad_string_substring`
+        * :c:func:`ad_string_to_c_string`
+        * :c:func:`ad_string_to_c_string_with_allocator`
+    * String Range
+        * :c:func:`ad_string_range_check`
+    * Strings
+        * :c:func:`ad_strings_match`
+
 Types
 -----
 
@@ -54,6 +96,9 @@ Types
 Functions
 ---------
 
+C String
+^^^^^^^^
+
 .. c:function:: bool ad_c_string_deallocate(char* string)
 
     Deallocate a :term:`C string` returned by :c:func:`ad_string_to_c_string`.
@@ -70,6 +115,9 @@ Functions
     :param allocator: the allocator
     :param string: the C string
     :return: true if the C string was deallocated
+
+Memory Allocation
+^^^^^^^^^^^^^^^^^
 
 .. c:function:: AdMemoryBlock ad_string_allocate(void* allocator, \
         uint64_t bytes)
@@ -100,6 +148,9 @@ Functions
         implementation.
     :param block: the block previously returned from
         :c:func:`ad_string_allocate` or an empty block
+
+String
+^^^^^^
     
 .. c:function:: bool ad_string_add(AdString* to, const AdString* from, \
         int index)
@@ -331,6 +382,9 @@ Functions
     :param string: the string
     :return: a C string or :c:macro:`NULL` if it fails to be copied
 
+String Range
+^^^^^^^^^^^^
+
 .. c:function:: bool ad_string_range_check(const AdString* string, \
         const AdStringRange* range)
 
@@ -339,6 +393,9 @@ Functions
     :param string: the string
     :param range: the range
     :return: true if the range is valid for the string
+
+Strings
+^^^^^^^
 
 .. c:function:: bool ad_strings_match(const AdString* a, const AdString* b)
 

@@ -6,14 +6,14 @@
 AdString
 ========
 
-Reference
----------
-
 .. toctree::
     :maxdepth: 2
-    :glob:
+    
+    reference/index.rst
 
-    reference/*
+.. toctree::
+    :hidden:
+
     glossary
     
 Indices and tables
