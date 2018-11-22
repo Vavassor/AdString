@@ -16,6 +16,7 @@ typedef enum TestType
     TEST_TYPE_ADD_END,
     TEST_TYPE_ADD_MIDDLE,
     TEST_TYPE_ADD_START,
+    TEST_TYPE_APPEND,
     TEST_TYPE_ASSIGN,
     TEST_TYPE_COPY,
     TEST_TYPE_FROM_BUFFER,
@@ -46,6 +47,7 @@ static const char* describe_test(TestType type)
         case TEST_TYPE_ADD_END:       return "Add End";
         case TEST_TYPE_ADD_MIDDLE:    return "Add Middle";
         case TEST_TYPE_ADD_START:     return "Add Start";
+        case TEST_TYPE_APPEND:        return "Append";
         case TEST_TYPE_ASSIGN:        return "Assign";
         case TEST_TYPE_COPY:          return "Copy";
         case TEST_TYPE_FROM_BUFFER:   return "From Buffer";
@@ -209,6 +211,29 @@ static bool test_add_start(Test* test)
     return result;
 }
 
+static bool test_append(Test* test)
+{
+    const char* a = u8"a猫🍌";
+    const char* b = u8"a猫🍌";
+    AdMaybeString base =
+            ad_string_from_c_string_with_allocator(a, &test->allocator);
+    AdMaybeString extension =
+                ad_string_from_c_string_with_allocator(b, &test->allocator);
+    ASSERT(base.valid);
+    ASSERT(extension.valid);
+
+    bool appended = ad_string_append(&base.value, &extension.value);
+    ASSERT(appended);
+
+    const char* combined = ad_string_as_c_string(&base.value);
+    bool result = strings_match(combined, u8"a猫🍌a猫🍌");
+
+    ad_string_destroy(&base.value);
+    ad_string_destroy(&extension.value);
+
+    return result;
+}
+
 static bool test_assign(Test* test)
 {
     const char* reference = u8"a猫🍌";
@@ -297,6 +322,7 @@ static bool run_test(Test* test)
         case TEST_TYPE_ADD_END:       return test_add_end(test);
         case TEST_TYPE_ADD_MIDDLE:    return test_add_middle(test);
         case TEST_TYPE_ADD_START:     return test_add_start(test);
+        case TEST_TYPE_APPEND:        return test_append(test);
         case TEST_TYPE_ASSIGN:        return test_assign(test);
         case TEST_TYPE_COPY:          return test_copy(test);
         case TEST_TYPE_FROM_BUFFER:   return test_from_buffer(test);
@@ -314,6 +340,7 @@ static bool run_tests()
         TEST_TYPE_ADD_END,
         TEST_TYPE_ADD_MIDDLE,
         TEST_TYPE_ADD_START,
+        TEST_TYPE_APPEND,
         TEST_TYPE_ASSIGN,
         TEST_TYPE_COPY,
         TEST_TYPE_FROM_BUFFER,
