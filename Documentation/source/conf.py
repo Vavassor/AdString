@@ -115,9 +115,10 @@ html_theme = 'alabaster'
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
+    "description": "A growable string library for C11",
     "github_user": "Vavassor",
     "github_repo": "AdString",
-    "description": "A growable string library for C11"
+    "show_related": True,
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -162,8 +163,8 @@ html_sidebars = {
     "**": [
         "about.html",
         "localtoc.html",
-        "sourcelink.html",
         "relations.html",
+        "sourcelink.html",
         "searchbox.html",
     ]
 }
