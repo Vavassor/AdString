@@ -114,7 +114,11 @@ html_theme = 'alabaster'
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#html_theme_options = {}
+html_theme_options = {
+    "github_user": "Vavassor",
+    "github_repo": "AdString",
+    "description": "A growable string library for C11"
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
@@ -154,7 +158,15 @@ html_static_path = ['_static']
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
+html_sidebars = {
+    "**": [
+        "about.html",
+        "localtoc.html",
+        "sourcelink.html",
+        "relations.html",
+        "searchbox.html",
+    ]
+}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.

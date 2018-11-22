@@ -14,10 +14,12 @@ Reference
     :glob:
 
     reference/*
-
+    glossary
+    
 Indices and tables
 ==================
 
+* :ref:`glossary`
 * :ref:`genindex`
 * :ref:`search`
 

@@ -4,19 +4,6 @@ AdString
 Types
 -----
 
-.. c:type:: AdString
-
-    A growable string of bytes. It's expected to be UTF-8 encoded, but its basic
-    functions don't enforce any encoding.
-
-    .. c:member:: void* allocator
-
-        The :ref:`allocator <glossary-allocator>` for the string.
-
-    .. c:member:: int count
-
-        The number of bytes in the string.
-
 .. c:type:: AdMaybeString
 
     An optional type representing either a string or nothing.
@@ -28,6 +15,29 @@ Types
     .. c:member:: AdString value
 
         A string that may be invalid.
+
+.. c:type:: AdMemoryBlock
+
+    .. c:member:: void* memory
+
+        The block's contents or :c:macro:`NULL` if the block is empty.
+
+    .. c:member:: uint64_t bytes
+
+        The number of bytes of memory in the block.
+
+.. c:type:: AdString
+
+    A growable string of bytes. It's expected to be UTF-8 encoded, but its basic
+    functions don't enforce any encoding.
+
+    .. c:member:: void* allocator
+
+        The :term:`allocator` for the string.
+
+    .. c:member:: int count
+
+        The number of bytes in the string.
 
 .. c:type:: AdStringRange
 
@@ -43,6 +53,53 @@ Types
 
 Functions
 ---------
+
+.. c:function:: bool ad_c_string_deallocate(char* string)
+
+    Deallocate a :term:`C string` returned by :c:func:`ad_string_to_c_string`.
+
+    :param string: the C string
+    :return: true if the C string was deallocated
+
+.. c:function:: bool ad_c_string_deallocate_with_allocator(void* allocator, \
+        char* string)
+
+    Deallocate a :term:`C string` returned by
+    :c:func:`ad_string_to_c_string_with_allocator`.
+
+    :param allocator: the allocator
+    :param string: the C string
+    :return: true if the C string was deallocated
+
+.. c:function:: AdMemoryBlock ad_string_allocate(void* allocator, \
+        uint64_t bytes)
+
+    Allocate a block of memory.
+
+    This function may be used-defined as described in
+    :doc:`custom-memory-management`. Otherwise, the default implementation of
+    this function will use :c:func:`calloc` to get the required memory.
+
+    :param allocator: The allocator to get the block from, or :c:macro:`NULL`
+        if no allocator is being used. Pass :c:macro:`NULL` when using the
+        default implementation.
+    :param bytes: the number of bytes required for the block
+    :return: a block with the requested number of bytes of memory, or an empty
+        block if it fails
+
+.. c:function:: bool ad_string_deallocate(void* allocator, AdMemoryBlock block)
+
+    Deallocate a block of memory.
+
+    This function may be used-defined as described in
+    :doc:`custom-memory-management`. Otherwise, the default implementation of
+    this function will use :c:func:`free` to release the memory.
+
+    :param allocator: The allocator to give the block to, or :c:macro:`NULL` if
+        no allocator is being used. Pass :c:macro:`NULL` when using the default
+        implementation.
+    :param block: the block previously returned from
+        :c:func:`ad_string_allocate` or an empty block
     
 .. c:function:: bool ad_string_add(AdString* to, const AdString* from, \
         int index)
@@ -63,7 +120,7 @@ Functions
 
 .. c:function:: bool ad_string_append_c_string(AdString* to, const char* from)
 
-    Add a :ref:`C string <glossary-c-string>` to the end of a string.
+    Add a :term:`C string` to the end of a string.
 
     :param to: the recieving string
     :param from: the appended string
@@ -71,7 +128,7 @@ Functions
 
 .. c:function:: const char* ad_string_as_c_string(const AdString* string)
 
-    Get the contents of the string as a :ref:`C string <glossary-c-string>`.
+    Get the contents of the string as a :term:`C string`.
 
     The C string only remains valid as long as the original string isn't
     modified.
@@ -112,11 +169,11 @@ Functions
 
 .. c:function:: int ad_string_find_first_char(const AdString* string, char c)
 
-    Find the first location of a ``char`` in a string.
+    Find the first location of a :c:type:`char` in a string.
 
     :param string: the string
-    :param c: the ``char`` to find
-    :return: the byte index of the ``char``, or -1 if it isn't found
+    :param c: the :c:type:`char` to find
+    :return: the byte index of the :c:type:`char`, or -1 if it isn't found
 
 .. c:function:: int ad_string_find_first_string(const AdString* string, \
         const AdString* lookup)
@@ -130,11 +187,11 @@ Functions
 
 .. c:function:: int ad_string_find_last_char(const AdString* string, char c)
 
-    Find the last location of a ``char`` in a string.
+    Find the last location of a :c:type:`char` in a string.
 
     :param string: the string
-    :param c: the ``char`` to find
-    :return: the byte index of the ``char``, or -1 if it isn't found
+    :param c: the :c:type:`char` to find
+    :return: the byte index of the :c:type:`char`, or -1 if it isn't found
 
 .. c:function:: int ad_string_find_last_string(const AdString* string, \
         const AdString* lookup)
@@ -159,7 +216,7 @@ Functions
         const char* buffer, int bytes, void* allocator)
 
     Create a string from an array of bytes and associate it with an
-    :ref:`allocator <glossary-allocator>`.
+    :term:`allocator`.
 
     :param buffer: the byte array
     :param bytes: the number of bytes
@@ -168,7 +225,7 @@ Functions
 
 .. c:function:: AdMaybeString ad_string_from_c_string(const char* original)
 
-    Create a string from a :ref:`C string <glossary-c-string>`.
+    Create a string from a :term:`C string`.
 
     :param original: the C string
     :return: a string
@@ -176,8 +233,8 @@ Functions
 .. c:function:: AdMaybeString ad_string_from_c_string_with_allocator( \
         const char* original, void* allocator)
 
-    Create a string from a :ref:`C string <glossary-c-string>` and associate it
-    with an :ref:`allocator <glossary-allocator>`.
+    Create a string from a :term:`C string` and associate it with an
+    :term:`allocator`.
 
     :param original: the C string
     :param allocator: the allocator
@@ -214,7 +271,7 @@ Functions
         void* allocator)
 
     Initialise a string with no contents and associate it with an
-    :ref:`allocator <glossary-allocator>`.
+    :term:`allocator`.
 
     :param string: the string
 
@@ -252,21 +309,42 @@ Functions
     :param range: the range
     :return: a substring
 
-.. _glossary-allocator:
+.. c:function:: char* ad_string_to_c_string(const AdString* string)
 
-Allocator
-=========
+    Create a copy of a string as a :term:`C string`.
 
-An allocator is any user-specified structure used for memory allocation. This is
-intended for any custom memory management that's tied to a local structure.
-Global allocation functions like ``malloc`` and ``free`` can ignore allocator
-usage, or pass ``NULL`` as an allocator.
+    The returned C string should be deallocated using
+    :c:func:`ad_c_string_deallocate`.
 
-.. _glossary-c-string:
+    :param string: the string
+    :return: a C string or :c:macro:`NULL` if it fails to be copied
 
-C String
-========
+.. c:function:: char* ad_string_to_c_string_with_allocator( \
+        const AdString* string, void* allocator)
 
-C strings are the form of string that string literals in C and C++ use. They're
-an array of characters followed by a single null character.
+    Create a copy of a string as a :term:`C string` and
+    associate it with an :term:`allocator`.
 
+    The returned C string should be deallocated using
+    :c:func:`ad_c_string_deallocate_with_allocator`.
+
+    :param string: the string
+    :return: a C string or :c:macro:`NULL` if it fails to be copied
+
+.. c:function:: bool ad_string_range_check(const AdString* string, \
+        const AdStringRange* range)
+
+    Determine if a range is valid and within the bounds of a string.
+
+    :param string: the string
+    :param range: the range
+    :return: true if the range is valid for the string
+
+.. c:function:: bool ad_strings_match(const AdString* a, const AdString* b)
+
+    Determine if two strings' contents are exactly the same.
+
+    :param a: the first string
+    :param b: the second string
+    :return: true if the strings match
+        
