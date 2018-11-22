@@ -13,6 +13,9 @@
 
 typedef enum TestType
 {
+    TEST_TYPE_ADD_END,
+    TEST_TYPE_ADD_MIDDLE,
+    TEST_TYPE_ADD_START,
     TEST_TYPE_ASSIGN,
     TEST_TYPE_COPY,
     TEST_TYPE_FROM_BUFFER,
@@ -40,6 +43,9 @@ static const char* describe_test(TestType type)
 {
     switch(type)
     {
+        case TEST_TYPE_ADD_END:       return "Add End";
+        case TEST_TYPE_ADD_MIDDLE:    return "Add Middle";
+        case TEST_TYPE_ADD_START:     return "Add Start";
         case TEST_TYPE_ASSIGN:        return "Assign";
         case TEST_TYPE_COPY:          return "Copy";
         case TEST_TYPE_FROM_BUFFER:   return "From Buffer";
@@ -130,6 +136,79 @@ static bool strings_match(const char* a, const char* b)
     return *a == *b;
 }
 
+static bool test_add_end(Test* test)
+{
+    const char* chicken = u8"курица";
+    const char* egg = u8"蛋";
+
+    AdMaybeString outer =
+            ad_string_from_c_string_with_allocator(chicken, &test->allocator);
+    AdMaybeString inner =
+            ad_string_from_c_string_with_allocator(egg, &test->allocator);
+    ASSERT(outer.valid);
+    ASSERT(inner.valid);
+
+    bool combined = ad_string_add(&outer.value, &inner.value,
+            string_size(chicken));
+    ASSERT(combined);
+
+    const char* contents = ad_string_as_c_string(&outer.value);
+    bool result = strings_match(contents, u8"курица蛋");
+
+    ad_string_destroy(&outer.value);
+    ad_string_destroy(&inner.value);
+
+    return result;
+}
+
+static bool test_add_middle(Test* test)
+{
+    const char* chicken = u8"курица";
+    const char* egg = u8"蛋";
+
+    AdMaybeString outer =
+            ad_string_from_c_string_with_allocator(chicken, &test->allocator);
+    AdMaybeString inner =
+            ad_string_from_c_string_with_allocator(egg, &test->allocator);
+    ASSERT(outer.valid);
+    ASSERT(inner.valid);
+
+    bool combined = ad_string_add(&outer.value, &inner.value, 4);
+    ASSERT(combined);
+
+    const char* contents = ad_string_as_c_string(&outer.value);
+    bool result = strings_match(contents, u8"ку蛋рица");
+
+    ad_string_destroy(&outer.value);
+    ad_string_destroy(&inner.value);
+
+    return result;
+}
+
+static bool test_add_start(Test* test)
+{
+    const char* chicken = u8"курица";
+    const char* egg = u8"蛋";
+
+    AdMaybeString outer =
+            ad_string_from_c_string_with_allocator(chicken, &test->allocator);
+    AdMaybeString inner =
+            ad_string_from_c_string_with_allocator(egg, &test->allocator);
+    ASSERT(outer.valid);
+    ASSERT(inner.valid);
+
+    bool combined = ad_string_add(&outer.value, &inner.value, 0);
+    ASSERT(combined);
+
+    const char* contents = ad_string_as_c_string(&outer.value);
+    bool result = strings_match(contents, u8"蛋курица");
+
+    ad_string_destroy(&outer.value);
+    ad_string_destroy(&inner.value);
+
+    return result;
+}
+
 static bool test_assign(Test* test)
 {
     const char* reference = u8"a猫🍌";
@@ -215,6 +294,9 @@ static bool run_test(Test* test)
 {
     switch(test->type)
     {
+        case TEST_TYPE_ADD_END:       return test_add_end(test);
+        case TEST_TYPE_ADD_MIDDLE:    return test_add_middle(test);
+        case TEST_TYPE_ADD_START:     return test_add_start(test);
         case TEST_TYPE_ASSIGN:        return test_assign(test);
         case TEST_TYPE_COPY:          return test_copy(test);
         case TEST_TYPE_FROM_BUFFER:   return test_from_buffer(test);
@@ -229,6 +311,9 @@ static bool run_tests()
 {
     TestType tests[TEST_TYPE_COUNT] =
     {
+        TEST_TYPE_ADD_END,
+        TEST_TYPE_ADD_MIDDLE,
+        TEST_TYPE_ADD_START,
         TEST_TYPE_ASSIGN,
         TEST_TYPE_COPY,
         TEST_TYPE_FROM_BUFFER,
