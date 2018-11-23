@@ -5,5 +5,7 @@ ad_string_initialise
 
     Initialise a string with no contents.
 
+    The string is not associated with an :term:`allocator`.
+
     :param string: the string
 
