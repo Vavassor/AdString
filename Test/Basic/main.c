@@ -74,7 +74,11 @@ static const char* describe_test(TestType type)
         case TEST_TYPE_FUZZ_ASSIGN:       return "Fuzz Assign";
         case TEST_TYPE_GET_CONTENTS:      return "Get Contents";
         case TEST_TYPE_INITIALISE:        return "Initialise";
-        default:                          return "Unknown";
+        default:
+        {
+            ASSERT(false);
+            return "Unknown";
+        }
     }
 }
 
@@ -536,7 +540,11 @@ static bool run_test(Test* test)
         case TEST_TYPE_FUZZ_ASSIGN:       return fuzz_assign(test);
         case TEST_TYPE_GET_CONTENTS:      return test_get_contents(test);
         case TEST_TYPE_INITIALISE:        return test_initialise(test);
-        case TEST_TYPE_COUNT:             return false;
+        default:
+        {
+            ASSERT(false);
+            return false;
+        }
     }
 }
 
