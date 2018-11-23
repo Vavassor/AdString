@@ -3,6 +3,8 @@ AdMemoryBlock
 
 .. c:type:: AdMemoryBlock
 
+    A fixed region of allocated memory.
+
     .. c:member:: void* memory
 
         The block's contents or :c:macro:`NULL` if the block is empty.

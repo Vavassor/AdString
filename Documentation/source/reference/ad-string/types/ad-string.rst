@@ -8,9 +8,14 @@ AdString
 
     .. c:member:: void* allocator
 
-        The :term:`allocator` for the string.
+        The :term:`allocator` for the string or :c:macro:`NULL` when no
+        allocator is associated.
+
+        This member is read-only.
 
     .. c:member:: int count
 
         The number of bytes in the string.
+
+        This member is read-only.
 
