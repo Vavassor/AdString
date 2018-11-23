@@ -17,8 +17,11 @@ typedef enum TestType
     TEST_TYPE_ADD_MIDDLE,
     TEST_TYPE_ADD_START,
     TEST_TYPE_APPEND,
+    TEST_TYPE_APPEND_C_STRING,
+    TEST_TYPE_AS_C_STRING,
     TEST_TYPE_ASSIGN,
     TEST_TYPE_COPY,
+    TEST_TYPE_ENDS_WITH,
     TEST_TYPE_FROM_BUFFER,
     TEST_TYPE_FROM_C_STRING,
     TEST_TYPE_FUZZ_ASSIGN,
@@ -30,11 +33,13 @@ typedef enum TestType
 typedef struct Allocator
 {
     uint64_t bytes_used;
+    bool force_allocation_failure;
 } Allocator;
 
 typedef struct Test
 {
     Allocator allocator;
+    Allocator bad_allocator;
     RandomGenerator generator;
     TestType type;
 } Test;
@@ -44,17 +49,20 @@ static const char* describe_test(TestType type)
 {
     switch(type)
     {
-        case TEST_TYPE_ADD_END:       return "Add End";
-        case TEST_TYPE_ADD_MIDDLE:    return "Add Middle";
-        case TEST_TYPE_ADD_START:     return "Add Start";
-        case TEST_TYPE_APPEND:        return "Append";
-        case TEST_TYPE_ASSIGN:        return "Assign";
-        case TEST_TYPE_COPY:          return "Copy";
-        case TEST_TYPE_FROM_BUFFER:   return "From Buffer";
-        case TEST_TYPE_FROM_C_STRING: return "From C String";
-        case TEST_TYPE_FUZZ_ASSIGN:   return "Fuzz Assign";
-        case TEST_TYPE_INITIALISE:    return "Initialise";
-        default:                      return "Unknown";
+        case TEST_TYPE_ADD_END:         return "Add End";
+        case TEST_TYPE_ADD_MIDDLE:      return "Add Middle";
+        case TEST_TYPE_ADD_START:       return "Add Start";
+        case TEST_TYPE_APPEND:          return "Append";
+        case TEST_TYPE_APPEND_C_STRING: return "Append C String";
+        case TEST_TYPE_AS_C_STRING:     return "As C String";
+        case TEST_TYPE_ASSIGN:          return "Assign";
+        case TEST_TYPE_COPY:            return "Copy";
+        case TEST_TYPE_ENDS_WITH:       return "Ends With";
+        case TEST_TYPE_FROM_BUFFER:     return "From Buffer";
+        case TEST_TYPE_FROM_C_STRING:   return "From C String";
+        case TEST_TYPE_FUZZ_ASSIGN:     return "Fuzz Assign";
+        case TEST_TYPE_INITIALISE:      return "Initialise";
+        default:                        return "Unknown";
     }
 }
 
@@ -155,7 +163,9 @@ static bool test_add_end(Test* test)
     ASSERT(combined);
 
     const char* contents = ad_string_as_c_string(&outer.value);
-    bool result = strings_match(contents, u8"курица蛋");
+    bool contents_match = strings_match(contents, u8"курица蛋");
+    bool size_correct = outer.value.count == string_size(contents);
+    bool result = contents_match && size_correct;
 
     ad_string_destroy(&outer.value);
     ad_string_destroy(&inner.value);
@@ -179,7 +189,9 @@ static bool test_add_middle(Test* test)
     ASSERT(combined);
 
     const char* contents = ad_string_as_c_string(&outer.value);
-    bool result = strings_match(contents, u8"ку蛋рица");
+    bool contents_match = strings_match(contents, u8"ку蛋рица");
+    bool size_correct = outer.value.count == string_size(contents);
+    bool result = contents_match && size_correct;
 
     ad_string_destroy(&outer.value);
     ad_string_destroy(&inner.value);
@@ -203,7 +215,9 @@ static bool test_add_start(Test* test)
     ASSERT(combined);
 
     const char* contents = ad_string_as_c_string(&outer.value);
-    bool result = strings_match(contents, u8"蛋курица");
+    bool contents_match = strings_match(contents, u8"蛋курица");
+    bool size_correct = outer.value.count == string_size(contents);
+    bool result = contents_match && size_correct;
 
     ad_string_destroy(&outer.value);
     ad_string_destroy(&inner.value);
@@ -226,10 +240,49 @@ static bool test_append(Test* test)
     ASSERT(appended);
 
     const char* combined = ad_string_as_c_string(&base.value);
-    bool result = strings_match(combined, u8"a猫🍌a猫🍌");
+    bool contents_match = strings_match(combined, u8"a猫🍌a猫🍌");
+    bool size_correct = base.value.count == string_size(combined);
+    bool result = contents_match && size_correct;
 
     ad_string_destroy(&base.value);
     ad_string_destroy(&extension.value);
+
+    return result;
+}
+
+static bool test_append_c_string(Test* test)
+{
+    const char* a = u8"👌🏼";
+    const char* b = u8"🙋🏾‍♀️";
+    AdMaybeString base =
+            ad_string_from_c_string_with_allocator(a, &test->allocator);
+    ASSERT(base.valid);
+
+    bool appended = ad_string_append_c_string(&base.value, b);
+    ASSERT(appended);
+
+    const char* combined = ad_string_as_c_string(&base.value);
+    bool contents_match = strings_match(combined, u8"👌🏼🙋🏾‍♀️");
+    bool size_correct = base.value.count == string_size(combined);
+    bool result = contents_match && size_correct;
+
+    ad_string_destroy(&base.value);
+
+    return result;
+}
+
+static bool test_as_c_string(Test* test)
+{
+    const char* original = u8"👌🏼";
+    AdMaybeString string =
+            ad_string_from_c_string_with_allocator(original, &test->allocator);
+    ASSERT(string.valid);
+
+    const char* after = ad_string_as_c_string(&string.value);
+
+    bool result = strings_match(original, after);
+
+    ad_string_destroy(&string.value);
 
     return result;
 }
@@ -257,19 +310,41 @@ static bool test_assign(Test* test)
 static bool test_copy(Test* test)
 {
     const char* reference = u8"a猫🍌";
+
     AdMaybeString original =
             ad_string_from_c_string_with_allocator(reference, &test->allocator);
     AdMaybeString copy = ad_string_copy(&original.value);
+    ASSERT(original.valid);
+    ASSERT(copy.valid);
+
     const char* original_contents = ad_string_as_c_string(&original.value);
     const char* copy_contents = ad_string_as_c_string(&copy.value);
 
-    bool result = copy.valid
-            && strings_match(original_contents, copy_contents)
+    bool result = strings_match(original_contents, copy_contents)
             && original.value.count == copy.value.count
             && original.value.allocator == copy.value.allocator;
 
     ad_string_destroy(&original.value);
     ad_string_destroy(&copy.value);
+
+    return result;
+}
+
+static bool test_ends_with(Test* test)
+{
+    const char* a = u8"Wow a猫🍌";
+    const char* b = u8"a猫🍌";
+    AdMaybeString string =
+            ad_string_from_c_string_with_allocator(a, &test->allocator);
+    AdMaybeString ending =
+            ad_string_from_c_string_with_allocator(b, &test->allocator);
+    ASSERT(string.valid);
+    ASSERT(ending.valid);
+
+    bool result = ad_string_ends_with(&string.value, &ending.value);
+
+    ad_string_destroy(&string.value);
+    ad_string_destroy(&ending.value);
 
     return result;
 }
@@ -306,7 +381,6 @@ static bool test_from_buffer(Test* test)
     return result;
 }
 
-
 static bool test_initialise(Test* test)
 {
     AdString string;
@@ -319,17 +393,20 @@ static bool run_test(Test* test)
 {
     switch(test->type)
     {
-        case TEST_TYPE_ADD_END:       return test_add_end(test);
-        case TEST_TYPE_ADD_MIDDLE:    return test_add_middle(test);
-        case TEST_TYPE_ADD_START:     return test_add_start(test);
-        case TEST_TYPE_APPEND:        return test_append(test);
-        case TEST_TYPE_ASSIGN:        return test_assign(test);
-        case TEST_TYPE_COPY:          return test_copy(test);
-        case TEST_TYPE_FROM_BUFFER:   return test_from_buffer(test);
-        case TEST_TYPE_FROM_C_STRING: return test_from_c_string(test);
-        case TEST_TYPE_FUZZ_ASSIGN:   return fuzz_assign(test);
-        case TEST_TYPE_INITIALISE:    return test_initialise(test);
-        default:                      return false;
+        case TEST_TYPE_ADD_END:         return test_add_end(test);
+        case TEST_TYPE_ADD_MIDDLE:      return test_add_middle(test);
+        case TEST_TYPE_ADD_START:       return test_add_start(test);
+        case TEST_TYPE_APPEND:          return test_append(test);
+        case TEST_TYPE_APPEND_C_STRING: return test_append_c_string(test);
+        case TEST_TYPE_AS_C_STRING:     return test_as_c_string(test);
+        case TEST_TYPE_ASSIGN:          return test_assign(test);
+        case TEST_TYPE_COPY:            return test_copy(test);
+        case TEST_TYPE_ENDS_WITH:       return test_ends_with(test);
+        case TEST_TYPE_FROM_BUFFER:     return test_from_buffer(test);
+        case TEST_TYPE_FROM_C_STRING:   return test_from_c_string(test);
+        case TEST_TYPE_FUZZ_ASSIGN:     return fuzz_assign(test);
+        case TEST_TYPE_INITIALISE:      return test_initialise(test);
+        default:                        return false;
     }
 }
 
@@ -341,8 +418,11 @@ static bool run_tests()
         TEST_TYPE_ADD_MIDDLE,
         TEST_TYPE_ADD_START,
         TEST_TYPE_APPEND,
+        TEST_TYPE_APPEND_C_STRING,
+        TEST_TYPE_AS_C_STRING,
         TEST_TYPE_ASSIGN,
         TEST_TYPE_COPY,
+        TEST_TYPE_ENDS_WITH,
         TEST_TYPE_FROM_BUFFER,
         TEST_TYPE_FUZZ_ASSIGN,
         TEST_TYPE_FROM_C_STRING,
@@ -355,6 +435,7 @@ static bool run_tests()
     {
         Test test = {0};
         test.type = tests[test_index];
+        test.bad_allocator.force_allocation_failure = true;
 
         random_seed_by_time(&test.generator);
 
@@ -423,6 +504,17 @@ int main(int argc, const char** argv)
 AdMemoryBlock ad_string_allocate(void* allocator_pointer, uint64_t bytes)
 {
     Allocator* allocator = (Allocator*) allocator_pointer;
+
+    if(allocator->force_allocation_failure)
+    {
+        AdMemoryBlock empty =
+        {
+            .memory = NULL,
+            .bytes = 0,
+        };
+        return empty;
+    }
+
     allocator->bytes_used += bytes;
 
     AdMemoryBlock block =
