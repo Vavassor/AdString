@@ -21,6 +21,7 @@ typedef enum TestType
     TEST_TYPE_AS_C_STRING,
     TEST_TYPE_ASSIGN,
     TEST_TYPE_COPY,
+    TEST_TYPE_DESTROY,
     TEST_TYPE_ENDS_WITH,
     TEST_TYPE_FIND_FIRST_CHAR,
     TEST_TYPE_FIND_FIRST_STRING,
@@ -29,6 +30,7 @@ typedef enum TestType
     TEST_TYPE_FROM_BUFFER,
     TEST_TYPE_FROM_C_STRING,
     TEST_TYPE_FUZZ_ASSIGN,
+    TEST_TYPE_GET_CONTENTS,
     TEST_TYPE_INITIALISE,
     TEST_TYPE_COUNT,
 } TestType;
@@ -61,6 +63,7 @@ static const char* describe_test(TestType type)
         case TEST_TYPE_AS_C_STRING:       return "As C String";
         case TEST_TYPE_ASSIGN:            return "Assign";
         case TEST_TYPE_COPY:              return "Copy";
+        case TEST_TYPE_DESTROY:           return "Destroy";
         case TEST_TYPE_ENDS_WITH:         return "Ends With";
         case TEST_TYPE_FIND_FIRST_CHAR:   return "Find First Char";
         case TEST_TYPE_FIND_FIRST_STRING: return "Find First String";
@@ -69,6 +72,7 @@ static const char* describe_test(TestType type)
         case TEST_TYPE_FROM_BUFFER:       return "From Buffer";
         case TEST_TYPE_FROM_C_STRING:     return "From C String";
         case TEST_TYPE_FUZZ_ASSIGN:       return "Fuzz Assign";
+        case TEST_TYPE_GET_CONTENTS:      return "Get Contents";
         case TEST_TYPE_INITIALISE:        return "Initialise";
         default:                          return "Unknown";
     }
@@ -338,6 +342,20 @@ static bool test_copy(Test* test)
     return result;
 }
 
+static bool test_destroy(Test* test)
+{
+    const char* reference = "Moist";
+    AdMaybeString original =
+            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    ASSERT(original.valid);
+
+    bool destroyed = ad_string_destroy(&original.value);
+
+    return destroyed
+            && original.value.count == 0
+            && original.value.allocator == &test->allocator;
+}
+
 static bool test_ends_with(Test* test)
 {
     const char* a = u8"Wow a猫🍌";
@@ -359,7 +377,7 @@ static bool test_ends_with(Test* test)
 
 static bool test_find_first_char(Test* test)
 {
-    const char* a = u8"a A AA s";
+    const char* a = "a A AA s";
     int known_index = 2;
 
     AdMaybeString string =
@@ -400,7 +418,7 @@ static bool test_find_first_string(Test* test)
 
 static bool test_find_last_char(Test* test)
 {
-    const char* a = u8"a A AA s";
+    const char* a = "a A AA s";
     int known_index = 5;
 
     AdMaybeString string =
@@ -471,6 +489,22 @@ static bool test_from_buffer(Test* test)
     return result;
 }
 
+static bool test_get_contents(Test* test)
+{
+    const char* reference = "Test me in the most basic way possible.";
+    AdMaybeString string =
+            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    ASSERT(string.valid);
+
+    char* contents = ad_string_get_contents(&string.value);
+
+    bool result = contents && strings_match(contents, reference);
+
+    ad_string_destroy(&string.value);
+
+    return result;
+}
+
 static bool test_initialise(Test* test)
 {
     AdString string;
@@ -491,6 +525,7 @@ static bool run_test(Test* test)
         case TEST_TYPE_AS_C_STRING:       return test_as_c_string(test);
         case TEST_TYPE_ASSIGN:            return test_assign(test);
         case TEST_TYPE_COPY:              return test_copy(test);
+        case TEST_TYPE_DESTROY:           return test_destroy(test);
         case TEST_TYPE_ENDS_WITH:         return test_ends_with(test);
         case TEST_TYPE_FIND_FIRST_CHAR:   return test_find_first_char(test);
         case TEST_TYPE_FIND_FIRST_STRING: return test_find_first_string(test);
@@ -499,40 +534,21 @@ static bool run_test(Test* test)
         case TEST_TYPE_FROM_BUFFER:       return test_from_buffer(test);
         case TEST_TYPE_FROM_C_STRING:     return test_from_c_string(test);
         case TEST_TYPE_FUZZ_ASSIGN:       return fuzz_assign(test);
+        case TEST_TYPE_GET_CONTENTS:      return test_get_contents(test);
         case TEST_TYPE_INITIALISE:        return test_initialise(test);
-        default:                          return false;
+        case TEST_TYPE_COUNT:             return false;
     }
 }
 
 static bool run_tests()
 {
-    TestType tests[TEST_TYPE_COUNT] =
-    {
-        TEST_TYPE_ADD_END,
-        TEST_TYPE_ADD_MIDDLE,
-        TEST_TYPE_ADD_START,
-        TEST_TYPE_APPEND,
-        TEST_TYPE_APPEND_C_STRING,
-        TEST_TYPE_AS_C_STRING,
-        TEST_TYPE_ASSIGN,
-        TEST_TYPE_COPY,
-        TEST_TYPE_ENDS_WITH,
-        TEST_TYPE_FIND_FIRST_CHAR,
-        TEST_TYPE_FIND_FIRST_STRING,
-        TEST_TYPE_FIND_LAST_CHAR,
-        TEST_TYPE_FIND_LAST_STRING,
-        TEST_TYPE_FROM_BUFFER,
-        TEST_TYPE_FROM_C_STRING,
-        TEST_TYPE_FUZZ_ASSIGN,
-        TEST_TYPE_INITIALISE,
-    };
     bool tests_failed[TEST_TYPE_COUNT];
     int total_failed = 0;
 
     for(int test_index = 0; test_index < TEST_TYPE_COUNT; test_index += 1)
     {
         Test test = {0};
-        test.type = tests[test_index];
+        test.type = (TestType) test_index;
         test.bad_allocator.force_allocation_failure = true;
 
         random_seed_by_time(&test.generator);
@@ -576,7 +592,8 @@ static bool run_tests()
 
             if(tests_failed[test_index])
             {
-                const char* test = describe_test(tests[test_index]);
+                TestType type = (TestType) test_index;
+                const char* test = describe_test(type);
                 fprintf(file, "%s%s%s", separator, also, test);
                 printed += 1;
             }
@@ -601,6 +618,8 @@ int main(int argc, const char** argv)
 
 AdMemoryBlock ad_string_allocate(void* allocator_pointer, uint64_t bytes)
 {
+    ASSERT(allocator_pointer);
+
     Allocator* allocator = (Allocator*) allocator_pointer;
 
     if(allocator->force_allocation_failure)
@@ -631,6 +650,8 @@ AdMemoryBlock ad_string_allocate(void* allocator_pointer, uint64_t bytes)
 
 bool ad_string_deallocate(void* allocator_pointer, AdMemoryBlock block)
 {
+    ASSERT(allocator_pointer);
+
     Allocator* allocator = (Allocator*) allocator_pointer;
     allocator->bytes_used -= block.bytes;
 
