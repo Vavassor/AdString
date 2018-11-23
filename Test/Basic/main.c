@@ -22,6 +22,10 @@ typedef enum TestType
     TEST_TYPE_ASSIGN,
     TEST_TYPE_COPY,
     TEST_TYPE_ENDS_WITH,
+    TEST_TYPE_FIND_FIRST_CHAR,
+    TEST_TYPE_FIND_FIRST_STRING,
+    TEST_TYPE_FIND_LAST_STRING,
+    TEST_TYPE_FIND_LAST_CHAR,
     TEST_TYPE_FROM_BUFFER,
     TEST_TYPE_FROM_C_STRING,
     TEST_TYPE_FUZZ_ASSIGN,
@@ -49,20 +53,24 @@ static const char* describe_test(TestType type)
 {
     switch(type)
     {
-        case TEST_TYPE_ADD_END:         return "Add End";
-        case TEST_TYPE_ADD_MIDDLE:      return "Add Middle";
-        case TEST_TYPE_ADD_START:       return "Add Start";
-        case TEST_TYPE_APPEND:          return "Append";
-        case TEST_TYPE_APPEND_C_STRING: return "Append C String";
-        case TEST_TYPE_AS_C_STRING:     return "As C String";
-        case TEST_TYPE_ASSIGN:          return "Assign";
-        case TEST_TYPE_COPY:            return "Copy";
-        case TEST_TYPE_ENDS_WITH:       return "Ends With";
-        case TEST_TYPE_FROM_BUFFER:     return "From Buffer";
-        case TEST_TYPE_FROM_C_STRING:   return "From C String";
-        case TEST_TYPE_FUZZ_ASSIGN:     return "Fuzz Assign";
-        case TEST_TYPE_INITIALISE:      return "Initialise";
-        default:                        return "Unknown";
+        case TEST_TYPE_ADD_END:           return "Add End";
+        case TEST_TYPE_ADD_MIDDLE:        return "Add Middle";
+        case TEST_TYPE_ADD_START:         return "Add Start";
+        case TEST_TYPE_APPEND:            return "Append";
+        case TEST_TYPE_APPEND_C_STRING:   return "Append C String";
+        case TEST_TYPE_AS_C_STRING:       return "As C String";
+        case TEST_TYPE_ASSIGN:            return "Assign";
+        case TEST_TYPE_COPY:              return "Copy";
+        case TEST_TYPE_ENDS_WITH:         return "Ends With";
+        case TEST_TYPE_FIND_FIRST_CHAR:   return "Find First Char";
+        case TEST_TYPE_FIND_FIRST_STRING: return "Find First String";
+        case TEST_TYPE_FIND_LAST_CHAR:    return "Find Last Char";
+        case TEST_TYPE_FIND_LAST_STRING:  return "Find Last String";
+        case TEST_TYPE_FROM_BUFFER:       return "From Buffer";
+        case TEST_TYPE_FROM_C_STRING:     return "From C String";
+        case TEST_TYPE_FUZZ_ASSIGN:       return "Fuzz Assign";
+        case TEST_TYPE_INITIALISE:        return "Initialise";
+        default:                          return "Unknown";
     }
 }
 
@@ -349,6 +357,88 @@ static bool test_ends_with(Test* test)
     return result;
 }
 
+static bool test_find_first_char(Test* test)
+{
+    const char* a = u8"a A AA s";
+    int known_index = 2;
+
+    AdMaybeString string =
+            ad_string_from_c_string_with_allocator(a, &test->allocator);
+    ASSERT(string.valid);
+
+    int index = ad_string_find_first_char(&string.value, 'A');
+
+    bool result = (index == known_index);
+
+    ad_string_destroy(&string.value);
+
+    return result;
+}
+
+static bool test_find_first_string(Test* test)
+{
+    const char* a = u8"وَالشَّمْسُ تَجْرِي لِمُسْتَقَرٍّ لَّهَا ذَٰلِكَ تَقْدِيرُ الْعَزِيزِ الْعَلِيمِ";
+    const char* b = u8"الْعَ";
+    int known_index = 112;
+
+    AdMaybeString string =
+            ad_string_from_c_string_with_allocator(a, &test->allocator);
+    AdMaybeString target =
+            ad_string_from_c_string_with_allocator(b, &test->allocator);
+    ASSERT(string.valid);
+    ASSERT(target.valid);
+
+    int index = ad_string_find_first_string(&string.value, &target.value);
+
+    bool result = (index == known_index);
+
+    ad_string_destroy(&string.value);
+    ad_string_destroy(&target.value);
+
+    return result;
+}
+
+static bool test_find_last_char(Test* test)
+{
+    const char* a = u8"a A AA s";
+    int known_index = 5;
+
+    AdMaybeString string =
+            ad_string_from_c_string_with_allocator(a, &test->allocator);
+    ASSERT(string.valid);
+
+    int index = ad_string_find_last_char(&string.value, 'A');
+
+    bool result = (index == known_index);
+
+    ad_string_destroy(&string.value);
+
+    return result;
+}
+
+static bool test_find_last_string(Test* test)
+{
+    const char* a = u8"My 1st page הדף מספר 2 שלי My 3rd page";
+    const char* b = u8"My";
+    int known_index = 37;
+
+    AdMaybeString string =
+            ad_string_from_c_string_with_allocator(a, &test->allocator);
+    AdMaybeString target =
+            ad_string_from_c_string_with_allocator(b, &test->allocator);
+    ASSERT(string.valid);
+    ASSERT(target.valid);
+
+    int index = ad_string_find_last_string(&string.value, &target.value);
+
+    bool result = (index == known_index);
+
+    ad_string_destroy(&string.value);
+    ad_string_destroy(&target.value);
+
+    return result;
+}
+
 static bool test_from_c_string(Test* test)
 {
     const char* reference = u8"a猫🍌";
@@ -393,20 +483,24 @@ static bool run_test(Test* test)
 {
     switch(test->type)
     {
-        case TEST_TYPE_ADD_END:         return test_add_end(test);
-        case TEST_TYPE_ADD_MIDDLE:      return test_add_middle(test);
-        case TEST_TYPE_ADD_START:       return test_add_start(test);
-        case TEST_TYPE_APPEND:          return test_append(test);
-        case TEST_TYPE_APPEND_C_STRING: return test_append_c_string(test);
-        case TEST_TYPE_AS_C_STRING:     return test_as_c_string(test);
-        case TEST_TYPE_ASSIGN:          return test_assign(test);
-        case TEST_TYPE_COPY:            return test_copy(test);
-        case TEST_TYPE_ENDS_WITH:       return test_ends_with(test);
-        case TEST_TYPE_FROM_BUFFER:     return test_from_buffer(test);
-        case TEST_TYPE_FROM_C_STRING:   return test_from_c_string(test);
-        case TEST_TYPE_FUZZ_ASSIGN:     return fuzz_assign(test);
-        case TEST_TYPE_INITIALISE:      return test_initialise(test);
-        default:                        return false;
+        case TEST_TYPE_ADD_END:           return test_add_end(test);
+        case TEST_TYPE_ADD_MIDDLE:        return test_add_middle(test);
+        case TEST_TYPE_ADD_START:         return test_add_start(test);
+        case TEST_TYPE_APPEND:            return test_append(test);
+        case TEST_TYPE_APPEND_C_STRING:   return test_append_c_string(test);
+        case TEST_TYPE_AS_C_STRING:       return test_as_c_string(test);
+        case TEST_TYPE_ASSIGN:            return test_assign(test);
+        case TEST_TYPE_COPY:              return test_copy(test);
+        case TEST_TYPE_ENDS_WITH:         return test_ends_with(test);
+        case TEST_TYPE_FIND_FIRST_CHAR:   return test_find_first_char(test);
+        case TEST_TYPE_FIND_FIRST_STRING: return test_find_first_string(test);
+        case TEST_TYPE_FIND_LAST_CHAR:    return test_find_last_char(test);
+        case TEST_TYPE_FIND_LAST_STRING:  return test_find_last_string(test);
+        case TEST_TYPE_FROM_BUFFER:       return test_from_buffer(test);
+        case TEST_TYPE_FROM_C_STRING:     return test_from_c_string(test);
+        case TEST_TYPE_FUZZ_ASSIGN:       return fuzz_assign(test);
+        case TEST_TYPE_INITIALISE:        return test_initialise(test);
+        default:                          return false;
     }
 }
 
@@ -423,9 +517,13 @@ static bool run_tests()
         TEST_TYPE_ASSIGN,
         TEST_TYPE_COPY,
         TEST_TYPE_ENDS_WITH,
+        TEST_TYPE_FIND_FIRST_CHAR,
+        TEST_TYPE_FIND_FIRST_STRING,
+        TEST_TYPE_FIND_LAST_CHAR,
+        TEST_TYPE_FIND_LAST_STRING,
         TEST_TYPE_FROM_BUFFER,
-        TEST_TYPE_FUZZ_ASSIGN,
         TEST_TYPE_FROM_C_STRING,
+        TEST_TYPE_FUZZ_ASSIGN,
         TEST_TYPE_INITIALISE,
     };
     bool tests_failed[TEST_TYPE_COUNT];
