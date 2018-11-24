@@ -9,6 +9,8 @@ ad_string_get_contents
     bytes. The reference only remains valid as long as the original string isn't
     modified.
 
+    The contents is guaranteed to be a null-terminated :term:`C string`.
+
     :param string: the string
     :return: the contents
 

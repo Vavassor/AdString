@@ -40,7 +40,6 @@ String
     functions/ad-string-add
     functions/ad-string-append
     functions/ad-string-append-c-string
-    functions/ad-string-as-c-string
     functions/ad-string-assign
     functions/ad-string-copy
     functions/ad-string-destroy

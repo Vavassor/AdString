@@ -113,10 +113,10 @@ AdMaybeString ad_string_from_buffer_with_allocator(const char* buffer,
 AdMaybeString ad_string_from_c_string(const char* original);
 AdMaybeString ad_string_from_c_string_with_allocator(const char* original,
         void* allocator);
-int ad_string_capacity(AdString* string);
+int ad_string_get_capacity(AdString* string);
 char* ad_string_get_contents(AdString* string);
 const char* ad_string_get_contents_const(const AdString* string);
-int ad_string_count(AdString* string);
+int ad_string_get_count(AdString* string);
 void ad_string_initialise(AdString* string);
 void ad_string_initialise_with_allocator(AdString* string, void* allocator);
 void ad_string_remove(AdString* string, const AdStringRange* range);

@@ -18,7 +18,6 @@ typedef enum TestType
     TEST_TYPE_ADD_START,
     TEST_TYPE_APPEND,
     TEST_TYPE_APPEND_C_STRING,
-    TEST_TYPE_AS_C_STRING,
     TEST_TYPE_ASSIGN,
     TEST_TYPE_COPY,
     TEST_TYPE_DESTROY,
@@ -31,6 +30,7 @@ typedef enum TestType
     TEST_TYPE_FROM_C_STRING,
     TEST_TYPE_FUZZ_ASSIGN,
     TEST_TYPE_GET_CONTENTS,
+    TEST_TYPE_GET_CONTENTS_CONST,
     TEST_TYPE_INITIALISE,
     TEST_TYPE_REMOVE,
     TEST_TYPE_RESERVE,
@@ -57,27 +57,27 @@ static const char* describe_test(TestType type)
 {
     switch(type)
     {
-        case TEST_TYPE_ADD_END:           return "Add End";
-        case TEST_TYPE_ADD_MIDDLE:        return "Add Middle";
-        case TEST_TYPE_ADD_START:         return "Add Start";
-        case TEST_TYPE_APPEND:            return "Append";
-        case TEST_TYPE_APPEND_C_STRING:   return "Append C String";
-        case TEST_TYPE_AS_C_STRING:       return "As C String";
-        case TEST_TYPE_ASSIGN:            return "Assign";
-        case TEST_TYPE_COPY:              return "Copy";
-        case TEST_TYPE_DESTROY:           return "Destroy";
-        case TEST_TYPE_ENDS_WITH:         return "Ends With";
-        case TEST_TYPE_FIND_FIRST_CHAR:   return "Find First Char";
-        case TEST_TYPE_FIND_FIRST_STRING: return "Find First String";
-        case TEST_TYPE_FIND_LAST_CHAR:    return "Find Last Char";
-        case TEST_TYPE_FIND_LAST_STRING:  return "Find Last String";
-        case TEST_TYPE_FROM_BUFFER:       return "From Buffer";
-        case TEST_TYPE_FROM_C_STRING:     return "From C String";
-        case TEST_TYPE_FUZZ_ASSIGN:       return "Fuzz Assign";
-        case TEST_TYPE_GET_CONTENTS:      return "Get Contents";
-        case TEST_TYPE_INITIALISE:        return "Initialise";
-        case TEST_TYPE_REMOVE:            return "Remove";
-        case TEST_TYPE_RESERVE:           return "Reserve";
+        case TEST_TYPE_ADD_END:            return "Add End";
+        case TEST_TYPE_ADD_MIDDLE:         return "Add Middle";
+        case TEST_TYPE_ADD_START:          return "Add Start";
+        case TEST_TYPE_APPEND:             return "Append";
+        case TEST_TYPE_APPEND_C_STRING:    return "Append C String";
+        case TEST_TYPE_ASSIGN:             return "Assign";
+        case TEST_TYPE_COPY:               return "Copy";
+        case TEST_TYPE_DESTROY:            return "Destroy";
+        case TEST_TYPE_ENDS_WITH:          return "Ends With";
+        case TEST_TYPE_FIND_FIRST_CHAR:    return "Find First Char";
+        case TEST_TYPE_FIND_FIRST_STRING:  return "Find First String";
+        case TEST_TYPE_FIND_LAST_CHAR:     return "Find Last Char";
+        case TEST_TYPE_FIND_LAST_STRING:   return "Find Last String";
+        case TEST_TYPE_FROM_BUFFER:        return "From Buffer";
+        case TEST_TYPE_FROM_C_STRING:      return "From C String";
+        case TEST_TYPE_FUZZ_ASSIGN:        return "Fuzz Assign";
+        case TEST_TYPE_GET_CONTENTS:       return "Get Contents";
+        case TEST_TYPE_GET_CONTENTS_CONST: return "Get Contents Const";
+        case TEST_TYPE_INITIALISE:         return "Initialise";
+        case TEST_TYPE_REMOVE:             return "Remove";
+        case TEST_TYPE_RESERVE:            return "Reserve";
         default:
         {
             ASSERT(false);
@@ -291,22 +291,6 @@ static bool test_append_c_string(Test* test)
     return result;
 }
 
-static bool test_as_c_string(Test* test)
-{
-    const char* original = u8"👌🏼";
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(original, &test->allocator);
-    ASSERT(string.valid);
-
-    const char* after = ad_string_get_contents_const(&string.value);
-
-    bool result = strings_match(original, after);
-
-    ad_string_destroy(&string.value);
-
-    return result;
-}
-
 static bool test_assign(Test* test)
 {
     const char* reference = u8"a猫🍌";
@@ -513,6 +497,22 @@ static bool test_get_contents(Test* test)
     return result;
 }
 
+static bool test_get_contents_const(Test* test)
+{
+    const char* original = u8"👌🏼";
+    AdMaybeString string =
+            ad_string_from_c_string_with_allocator(original, &test->allocator);
+    ASSERT(string.valid);
+
+    const char* after = ad_string_get_contents_const(&string.value);
+
+    bool result = after && strings_match(original, after);
+
+    ad_string_destroy(&string.value);
+
+    return result;
+}
+
 static bool test_initialise(Test* test)
 {
     AdString string;
@@ -557,27 +557,27 @@ static bool run_test(Test* test)
 {
     switch(test->type)
     {
-        case TEST_TYPE_ADD_END:           return test_add_end(test);
-        case TEST_TYPE_ADD_MIDDLE:        return test_add_middle(test);
-        case TEST_TYPE_ADD_START:         return test_add_start(test);
-        case TEST_TYPE_APPEND:            return test_append(test);
-        case TEST_TYPE_APPEND_C_STRING:   return test_append_c_string(test);
-        case TEST_TYPE_AS_C_STRING:       return test_as_c_string(test);
-        case TEST_TYPE_ASSIGN:            return test_assign(test);
-        case TEST_TYPE_COPY:              return test_copy(test);
-        case TEST_TYPE_DESTROY:           return test_destroy(test);
-        case TEST_TYPE_ENDS_WITH:         return test_ends_with(test);
-        case TEST_TYPE_FIND_FIRST_CHAR:   return test_find_first_char(test);
-        case TEST_TYPE_FIND_FIRST_STRING: return test_find_first_string(test);
-        case TEST_TYPE_FIND_LAST_CHAR:    return test_find_last_char(test);
-        case TEST_TYPE_FIND_LAST_STRING:  return test_find_last_string(test);
-        case TEST_TYPE_FROM_BUFFER:       return test_from_buffer(test);
-        case TEST_TYPE_FROM_C_STRING:     return test_from_c_string(test);
-        case TEST_TYPE_FUZZ_ASSIGN:       return fuzz_assign(test);
-        case TEST_TYPE_GET_CONTENTS:      return test_get_contents(test);
-        case TEST_TYPE_INITIALISE:        return test_initialise(test);
-        case TEST_TYPE_REMOVE:            return test_remove(test);
-        case TEST_TYPE_RESERVE:           return test_reserve(test);
+        case TEST_TYPE_ADD_END:            return test_add_end(test);
+        case TEST_TYPE_ADD_MIDDLE:         return test_add_middle(test);
+        case TEST_TYPE_ADD_START:          return test_add_start(test);
+        case TEST_TYPE_APPEND:             return test_append(test);
+        case TEST_TYPE_APPEND_C_STRING:    return test_append_c_string(test);
+        case TEST_TYPE_ASSIGN:             return test_assign(test);
+        case TEST_TYPE_COPY:               return test_copy(test);
+        case TEST_TYPE_DESTROY:            return test_destroy(test);
+        case TEST_TYPE_ENDS_WITH:          return test_ends_with(test);
+        case TEST_TYPE_FIND_FIRST_CHAR:    return test_find_first_char(test);
+        case TEST_TYPE_FIND_FIRST_STRING:  return test_find_first_string(test);
+        case TEST_TYPE_FIND_LAST_CHAR:     return test_find_last_char(test);
+        case TEST_TYPE_FIND_LAST_STRING:   return test_find_last_string(test);
+        case TEST_TYPE_FROM_BUFFER:        return test_from_buffer(test);
+        case TEST_TYPE_FROM_C_STRING:      return test_from_c_string(test);
+        case TEST_TYPE_FUZZ_ASSIGN:        return fuzz_assign(test);
+        case TEST_TYPE_GET_CONTENTS:       return test_get_contents(test);
+        case TEST_TYPE_GET_CONTENTS_CONST: return test_get_contents_const(test);
+        case TEST_TYPE_INITIALISE:         return test_initialise(test);
+        case TEST_TYPE_REMOVE:             return test_remove(test);
+        case TEST_TYPE_RESERVE:            return test_reserve(test);
         default:
         {
             ASSERT(false);
