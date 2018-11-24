@@ -39,6 +39,13 @@ bool ad_string_deallocate(void* allocator, AdMemoryBlock block)
 #endif // !defined(AD_USE_CUSTOM_ALLOCATOR)
 
 
+typedef enum AdStringType
+{
+    AD_STRING_TYPE_SMALL,
+    AD_STRING_TYPE_BIG,
+} AdStringType;
+
+
 static const int invalid_index = -1;
 
 static const uint64_t powers_of_ten[UINT64_MAX_DIGITS] =
@@ -101,7 +108,7 @@ static const uint8_t utf8_decode_type_table[] =
 
 static bool ad_string_is_big(const AdString* string)
 {
-    return string->count + 1 > AD_STRING_SMALL_CAP;
+    return string->type == AD_STRING_TYPE_BIG;
 }
 
 static void copy_memory(void* to, const void* from, uint64_t bytes)
@@ -463,11 +470,6 @@ bool ad_string_append_c_string(AdString* to, const char* from)
     return true;
 }
 
-const char* ad_string_as_c_string(const AdString* string)
-{
-    return ad_string_get_contents_const(string);
-}
-
 bool ad_string_assign(AdString* to, const AdString* from)
 {
     AD_ASSERT(to);
@@ -500,6 +502,7 @@ AdMaybeString ad_string_copy(AdString* string)
     result.valid = true;
     result.value.allocator = string->allocator;
     result.value.count = count;
+    result.value.type = string->type;
     bool reserved = ad_string_reserve(&result.value, count);
 
     if(!reserved)
@@ -662,12 +665,14 @@ AdMaybeString ad_string_from_buffer_with_allocator(const char* buffer,
         result.value.big.contents = copy;
         result.value.big.cap = cap;
         result.value.count = bytes;
+        result.value.type = AD_STRING_TYPE_BIG;
     }
     else
     {
         copy_memory(result.value.small.contents, buffer, bytes);
         result.value.small.contents[bytes] = '\0';
         result.value.count = bytes;
+        result.value.type = AD_STRING_TYPE_SMALL;
     }
 
     return result;
@@ -706,15 +711,31 @@ AdMaybeString ad_string_from_c_string_with_allocator(const char* original,
         result.value.big.contents = copy;
         result.value.big.cap = cap;
         result.value.count = bytes;
+        result.value.type = AD_STRING_TYPE_BIG;
     }
     else
     {
         copy_memory(result.value.small.contents, original, bytes);
         result.value.small.contents[bytes] = '\0';
         result.value.count = bytes;
+        result.value.type = AD_STRING_TYPE_SMALL;
     }
 
     return result;
+}
+
+int ad_string_get_capacity(AdString* string)
+{
+    AD_ASSERT(string);
+
+    if(ad_string_is_big(string))
+    {
+        return string->big.cap - 1;
+    }
+    else
+    {
+        return AD_STRING_SMALL_CAP - 1;
+    }
 }
 
 char* ad_string_get_contents(AdString* string)
@@ -745,6 +766,11 @@ const char* ad_string_get_contents_const(const AdString* string)
     }
 }
 
+int ad_string_get_count(AdString* string)
+{
+    return string->count;
+}
+
 void ad_string_initialise(AdString* string)
 {
     ad_string_initialise_with_allocator(string, NULL);
@@ -756,6 +782,7 @@ void ad_string_initialise_with_allocator(AdString* string, void* allocator)
 
     string->allocator = allocator;
     string->count = 0;
+    string->type = AD_STRING_TYPE_SMALL;
     zero_memory(string->small.contents, AD_STRING_SMALL_CAP);
 }
 
@@ -859,6 +886,7 @@ bool ad_string_reserve(AdString* string, int space)
         AD_ASSERT(cap > AD_STRING_SMALL_CAP);
         string->big.contents = contents;
         string->big.cap = cap;
+        string->type = AD_STRING_TYPE_BIG;
     }
 
     return true;

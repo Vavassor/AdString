@@ -32,6 +32,8 @@ typedef enum TestType
     TEST_TYPE_FUZZ_ASSIGN,
     TEST_TYPE_GET_CONTENTS,
     TEST_TYPE_INITIALISE,
+    TEST_TYPE_REMOVE,
+    TEST_TYPE_RESERVE,
     TEST_TYPE_COUNT,
 } TestType;
 
@@ -74,6 +76,8 @@ static const char* describe_test(TestType type)
         case TEST_TYPE_FUZZ_ASSIGN:       return "Fuzz Assign";
         case TEST_TYPE_GET_CONTENTS:      return "Get Contents";
         case TEST_TYPE_INITIALISE:        return "Initialise";
+        case TEST_TYPE_REMOVE:            return "Remove";
+        case TEST_TYPE_RESERVE:           return "Reserve";
         default:
         {
             ASSERT(false);
@@ -178,7 +182,7 @@ static bool test_add_end(Test* test)
             string_size(chicken));
     ASSERT(combined);
 
-    const char* contents = ad_string_as_c_string(&outer.value);
+    const char* contents = ad_string_get_contents_const(&outer.value);
     bool contents_match = strings_match(contents, u8"курица蛋");
     bool size_correct = outer.value.count == string_size(contents);
     bool result = contents_match && size_correct;
@@ -204,7 +208,7 @@ static bool test_add_middle(Test* test)
     bool combined = ad_string_add(&outer.value, &inner.value, 4);
     ASSERT(combined);
 
-    const char* contents = ad_string_as_c_string(&outer.value);
+    const char* contents = ad_string_get_contents_const(&outer.value);
     bool contents_match = strings_match(contents, u8"ку蛋рица");
     bool size_correct = outer.value.count == string_size(contents);
     bool result = contents_match && size_correct;
@@ -230,7 +234,7 @@ static bool test_add_start(Test* test)
     bool combined = ad_string_add(&outer.value, &inner.value, 0);
     ASSERT(combined);
 
-    const char* contents = ad_string_as_c_string(&outer.value);
+    const char* contents = ad_string_get_contents_const(&outer.value);
     bool contents_match = strings_match(contents, u8"蛋курица");
     bool size_correct = outer.value.count == string_size(contents);
     bool result = contents_match && size_correct;
@@ -255,7 +259,7 @@ static bool test_append(Test* test)
     bool appended = ad_string_append(&base.value, &extension.value);
     ASSERT(appended);
 
-    const char* combined = ad_string_as_c_string(&base.value);
+    const char* combined = ad_string_get_contents_const(&base.value);
     bool contents_match = strings_match(combined, u8"a猫🍌a猫🍌");
     bool size_correct = base.value.count == string_size(combined);
     bool result = contents_match && size_correct;
@@ -277,7 +281,7 @@ static bool test_append_c_string(Test* test)
     bool appended = ad_string_append_c_string(&base.value, b);
     ASSERT(appended);
 
-    const char* combined = ad_string_as_c_string(&base.value);
+    const char* combined = ad_string_get_contents_const(&base.value);
     bool contents_match = strings_match(combined, u8"👌🏼🙋🏾‍♀️");
     bool size_correct = base.value.count == string_size(combined);
     bool result = contents_match && size_correct;
@@ -294,7 +298,7 @@ static bool test_as_c_string(Test* test)
             ad_string_from_c_string_with_allocator(original, &test->allocator);
     ASSERT(string.valid);
 
-    const char* after = ad_string_as_c_string(&string.value);
+    const char* after = ad_string_get_contents_const(&string.value);
 
     bool result = strings_match(original, after);
 
@@ -333,8 +337,8 @@ static bool test_copy(Test* test)
     ASSERT(original.valid);
     ASSERT(copy.valid);
 
-    const char* original_contents = ad_string_as_c_string(&original.value);
-    const char* copy_contents = ad_string_as_c_string(&copy.value);
+    const char* original_contents = ad_string_get_contents_const(&original.value);
+    const char* copy_contents = ad_string_get_contents_const(&copy.value);
 
     bool result = strings_match(original_contents, copy_contents)
             && original.value.count == copy.value.count
@@ -466,7 +470,7 @@ static bool test_from_c_string(Test* test)
     const char* reference = u8"a猫🍌";
     AdMaybeString string =
             ad_string_from_c_string_with_allocator(reference, &test->allocator);
-    const char* contents = ad_string_as_c_string(&string.value);
+    const char* contents = ad_string_get_contents_const(&string.value);
 
     bool result = string.valid && strings_match(contents, reference);
 
@@ -482,7 +486,7 @@ static bool test_from_buffer(Test* test)
     AdMaybeString string =
             ad_string_from_buffer_with_allocator(reference, bytes,
                     &test->allocator);
-    const char* contents = ad_string_as_c_string(&string.value);
+    const char* contents = ad_string_get_contents_const(&string.value);
 
     bool result = string.valid
             && strings_match(contents, reference)
@@ -517,6 +521,38 @@ static bool test_initialise(Test* test)
             && string.count == 0;
 }
 
+static bool test_remove(Test* test)
+{
+    const char* reference = "9876543210";
+    AdMaybeString string =
+            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    ASSERT(string.valid);
+
+    AdStringRange range = {3, 6};
+    ad_string_remove(&string.value, &range);
+    const char* contents = ad_string_get_contents_const(&string.value);
+    bool result = strings_match(contents, "9873210");
+
+    ad_string_destroy(&string.value);
+
+    return result;
+}
+
+static bool test_reserve(Test* test)
+{
+    AdString string;
+    ad_string_initialise_with_allocator(&string, &test->allocator);
+    int requested_cap = 100;
+
+    bool reserved = ad_string_reserve(&string, requested_cap);
+    int cap = ad_string_get_capacity(&string);
+    bool result = reserved && cap == requested_cap;
+
+    ad_string_destroy(&string);
+
+    return result;
+}
+
 static bool run_test(Test* test)
 {
     switch(test->type)
@@ -540,6 +576,8 @@ static bool run_test(Test* test)
         case TEST_TYPE_FUZZ_ASSIGN:       return fuzz_assign(test);
         case TEST_TYPE_GET_CONTENTS:      return test_get_contents(test);
         case TEST_TYPE_INITIALISE:        return test_initialise(test);
+        case TEST_TYPE_REMOVE:            return test_remove(test);
+        case TEST_TYPE_RESERVE:           return test_reserve(test);
         default:
         {
             ASSERT(false);
