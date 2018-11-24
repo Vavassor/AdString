@@ -52,11 +52,14 @@ String
     functions/ad-string-from-buffer-with-allocator
     functions/ad-string-from-c-string
     functions/ad-string-from-c-string-with-allocator
+    functions/ad-string-get-capacity
     functions/ad-string-get-contents
     functions/ad-string-get-contents-const
+    functions/ad-string-get-count
     functions/ad-string-initialise
     functions/ad-string-initialise-with-allocator
     functions/ad-string-remove
+    functions/ad-string-replace
     functions/ad-string-reserve
     functions/ad-string-starts-with
     functions/ad-string-substring

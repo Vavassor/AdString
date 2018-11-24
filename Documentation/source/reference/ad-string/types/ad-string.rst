@@ -13,9 +13,3 @@ AdString
 
         This member is read-only.
 
-    .. c:member:: int count
-
-        The number of bytes in the string.
-
-        This member is read-only.
-
