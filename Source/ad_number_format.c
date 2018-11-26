@@ -167,7 +167,7 @@ AdMaybeString ad_string_from_uint64_with_allocator(uint64_t value,
         value *= format->percent.multiplier;
     }
 
-    AdString* pattern = &format->positive_pattern;
+    const AdString* pattern = &format->positive_pattern;
 
     int total_digits = count_digits_uint64(value, format->base);
 
