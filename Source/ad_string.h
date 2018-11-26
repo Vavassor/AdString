@@ -51,6 +51,12 @@ typedef struct AdUtf32String
     int count;
 } AdUtf32String;
 
+typedef struct AdMaybeInt
+{
+    int value;
+    bool valid;
+} AdMaybeInt;
+
 typedef struct AdMaybeString
 {
     AdString value;
@@ -103,10 +109,12 @@ bool ad_string_assign(AdString* to, const AdString* from);
 AdMaybeString ad_string_copy(AdString* string);
 bool ad_string_destroy(AdString* string);
 bool ad_string_ends_with(const AdString* string, const AdString* lookup);
-int ad_string_find_first_char(const AdString* string, char c);
-int ad_string_find_first_string(const AdString* string, const AdString* lookup);
-int ad_string_find_last_char(const AdString* string, char c);
-int ad_string_find_last_string(const AdString* string, const AdString* lookup);
+AdMaybeInt ad_string_find_first_char(const AdString* string, char c);
+AdMaybeInt ad_string_find_first_string(const AdString* string,
+        const AdString* lookup);
+AdMaybeInt ad_string_find_last_char(const AdString* string, char c);
+AdMaybeInt ad_string_find_last_string(const AdString* string,
+        const AdString* lookup);
 AdMaybeString ad_string_from_buffer(const char* buffer, int bytes);
 AdMaybeString ad_string_from_buffer_with_allocator(const char* buffer,
         int bytes, void* allocator);

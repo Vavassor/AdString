@@ -46,8 +46,6 @@ typedef enum AdStringType
 } AdStringType;
 
 
-static const int invalid_index = -1;
-
 static const uint64_t powers_of_ten[UINT64_MAX_DIGITS] =
 {
     UINT64_C(10000000000000000000),
@@ -559,9 +557,11 @@ bool ad_string_ends_with(const AdString* string, const AdString* lookup)
     }
 }
 
-int ad_string_find_first_char(const AdString* string, char c)
+AdMaybeInt ad_string_find_first_char(const AdString* string, char c)
 {
     AD_ASSERT(string);
+
+    AdMaybeInt result;
 
     const char* contents = ad_string_get_contents_const(string);
 
@@ -569,17 +569,24 @@ int ad_string_find_first_char(const AdString* string, char c)
     {
         if(contents[char_index] == c)
         {
-            return char_index;
+            result.value = char_index;
+            result.valid = true;
+            return result;
         }
     }
 
-    return invalid_index;
+    result.valid = false;
+    result.value = 0;
+    return result;
 }
 
-int ad_string_find_first_string(const AdString* string, const AdString* lookup)
+AdMaybeInt ad_string_find_first_string(const AdString* string,
+        const AdString* lookup)
 {
     AD_ASSERT(string);
     AD_ASSERT(lookup);
+
+    AdMaybeInt result;
 
     const char* string_contents = ad_string_get_contents_const(string);
     const char* lookup_contents = ad_string_get_contents_const(lookup);
@@ -590,16 +597,22 @@ int ad_string_find_first_string(const AdString* string, const AdString* lookup)
         if(memory_matches(&string_contents[char_index], lookup_contents,
                 lookup->count))
         {
-            return char_index;
+            result.value = char_index;
+            result.valid = true;
+            return result;
         }
     }
 
-    return invalid_index;
+    result.value = 0;
+    result.valid = false;
+    return result;
 }
 
-int ad_string_find_last_char(const AdString* string, char c)
+AdMaybeInt ad_string_find_last_char(const AdString* string, char c)
 {
     AD_ASSERT(string);
+
+    AdMaybeInt result;
 
     const char* contents = ad_string_get_contents_const(string);
 
@@ -607,17 +620,24 @@ int ad_string_find_last_char(const AdString* string, char c)
     {
         if(contents[char_index] == c)
         {
-            return char_index;
+            result.value = char_index;
+            result.valid = true;
+            return result;
         }
     }
 
-    return invalid_index;
+    result.value = 0;
+    result.valid = false;
+    return result;
 }
 
-int ad_string_find_last_string(const AdString* string, const AdString* lookup)
+AdMaybeInt ad_string_find_last_string(const AdString* string,
+        const AdString* lookup)
 {
     AD_ASSERT(string);
     AD_ASSERT(lookup);
+
+    AdMaybeInt result;
 
     const char* string_contents = ad_string_get_contents_const(string);
     const char* lookup_contents = ad_string_get_contents_const(lookup);
@@ -628,11 +648,15 @@ int ad_string_find_last_string(const AdString* string, const AdString* lookup)
         if(memory_matches(&string_contents[char_index], lookup_contents,
                 lookup->count))
         {
-            return char_index;
+            result.value = char_index;
+            result.valid = true;
+            return result;
         }
     }
 
-    return invalid_index;
+    result.value = 0;
+    result.valid = false;
+    return result;
 }
 
 AdMaybeString ad_string_from_buffer(const char* buffer, int bytes)

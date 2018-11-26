@@ -384,9 +384,9 @@ static bool test_find_first_char(Test* test)
             ad_string_from_c_string_with_allocator(a, &test->allocator);
     ASSERT(string.valid);
 
-    int index = ad_string_find_first_char(&string.value, 'A');
+    AdMaybeInt index = ad_string_find_first_char(&string.value, 'A');
 
-    bool result = (index == known_index);
+    bool result = index.value == known_index;
 
     ad_string_destroy(&string.value);
 
@@ -406,9 +406,10 @@ static bool test_find_first_string(Test* test)
     ASSERT(string.valid);
     ASSERT(target.valid);
 
-    int index = ad_string_find_first_string(&string.value, &target.value);
+    AdMaybeInt index =
+            ad_string_find_first_string(&string.value, &target.value);
 
-    bool result = (index == known_index);
+    bool result = index.value == known_index;
 
     ad_string_destroy(&string.value);
     ad_string_destroy(&target.value);
@@ -425,9 +426,9 @@ static bool test_find_last_char(Test* test)
             ad_string_from_c_string_with_allocator(a, &test->allocator);
     ASSERT(string.valid);
 
-    int index = ad_string_find_last_char(&string.value, 'A');
+    AdMaybeInt index = ad_string_find_last_char(&string.value, 'A');
 
-    bool result = (index == known_index);
+    bool result = index.value == known_index;
 
     ad_string_destroy(&string.value);
 
@@ -447,9 +448,9 @@ static bool test_find_last_string(Test* test)
     ASSERT(string.valid);
     ASSERT(target.valid);
 
-    int index = ad_string_find_last_string(&string.value, &target.value);
+    AdMaybeInt index = ad_string_find_last_string(&string.value, &target.value);
 
-    bool result = (index == known_index);
+    bool result = (index.value == known_index);
 
     ad_string_destroy(&string.value);
     ad_string_destroy(&target.value);
