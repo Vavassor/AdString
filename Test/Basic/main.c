@@ -33,7 +33,11 @@ typedef enum TestType
     TEST_TYPE_GET_CONTENTS_CONST,
     TEST_TYPE_INITIALISE,
     TEST_TYPE_REMOVE,
+    TEST_TYPE_REPLACE,
     TEST_TYPE_RESERVE,
+    TEST_TYPE_STARTS_WITH,
+    TEST_TYPE_SUBSTRING,
+    TEST_TYPE_TO_C_STRING,
     TEST_TYPE_COUNT,
 } TestType;
 
@@ -77,7 +81,11 @@ static const char* describe_test(TestType type)
         case TEST_TYPE_GET_CONTENTS_CONST: return "Get Contents Const";
         case TEST_TYPE_INITIALISE:         return "Initialise";
         case TEST_TYPE_REMOVE:             return "Remove";
+        case TEST_TYPE_REPLACE:            return "Replace";
         case TEST_TYPE_RESERVE:            return "Reserve";
+        case TEST_TYPE_STARTS_WITH:        return "Starts With";
+        case TEST_TYPE_SUBSTRING:          return "Substring";
+        case TEST_TYPE_TO_C_STRING:          return "To C String";
         default:
         {
             ASSERT(false);
@@ -538,6 +546,28 @@ static bool test_remove(Test* test)
     return result;
 }
 
+static bool test_replace(Test* test)
+{
+    const char* reference = "9876543210";
+    const char* insert = "abc";
+    AdMaybeString string =
+            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    AdMaybeString replacement =
+            ad_string_from_c_string_with_allocator(insert, &test->allocator);
+    ASSERT(string.valid);
+    ASSERT(replacement.valid);
+
+    AdStringRange range = {3, 6};
+    ad_string_replace(&string.value, &range, &replacement.value);
+    const char* contents = ad_string_get_contents_const(&string.value);
+    bool result = strings_match(contents, "987abc3210");
+
+    ad_string_destroy(&string.value);
+    ad_string_destroy(&replacement.value);
+
+    return result;
+}
+
 static bool test_reserve(Test* test)
 {
     AdString string;
@@ -549,6 +579,64 @@ static bool test_reserve(Test* test)
     bool result = reserved && cap == requested_cap;
 
     ad_string_destroy(&string);
+
+    return result;
+}
+
+static bool test_starts_with(Test* test)
+{
+    const char* a = u8"a猫🍌 Wow";
+    const char* b = u8"a猫🍌";
+    AdMaybeString string =
+            ad_string_from_c_string_with_allocator(a, &test->allocator);
+    AdMaybeString ending =
+            ad_string_from_c_string_with_allocator(b, &test->allocator);
+    ASSERT(string.valid);
+    ASSERT(ending.valid);
+
+    bool result = ad_string_starts_with(&string.value, &ending.value);
+
+    ad_string_destroy(&string.value);
+    ad_string_destroy(&ending.value);
+
+    return result;
+}
+
+static bool test_substring(Test* test)
+{
+    const char* reference = "9876543210";
+    AdMaybeString string =
+            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    ASSERT(string.valid);
+
+    AdStringRange range = {3, 6};
+    AdMaybeString middle = ad_string_substring(&string.value, &range);
+    ASSERT(middle.valid);
+
+    const char* contents = ad_string_get_contents_const(&middle.value);
+    bool result = strings_match(contents, "654")
+            && string.value.allocator == &test->allocator;
+
+    ad_string_destroy(&string.value);
+    ad_string_destroy(&middle.value);
+
+    return result;
+}
+
+static bool test_to_c_string(Test* test)
+{
+    const char* reference = "It's okay.";
+    AdMaybeString string =
+            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    ASSERT(string.valid);
+
+    char* copy =
+            ad_string_to_c_string_with_allocator(&string.value,
+                    &test->allocator);
+    bool result = strings_match(copy, reference);
+
+    ad_string_destroy(&string.value);
+    ad_c_string_deallocate_with_allocator(&test->allocator, copy);
 
     return result;
 }
@@ -577,7 +665,11 @@ static bool run_test(Test* test)
         case TEST_TYPE_GET_CONTENTS_CONST: return test_get_contents_const(test);
         case TEST_TYPE_INITIALISE:         return test_initialise(test);
         case TEST_TYPE_REMOVE:             return test_remove(test);
+        case TEST_TYPE_REPLACE:            return test_replace(test);
         case TEST_TYPE_RESERVE:            return test_reserve(test);
+        case TEST_TYPE_STARTS_WITH:        return test_starts_with(test);
+        case TEST_TYPE_SUBSTRING:          return test_substring(test);
+        case TEST_TYPE_TO_C_STRING:        return test_to_c_string(test);
         default:
         {
             ASSERT(false);

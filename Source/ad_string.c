@@ -388,7 +388,7 @@ bool ad_c_string_deallocate_with_allocator(void* allocator, char* string)
     AdMemoryBlock block =
     {
         .memory = string,
-        .bytes = string_size(string),
+        .bytes = string_size(string) + 1,
     };
     return ad_string_deallocate(allocator, block);
 }
