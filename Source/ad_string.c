@@ -39,13 +39,6 @@ bool ad_string_deallocate(void* allocator, AdMemoryBlock block)
 #endif // !defined(AD_USE_CUSTOM_ALLOCATOR)
 
 
-typedef enum AdStringType
-{
-    AD_STRING_TYPE_SMALL,
-    AD_STRING_TYPE_BIG,
-} AdStringType;
-
-
 static const uint64_t powers_of_ten[UINT64_MAX_DIGITS] =
 {
     UINT64_C(10000000000000000000),
@@ -106,7 +99,19 @@ static const uint8_t utf8_decode_type_table[] =
 
 static bool ad_string_is_big(const AdString* string)
 {
-    return string->type == AD_STRING_TYPE_BIG;
+    return string->cap > AD_STRING_SMALL_CAP;
+}
+
+static void ad_string_set_count(AdString* string, int count)
+{
+    if(ad_string_is_big(string))
+    {
+        string->big.count = count;
+    }
+    else
+    {
+        string->small.bytes_left = AD_STRING_SMALL_CAP - count;
+    }
 }
 
 static void copy_memory(void* to, const void* from, uint64_t bytes)
@@ -189,7 +194,8 @@ static void zero_memory(void* memory, uint64_t bytes)
 
 bool ad_ascii_check(const AdString* string)
 {
-    AdStringRange range = {0, string->count};
+    int count = ad_string_get_count(string);
+    AdStringRange range = {0, count};
     return ad_ascii_check_range(string, &range);
 }
 
@@ -218,8 +224,10 @@ int ad_ascii_compare_alphabetic(const AdString* a, const AdString* b)
 
     const char* a_contents = ad_string_get_contents_const(a);
     const char* b_contents = ad_string_get_contents_const(b);
+    int a_count = ad_string_get_count(a);
+    int b_count = ad_string_get_count(b);
 
-    for(int char_index = 0; char_index < a->count; char_index += 1)
+    for(int char_index = 0; char_index < a_count; char_index += 1)
     {
         char c0 = ad_ascii_to_uppercase_char(a_contents[char_index]);
         char c1 = ad_ascii_to_uppercase_char(b_contents[char_index]);
@@ -230,7 +238,7 @@ int ad_ascii_compare_alphabetic(const AdString* a, const AdString* b)
         }
     }
 
-    return a->count - b->count;
+    return a_count - b_count;
 }
 
 int ad_ascii_digit_to_int(char c)
@@ -295,8 +303,9 @@ void ad_ascii_to_lowercase(AdString* string)
     AD_ASSERT(string);
 
     char* contents = ad_string_get_contents(string);
+    int count = ad_string_get_count(string);
 
-    for(int char_index = 0; string->count; char_index += 1)
+    for(int char_index = 0; char_index < count; char_index += 1)
     {
         contents[char_index] = ad_ascii_to_lowercase_char(contents[char_index]);
     }
@@ -319,8 +328,9 @@ void ad_ascii_to_uppercase(AdString* string)
     AD_ASSERT(string);
 
     char* contents = ad_string_get_contents(string);
+    int count = ad_string_get_count(string);
 
-    for(int char_index = 0; string->count; char_index += 1)
+    for(int char_index = 0; char_index < count; char_index += 1)
     {
         contents[char_index] = ad_ascii_to_uppercase_char(contents[char_index]);
     }
@@ -340,7 +350,8 @@ char ad_ascii_to_uppercase_char(char c)
 
 AdMaybeUint64 ad_ascii_uint64_from_string(const AdString* string)
 {
-    AdStringRange range = {0, string->count};
+    int count = ad_string_get_count(string);
+    AdStringRange range = {0, count};
     return ad_ascii_uint64_from_string_range(string, &range);
 }
 
@@ -358,7 +369,8 @@ AdMaybeUint64 ad_ascii_uint64_from_string_range(const AdString* string,
 
     const char* contents = ad_string_get_contents_const(string);
 
-    int power_index = UINT64_MAX_DIGITS - string->count;
+    int count = ad_string_get_count(string);
+    int power_index = UINT64_MAX_DIGITS - count;
 
     for(int char_index = range->start; char_index < range->end; char_index += 1)
     {
@@ -394,11 +406,14 @@ bool ad_c_string_deallocate_with_allocator(void* allocator, char* string)
 
 bool ad_string_add(AdString* to, const AdString* from, int index)
 {
+    int to_count = ad_string_get_count(to);
+    int from_count = ad_string_get_count(from);
+
     AD_ASSERT(to);
     AD_ASSERT(from);
-    AD_ASSERT(index >= 0 && index <= to->count);
+    AD_ASSERT(index >= 0 && index <= to_count);
 
-    int count = to->count + from->count;
+    int count = to_count + from_count;
     bool reserved = ad_string_reserve(to, count);
 
     if(!reserved)
@@ -406,17 +421,17 @@ bool ad_string_add(AdString* to, const AdString* from, int index)
         return false;
     }
 
-    int prior_count = to->count;
-    to->count = count;
+    int prior_count = to_count;
+    ad_string_set_count(to, count);
     char* to_contents = ad_string_get_contents(to);
     const char* from_contents = ad_string_get_contents_const(from);
     int shift_bytes = prior_count - index;
     if(shift_bytes > 0)
     {
-        copy_memory(&to_contents[index + from->count], &to_contents[index],
+        copy_memory(&to_contents[index + from_count], &to_contents[index],
                 shift_bytes);
     }
-    copy_memory(&to_contents[index], from_contents, from->count);
+    copy_memory(&to_contents[index], from_contents, from_count);
     to_contents[count] = '\0';
 
     return true;
@@ -427,7 +442,9 @@ bool ad_string_append(AdString* to, const AdString* from)
     AD_ASSERT(to);
     AD_ASSERT(from);
 
-    int count = to->count + from->count;
+    int to_count = ad_string_get_count(to);
+    int from_count = ad_string_get_count(from);
+    int count = to_count + from_count;
     bool reserved = ad_string_reserve(to, count);
 
     if(!reserved)
@@ -435,11 +452,11 @@ bool ad_string_append(AdString* to, const AdString* from)
         return false;
     }
 
-    int prior_count = to->count;
-    to->count = count;
+    int prior_count = to_count;
+    ad_string_set_count(to, count);
     char* to_contents = ad_string_get_contents(to);
     const char* from_contents = ad_string_get_contents_const(from);
-    copy_memory(&to_contents[prior_count], from_contents, from->count);
+    copy_memory(&to_contents[prior_count], from_contents, from_count);
     to_contents[count] = '\0';
 
     return true;
@@ -451,7 +468,8 @@ bool ad_string_append_c_string(AdString* to, const char* from)
     AD_ASSERT(from);
 
     int from_count = string_size(from);
-    int count = to->count + from_count;
+    int to_count = ad_string_get_count(to);
+    int count = to_count + from_count;
     bool reserved = ad_string_reserve(to, count);
 
     if(!reserved)
@@ -459,8 +477,8 @@ bool ad_string_append_c_string(AdString* to, const char* from)
         return false;
     }
 
-    int prior_count = to->count;
-    to->count = count;
+    int prior_count = to_count;
+    ad_string_set_count(to, count);
     char* to_contents = ad_string_get_contents(to);
     copy_memory(&to_contents[prior_count], from, from_count);
     to_contents[count] = '\0';
@@ -473,15 +491,16 @@ bool ad_string_assign(AdString* to, const AdString* from)
     AD_ASSERT(to);
     AD_ASSERT(from);
 
-    bool reserved = ad_string_reserve(to, from->count);
+    int from_count = ad_string_get_count(from);
+    bool reserved = ad_string_reserve(to, from_count);
 
     if(!reserved)
     {
         return false;
     }
 
-    int count = from->count;
-    to->count = count;
+    int count = from_count;
+    ad_string_set_count(to, count);
     char* to_contents = ad_string_get_contents(to);
     const char* from_contents = ad_string_get_contents_const(from);
     copy_memory(to_contents, from_contents, count);
@@ -494,13 +513,13 @@ AdMaybeString ad_string_copy(AdString* string)
 {
     AD_ASSERT(string);
 
-    int count = string->count;
+    int count = ad_string_get_count(string);
 
     AdMaybeString result;
     result.valid = true;
     result.value.allocator = string->allocator;
-    result.value.count = count;
-    result.value.type = string->type;
+    result.value.cap = AD_STRING_SMALL_CAP;
+    ad_string_set_count(&result.value, count);
     bool reserved = ad_string_reserve(&result.value, count);
 
     if(!reserved)
@@ -529,7 +548,7 @@ bool ad_string_destroy(AdString* string)
         AdMemoryBlock block =
         {
             .memory = string->big.contents,
-            .bytes = string->big.cap,
+            .bytes = string->cap,
         };
         result = ad_string_deallocate(string->allocator, block);
     }
@@ -544,7 +563,10 @@ bool ad_string_ends_with(const AdString* string, const AdString* lookup)
     AD_ASSERT(string);
     AD_ASSERT(lookup);
 
-    if(lookup->count > string->count)
+    int lookup_count = ad_string_get_count(lookup);
+    int string_count = ad_string_get_count(string);
+
+    if(lookup_count > string_count)
     {
         return false;
     }
@@ -552,8 +574,8 @@ bool ad_string_ends_with(const AdString* string, const AdString* lookup)
     {
         const char* string_contents = ad_string_get_contents_const(string);
         const char* lookup_contents = ad_string_get_contents_const(lookup);
-        const char* near_end = &string_contents[string->count - lookup->count];
-        return memory_matches(near_end, lookup_contents, lookup->count);
+        const char* near_end = &string_contents[string_count - lookup_count];
+        return memory_matches(near_end, lookup_contents, lookup_count);
     }
 }
 
@@ -564,8 +586,9 @@ AdMaybeInt ad_string_find_first_char(const AdString* string, char c)
     AdMaybeInt result;
 
     const char* contents = ad_string_get_contents_const(string);
+    int count = ad_string_get_count(string);
 
-    for(int char_index = 0; char_index < string->count; char_index += 1)
+    for(int char_index = 0; char_index < count; char_index += 1)
     {
         if(contents[char_index] == c)
         {
@@ -591,11 +614,14 @@ AdMaybeInt ad_string_find_first_string(const AdString* string,
     const char* string_contents = ad_string_get_contents_const(string);
     const char* lookup_contents = ad_string_get_contents_const(lookup);
 
-    int search_count = string->count - lookup->count;
+    int string_count = ad_string_get_count(string);
+    int lookup_count = ad_string_get_count(lookup);
+    int search_count = string_count - lookup_count;
+
     for(int char_index = 0; char_index < search_count; char_index += 1)
     {
         if(memory_matches(&string_contents[char_index], lookup_contents,
-                lookup->count))
+                lookup_count))
         {
             result.value = char_index;
             result.valid = true;
@@ -615,8 +641,9 @@ AdMaybeInt ad_string_find_last_char(const AdString* string, char c)
     AdMaybeInt result;
 
     const char* contents = ad_string_get_contents_const(string);
+    int count = ad_string_get_count(string);
 
-    for(int char_index = string->count - 1; char_index >= 0; char_index -= 1)
+    for(int char_index = count - 1; char_index >= 0; char_index -= 1)
     {
         if(contents[char_index] == c)
         {
@@ -642,11 +669,14 @@ AdMaybeInt ad_string_find_last_string(const AdString* string,
     const char* string_contents = ad_string_get_contents_const(string);
     const char* lookup_contents = ad_string_get_contents_const(lookup);
 
-    int search_count = string->count - lookup->count;
+    int string_count = ad_string_get_count(string);
+    int lookup_count = ad_string_get_count(lookup);
+    int search_count = string_count - lookup_count;
+
     for(int char_index = search_count - 1; char_index >= 0; char_index -= 1)
     {
         if(memory_matches(&string_contents[char_index], lookup_contents,
-                lookup->count))
+                lookup_count))
         {
             result.value = char_index;
             result.valid = true;
@@ -671,6 +701,7 @@ AdMaybeString ad_string_from_buffer_with_allocator(const char* buffer,
 
     AdMaybeString result;
     result.valid = true;
+    result.value.allocator = allocator;
 
     if(cap > AD_STRING_SMALL_CAP)
     {
@@ -687,16 +718,15 @@ AdMaybeString ad_string_from_buffer_with_allocator(const char* buffer,
         copy_memory(copy, buffer, bytes);
         copy[bytes] = '\0';
         result.value.big.contents = copy;
-        result.value.big.cap = cap;
-        result.value.count = bytes;
-        result.value.type = AD_STRING_TYPE_BIG;
+        result.value.cap = cap;
+        ad_string_set_count(&result.value, bytes);
     }
     else
     {
         copy_memory(result.value.small.contents, buffer, bytes);
         result.value.small.contents[bytes] = '\0';
-        result.value.count = bytes;
-        result.value.type = AD_STRING_TYPE_SMALL;
+        result.value.cap = AD_STRING_SMALL_CAP;
+        ad_string_set_count(&result.value, bytes);
     }
 
     return result;
@@ -716,7 +746,6 @@ AdMaybeString ad_string_from_c_string_with_allocator(const char* original,
     AdMaybeString result;
     result.valid = true;
     result.value.allocator = allocator;
-    result.value.count = bytes;
 
     if(cap > AD_STRING_SMALL_CAP)
     {
@@ -733,33 +762,25 @@ AdMaybeString ad_string_from_c_string_with_allocator(const char* original,
         copy_memory(copy, original, bytes);
         copy[bytes] = '\0';
         result.value.big.contents = copy;
-        result.value.big.cap = cap;
-        result.value.count = bytes;
-        result.value.type = AD_STRING_TYPE_BIG;
+        result.value.cap = cap;
+        ad_string_set_count(&result.value, bytes);
     }
     else
     {
         copy_memory(result.value.small.contents, original, bytes);
         result.value.small.contents[bytes] = '\0';
-        result.value.count = bytes;
-        result.value.type = AD_STRING_TYPE_SMALL;
+        result.value.cap = AD_STRING_SMALL_CAP;
+        ad_string_set_count(&result.value, bytes);
     }
 
     return result;
 }
 
-int ad_string_get_capacity(AdString* string)
+int ad_string_get_capacity(const AdString* string)
 {
     AD_ASSERT(string);
 
-    if(ad_string_is_big(string))
-    {
-        return string->big.cap - 1;
-    }
-    else
-    {
-        return AD_STRING_SMALL_CAP - 1;
-    }
+    return string->cap - 1;
 }
 
 char* ad_string_get_contents(AdString* string)
@@ -790,9 +811,18 @@ const char* ad_string_get_contents_const(const AdString* string)
     }
 }
 
-int ad_string_get_count(AdString* string)
+int ad_string_get_count(const AdString* string)
 {
-    return string->count;
+    AD_ASSERT(string);
+
+    if(ad_string_is_big(string))
+    {
+        return string->big.count;
+    }
+    else
+    {
+        return AD_STRING_SMALL_CAP - string->small.bytes_left;
+    }
 }
 
 void ad_string_initialise(AdString* string)
@@ -805,9 +835,9 @@ void ad_string_initialise_with_allocator(AdString* string, void* allocator)
     AD_ASSERT(string);
 
     string->allocator = allocator;
-    string->count = 0;
-    string->type = AD_STRING_TYPE_SMALL;
-    zero_memory(string->small.contents, AD_STRING_SMALL_CAP);
+    string->cap = AD_STRING_SMALL_CAP;
+    ad_string_set_count(string, 0);
+    zero_memory(string->small.contents, AD_STRING_SMALL_CAP - 1);
 }
 
 void ad_string_remove(AdString* string, const AdStringRange* range)
@@ -816,13 +846,15 @@ void ad_string_remove(AdString* string, const AdStringRange* range)
     AD_ASSERT(range);
     AD_ASSERT(ad_string_range_check(string, range));
 
-    int copied_bytes = string->count - range->end;
+    int count = ad_string_get_count(string);
+    int copied_bytes = count - range->end;
     int removed_bytes = range->end - range->start;
 
     char* contents = ad_string_get_contents(string);
     copy_memory(&contents[range->start], &contents[range->end], copied_bytes);
-    string->count -= removed_bytes;
-    contents[string->count] = '\0';
+    count -= removed_bytes;
+    ad_string_set_count(string, count);
+    contents[count] = '\0';
 }
 
 bool ad_string_replace(AdString* to, const AdStringRange* range,
@@ -834,7 +866,9 @@ bool ad_string_replace(AdString* to, const AdStringRange* range,
     AD_ASSERT(ad_string_range_check(to, range));
 
     int view_bytes = range->end - range->start;
-    int count = to->count - view_bytes + from->count;
+    int to_count = ad_string_get_count(to);
+    int from_count = ad_string_get_count(from);
+    int count = to_count - view_bytes + from_count;
 
     bool reserved = ad_string_reserve(to, count);
 
@@ -846,13 +880,13 @@ bool ad_string_replace(AdString* to, const AdStringRange* range,
     char* to_contents = ad_string_get_contents(to);
     const char* from_contents = ad_string_get_contents_const(from);
 
-    int inserted_end = range->start + from->count;
-    int moved_bytes = to->count - range->end;
+    int inserted_end = range->start + from_count;
+    int moved_bytes = to_count - range->end;
     copy_memory(&to_contents[inserted_end], &to_contents[range->end],
             moved_bytes);
 
-    copy_memory(&to_contents[range->start], from_contents, from->count);
-    to->count = count;
+    copy_memory(&to_contents[range->start], from_contents, from_count);
+    ad_string_set_count(to, count);
     to_contents[count] = '\0';
 
     return true;
@@ -864,15 +898,7 @@ bool ad_string_reserve(AdString* string, int space)
     AD_ASSERT(space > 0);
 
     int needed_cap = space + 1;
-    int existing_cap;
-    if(ad_string_is_big(string))
-    {
-        existing_cap = string->big.cap;
-    }
-    else
-    {
-        existing_cap = AD_STRING_SMALL_CAP;
-    }
+    int existing_cap = ad_string_get_capacity(string);
 
     if(needed_cap > existing_cap)
     {
@@ -886,31 +912,32 @@ bool ad_string_reserve(AdString* string, int space)
             return false;
         }
 
-        if(string->count)
+        int count = ad_string_get_count(string);
+
+        if(count)
         {
             if(prior_cap > AD_STRING_SMALL_CAP)
             {
                 char* prior_contents = string->big.contents;
-                copy_memory(contents, prior_contents, string->count);
+                copy_memory(contents, prior_contents, count);
                 AdMemoryBlock block =
                 {
                     .memory = prior_contents,
-                    .bytes = string->big.cap,
+                    .bytes = string->cap,
                 };
                 ad_string_deallocate(string->allocator, block);
             }
             else
             {
                 char* prior_contents = string->small.contents;
-                copy_memory(contents, prior_contents, string->count);
+                copy_memory(contents, prior_contents, count);
                 zero_memory(prior_contents, prior_cap);
             }
         }
 
         AD_ASSERT(cap > AD_STRING_SMALL_CAP);
         string->big.contents = contents;
-        string->big.cap = cap;
-        string->type = AD_STRING_TYPE_BIG;
+        string->cap = cap;
     }
 
     return true;
@@ -921,7 +948,10 @@ bool ad_string_starts_with(const AdString* string, const AdString* lookup)
     AD_ASSERT(string);
     AD_ASSERT(lookup);
 
-    if(lookup->count > string->count)
+    int string_count = ad_string_get_count(string);
+    int lookup_count = ad_string_get_count(lookup);
+
+    if(lookup_count > string_count)
     {
         return false;
     }
@@ -929,7 +959,7 @@ bool ad_string_starts_with(const AdString* string, const AdString* lookup)
     {
         const char* string_contents = ad_string_get_contents_const(string);
         const char* lookup_contents = ad_string_get_contents_const(lookup);
-        return memory_matches(string_contents, lookup_contents, lookup->count);
+        return memory_matches(string_contents, lookup_contents, lookup_count);
     }
 }
 
@@ -957,7 +987,8 @@ char* ad_string_to_c_string_with_allocator(const AdString* string,
 {
     AD_ASSERT(string);
 
-    AdMemoryBlock block = ad_string_allocate(allocator, string->count + 1);
+    int count = ad_string_get_count(string);
+    AdMemoryBlock block = ad_string_allocate(allocator, count + 1);
     char* result = block.memory;
 
     if(!result)
@@ -966,18 +997,20 @@ char* ad_string_to_c_string_with_allocator(const AdString* string,
     }
 
     const char* contents = ad_string_get_contents_const(string);
-    copy_memory(result, contents, string->count);
-    result[string->count] = '\0';
+    copy_memory(result, contents, count);
+    result[count] = '\0';
     return result;
 }
 
 
 bool ad_string_range_check(const AdString* string, const AdStringRange* range)
 {
+    int count = ad_string_get_count(string);
+
     return range->start <= range->end
             && range->start > 0
             && range->end > 0
-            && range->end < string->count;
+            && range->end < count;
 }
 
 
@@ -986,7 +1019,10 @@ bool ad_strings_match(const AdString* a, const AdString* b)
     AD_ASSERT(a);
     AD_ASSERT(b);
 
-    if(a->count != b->count)
+    int a_count = ad_string_get_count(a);
+    int b_count = ad_string_get_count(b);
+
+    if(a_count != b_count)
     {
         return false;
     }
@@ -994,7 +1030,7 @@ bool ad_strings_match(const AdString* a, const AdString* b)
     const char* a_contents = ad_string_get_contents_const(a);
     const char* b_contents = ad_string_get_contents_const(b);
 
-    for(int char_index = 0; char_index < a->count; char_index += 1)
+    for(int char_index = 0; char_index < a_count; char_index += 1)
     {
         if(a_contents[char_index] != b_contents[char_index])
         {
@@ -1094,9 +1130,10 @@ bool ad_utf8_check(const AdString* string)
 
     const uint8_t* contents =
             (const uint8_t*) ad_string_get_contents_const(string);
+    int count = ad_string_get_count(string);
     uint8_t state = 0;
 
-    for(int char_index = 0; char_index < string->count; char_index += 1)
+    for(int char_index = 0; char_index < count; char_index += 1)
     {
         uint8_t byte = contents[char_index];
         uint8_t type = utf8_decode_type_table[byte];
@@ -1116,9 +1153,10 @@ int ad_utf8_codepoint_count(const AdString* string)
     AD_ASSERT(string);
 
     int count = 0;
+    int string_count = ad_string_get_count(string);
     const char* contents = ad_string_get_contents_const(string);
 
-    for(int char_index = 0; char_index < string->count; char_index += 1)
+    for(int char_index = 0; char_index < string_count; char_index += 1)
     {
         char c = contents[char_index];
         count += is_heading_byte(c);
@@ -1154,9 +1192,10 @@ AdMaybeUtf32String ad_utf8_to_utf32(const AdString* string)
     uint32_t codepoint = 0;
     uint32_t state = 0;
     const char* string_contents = ad_string_get_contents_const(string);
+    int string_count = ad_string_get_count(string);
     int codepoint_index = 1;
 
-    for(int byte_index = 0; byte_index < string->count; byte_index += 1)
+    for(int byte_index = 0; byte_index < string_count; byte_index += 1)
     {
         uint32_t byte = string_contents[byte_index];
         uint32_t type = utf8_decode_type_table[byte];

@@ -192,7 +192,8 @@ static bool test_add_end(Test* test)
 
     const char* contents = ad_string_get_contents_const(&outer.value);
     bool contents_match = strings_match(contents, u8"курица蛋");
-    bool size_correct = outer.value.count == string_size(contents);
+    bool size_correct =
+            ad_string_get_count(&outer.value) == string_size(contents);
     bool result = contents_match && size_correct;
 
     ad_string_destroy(&outer.value);
@@ -218,7 +219,8 @@ static bool test_add_middle(Test* test)
 
     const char* contents = ad_string_get_contents_const(&outer.value);
     bool contents_match = strings_match(contents, u8"ку蛋рица");
-    bool size_correct = outer.value.count == string_size(contents);
+    bool size_correct =
+            ad_string_get_count(&outer.value) == string_size(contents);
     bool result = contents_match && size_correct;
 
     ad_string_destroy(&outer.value);
@@ -244,7 +246,8 @@ static bool test_add_start(Test* test)
 
     const char* contents = ad_string_get_contents_const(&outer.value);
     bool contents_match = strings_match(contents, u8"蛋курица");
-    bool size_correct = outer.value.count == string_size(contents);
+    bool size_correct =
+            ad_string_get_count(&outer.value) == string_size(contents);
     bool result = contents_match && size_correct;
 
     ad_string_destroy(&outer.value);
@@ -269,7 +272,8 @@ static bool test_append(Test* test)
 
     const char* combined = ad_string_get_contents_const(&base.value);
     bool contents_match = strings_match(combined, u8"a猫🍌a猫🍌");
-    bool size_correct = base.value.count == string_size(combined);
+    bool size_correct =
+            ad_string_get_count(&base.value) == string_size(combined);
     bool result = contents_match && size_correct;
 
     ad_string_destroy(&base.value);
@@ -291,7 +295,8 @@ static bool test_append_c_string(Test* test)
 
     const char* combined = ad_string_get_contents_const(&base.value);
     bool contents_match = strings_match(combined, u8"👌🏼🙋🏾‍♀️");
-    bool size_correct = base.value.count == string_size(combined);
+    bool size_correct =
+            ad_string_get_count(&base.value) == string_size(combined);
     bool result = contents_match && size_correct;
 
     ad_string_destroy(&base.value);
@@ -332,8 +337,10 @@ static bool test_copy(Test* test)
     const char* original_contents = ad_string_get_contents_const(&original.value);
     const char* copy_contents = ad_string_get_contents_const(&copy.value);
 
+    bool size_correct =
+            ad_string_get_count(&original.value) == ad_string_get_count(&copy.value);
     bool result = strings_match(original_contents, copy_contents)
-            && original.value.count == copy.value.count
+            && size_correct
             && original.value.allocator == copy.value.allocator;
 
     ad_string_destroy(&original.value);
@@ -351,8 +358,10 @@ static bool test_destroy(Test* test)
 
     bool destroyed = ad_string_destroy(&original.value);
 
+    int post_count = ad_string_get_count(&original.value);
+
     return destroyed
-            && original.value.count == 0
+            && post_count == 0
             && original.value.allocator == &test->allocator;
 }
 
@@ -483,7 +492,7 @@ static bool test_from_buffer(Test* test)
 
     bool result = string.valid
             && strings_match(contents, reference)
-            && string.value.count == bytes;
+            && ad_string_get_count(&string.value) == bytes;
 
     ad_string_destroy(&string.value);
 
@@ -527,7 +536,7 @@ static bool test_initialise(Test* test)
     AdString string;
     ad_string_initialise_with_allocator(&string, &test->allocator);
     return string.allocator == &test->allocator
-            && string.count == 0;
+            && ad_string_get_count(&string) == 0;
 }
 
 static bool test_remove(Test* test)

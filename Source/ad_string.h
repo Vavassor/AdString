@@ -6,7 +6,7 @@
 #include <uchar.h>
 
 
-#define AD_STRING_SMALL_CAP 16
+#define AD_STRING_SMALL_CAP sizeof(AdStringBig)
 #define AD_USE_CUSTOM_ALLOCATOR
 
 
@@ -19,12 +19,13 @@ typedef struct AdMemoryBlock
 typedef struct AdStringBig
 {
     char* contents;
-    int cap;
+    int count;
 } AdStringBig;
 
 typedef struct AdStringSmall
 {
-    char contents[AD_STRING_SMALL_CAP];
+    char contents[AD_STRING_SMALL_CAP - 1];
+    char bytes_left;
 } AdStringSmall;
 
 typedef struct AdString
@@ -35,8 +36,7 @@ typedef struct AdString
         AdStringSmall small;
     };
     void* allocator;
-    int count;
-    uint8_t type;
+    int cap;
 } AdString;
 
 typedef struct AdStringRange
@@ -121,10 +121,10 @@ AdMaybeString ad_string_from_buffer_with_allocator(const char* buffer,
 AdMaybeString ad_string_from_c_string(const char* original);
 AdMaybeString ad_string_from_c_string_with_allocator(const char* original,
         void* allocator);
-int ad_string_get_capacity(AdString* string);
+int ad_string_get_capacity(const AdString* string);
 char* ad_string_get_contents(AdString* string);
 const char* ad_string_get_contents_const(const AdString* string);
-int ad_string_get_count(AdString* string);
+int ad_string_get_count(const AdString* string);
 void ad_string_initialise(AdString* string);
 void ad_string_initialise_with_allocator(AdString* string, void* allocator);
 void ad_string_remove(AdString* string, const AdStringRange* range);
