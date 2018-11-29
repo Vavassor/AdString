@@ -25,6 +25,9 @@ typedef struct AdStringBig
 typedef struct AdStringSmall
 {
     char contents[AD_STRING_SMALL_CAP - 1];
+
+    // The count is stored as "bytes left" so that it can serve a dual-purpose
+    // as the null terminator when the bytes left are zero.
     char bytes_left;
 } AdStringSmall;
 
@@ -50,6 +53,19 @@ typedef struct AdUtf32String
     char32_t* contents;
     int count;
 } AdUtf32String;
+
+typedef struct AdCodepointIterator
+{
+    AdStringRange range;
+    AdString* string;
+    int index;
+} AdCodepointIterator;
+
+typedef struct AdMaybeChar32
+{
+    char32_t value;
+    bool valid;
+} AdMaybeChar32;
 
 typedef struct AdMaybeInt
 {
@@ -98,6 +114,15 @@ AdMaybeUint64 ad_ascii_uint64_from_string_range(const AdString* string,
 
 bool ad_c_string_deallocate(char* string);
 bool ad_c_string_deallocate_with_allocator(void* allocator, char* string);
+
+void ad_codepoint_iterator_end(AdCodepointIterator* it);
+int ad_codepoint_iterator_get_index(AdCodepointIterator* it);
+AdString* ad_codepoint_iterator_get_string(AdCodepointIterator* it);
+AdMaybeChar32 ad_codepoint_iterator_next(AdCodepointIterator* it);
+AdMaybeChar32 ad_codepoint_iterator_prior(AdCodepointIterator* it);
+void ad_codepoint_iterator_set_string(AdCodepointIterator* it,
+        AdString* string);
+void ad_codepoint_iterator_start(AdCodepointIterator* it);
 
 AdMemoryBlock ad_string_allocate(void* allocator, uint64_t bytes);
 bool ad_string_deallocate(void* allocator, AdMemoryBlock block);

@@ -13,6 +13,20 @@ Types
 Functions
 ---------
 
+Codepoint Iterator
+^^^^^^^^^^^^^^^^^^
+
+.. toctree::
+    :maxdepth: 1
+
+    functions/ad-codepoint-iterator-end
+    functions/ad-codepoint-iterator-get-index
+    functions/ad-codepoint-iterator-get-string
+    functions/ad-codepoint-iterator-next
+    functions/ad-codepoint-iterator-prior
+    functions/ad-codepoint-iterator-set-string
+    functions/ad-codepoint-iterator-start
+
 C String
 ^^^^^^^^
 

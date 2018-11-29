@@ -1173,7 +1173,7 @@ AdMaybeUtf32String ad_utf8_to_utf32(const AdString* string)
     AdMaybeUtf32String result;
     result.valid = true;
 
-    int count = ad_utf8_codepoint_count(string) + 2;
+    int count = ad_utf8_codepoint_count(string) + 1;
     int bytes = sizeof(char32_t) * count;
     AdMemoryBlock block = ad_string_allocate(string->allocator, bytes);
     char32_t* result_contents = block.memory;
@@ -1186,18 +1186,17 @@ AdMaybeUtf32String ad_utf8_to_utf32(const AdString* string)
 
     result.value.contents = result_contents;
     result.value.count = count;
-    result_contents[0] = U'\ufeff';
     result_contents[count - 1] = U'\0';
 
     uint32_t codepoint = 0;
     uint32_t state = 0;
     const char* string_contents = ad_string_get_contents_const(string);
     int string_count = ad_string_get_count(string);
-    int codepoint_index = 1;
+    int codepoint_index = 0;
 
     for(int byte_index = 0; byte_index < string_count; byte_index += 1)
     {
-        uint32_t byte = string_contents[byte_index];
+        uint32_t byte = (uint8_t) string_contents[byte_index];
         uint32_t type = utf8_decode_type_table[byte];
 
         if(state)
@@ -1221,4 +1220,155 @@ AdMaybeUtf32String ad_utf8_to_utf32(const AdString* string)
     AD_ASSERT(codepoint_index == count);
 
     return result;
+}
+
+
+void ad_codepoint_iterator_end(AdCodepointIterator* it)
+{
+    AD_ASSERT(it);
+
+    it->index = it->range.end;
+}
+
+int ad_codepoint_iterator_get_index(AdCodepointIterator* it)
+{
+    AD_ASSERT(it);
+
+    return it->index;
+}
+
+AdString* ad_codepoint_iterator_get_string(AdCodepointIterator* it)
+{
+    AD_ASSERT(it);
+
+    return it->string;
+}
+
+AdMaybeChar32 ad_codepoint_iterator_next(AdCodepointIterator* it)
+{
+    AD_ASSERT(it);
+    AD_ASSERT(it->string);
+
+    if(it->index < it->range.end)
+    {
+        char32_t codepoint = 0;
+
+        const char* contents = ad_string_get_contents_const(it->string);
+        uint32_t state = 0;
+
+        for(int byte_index = it->index;
+                byte_index < it->range.end;
+                byte_index += 1)
+        {
+            uint32_t byte = (uint8_t) contents[byte_index];
+            uint32_t type = utf8_decode_type_table[byte];
+
+            if(state)
+            {
+                codepoint = (byte & 0x3fu) | (codepoint << 6);
+            }
+            else
+            {
+                codepoint = (0xff >> type) & byte;
+            }
+
+            state = utf8_decode_state_table[(16 * state) + type];
+
+            if(!state)
+            {
+                it->index = byte_index + 1;
+                AdMaybeChar32 result = {codepoint, true};
+                return result;
+            }
+        }
+    }
+
+    AdMaybeChar32 result = {U'\0', false};
+    return result;
+}
+
+// This steps back to the prior heading byte before the iterator and decodes
+// moving forward. Then sets the iterator to the heading byte index it started
+// decoding at.
+//
+// An alternate idea would be to decode backwards until a heading byte is found.
+// This would entail not using the state machine and instead building the
+// codepoint without error checking. Then, after, checking for overlong
+// encodings, not enough continuation bytes, and validity of the resulting
+// codepoint. It might or might not be an improvement. Also, this idea has the
+// disadvantage of not being able to determine the byte the error first occurs,
+// just that it was somewhere before it finally hit a heading byte. Which the
+// state machine does do!
+AdMaybeChar32 ad_codepoint_iterator_prior(AdCodepointIterator* it)
+{
+    AD_ASSERT(it);
+    AD_ASSERT(it->string);
+
+    if(it->index - 1 >= it->range.start)
+    {
+        char32_t codepoint = 0;
+
+        const char* contents = ad_string_get_contents_const(it->string);
+        int codepoint_index = it->range.start;
+
+        for(int byte_index = it->index - 1;
+                byte_index >= it->range.start;
+                byte_index -= 1)
+        {
+            if(is_heading_byte(contents[byte_index]))
+            {
+                codepoint_index = byte_index;
+                break;
+            }
+        }
+
+        uint32_t state = 0;
+
+        for(int byte_index = codepoint_index;
+                byte_index < it->range.end;
+                byte_index += 1)
+        {
+            uint32_t byte = (uint8_t) contents[byte_index];
+            uint32_t type = utf8_decode_type_table[byte];
+
+            if(state)
+            {
+                codepoint = (byte & 0x3fu) | (codepoint << 6);
+            }
+            else
+            {
+                codepoint = (0xff >> type) & byte;
+            }
+
+            state = utf8_decode_state_table[(16 * state) + type];
+
+            if(!state)
+            {
+                it->index = codepoint_index;
+                AdMaybeChar32 result = {codepoint, true};
+                return result;
+            }
+        }
+    }
+
+    AdMaybeChar32 result = {U'\0', false};
+    return result;
+}
+
+void ad_codepoint_iterator_set_string(AdCodepointIterator* it, AdString* string)
+{
+    AD_ASSERT(it);
+    AD_ASSERT(string);
+
+    it->string = string;
+    it->range.start = 0;
+    it->range.end = ad_string_get_count(it->string);
+    ad_codepoint_iterator_start(it);
+}
+
+void ad_codepoint_iterator_start(AdCodepointIterator* it)
+{
+    AD_ASSERT(it);
+
+    it->index = it->range.start;
 }
