@@ -1,10 +1,9 @@
-#include "../../Source/ad_string.h"
-
 #include "random.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "../../Source/aft_string.h"
 
 
 #define ASSERT(expression) \
@@ -54,7 +53,7 @@ typedef struct Allocator
 typedef struct Test
 {
     Allocator allocator;
-    Allocator bad_allocator;
+    Allocator baft_allocator;
     RandomGenerator generator;
     TestType type;
 } Test;
@@ -100,15 +99,15 @@ static const char* describe_test(TestType type)
     }
 }
 
-static AdMaybeString make_random_string(RandomGenerator* generator,
+static AftMaybeString make_random_string(RandomGenerator* generator,
         Allocator* allocator)
 {
-    AdMaybeString result;
+    AftMaybeString result;
 
     int codepoint_count = random_int_range(generator, 1, 128);
     uint64_t bytes = sizeof(char32_t) * codepoint_count;
 
-    AdMemoryBlock block = ad_string_allocate(allocator, bytes);
+    AftMemoryBlock block = aft_string_allocate(allocator, bytes);
 
     if(!block.memory)
     {
@@ -116,7 +115,7 @@ static AdMaybeString make_random_string(RandomGenerator* generator,
         return result;
     }
 
-    AdUtf32String string;
+    AftUtf32String string;
     string.count = codepoint_count;
     string.contents = (char32_t*) block.memory;
 
@@ -125,13 +124,13 @@ static AdMaybeString make_random_string(RandomGenerator* generator,
         string.contents[code_index] = random_int_range(generator, 0, 0x10ffff);
     }
 
-    result = ad_utf32_to_utf8_with_allocator(&string, allocator);
+    result = aft_utf32_to_utf8_with_allocator(&string, allocator);
 
-    bool destroyed = ad_utf32_destroy_with_allocator(&string, allocator);
+    bool destroyed = aft_utf32_destroy_with_allocator(&string, allocator);
 
     if(!destroyed)
     {
-        ad_string_destroy(&result.value);
+        aft_string_destroy(&result.value);
         result.valid = false;
     }
 
@@ -140,18 +139,18 @@ static AdMaybeString make_random_string(RandomGenerator* generator,
 
 static bool fuzz_assign(Test* test)
 {
-    AdMaybeString garble =
+    AftMaybeString garble =
             make_random_string(&test->generator, &test->allocator);
     ASSERT(garble.valid);
 
-    AdString string;
-    ad_string_initialise_with_allocator(&string, &test->allocator);
-    bool assigned = ad_string_assign(&string, &garble.value);
+    AftString string;
+    aft_string_initialise_with_allocator(&string, &test->allocator);
+    bool assigned = aft_string_assign(&string, &garble.value);
 
-    bool matched = ad_strings_match(&garble.value, &string);
+    bool matched = aft_strings_match(&garble.value, &string);
 
-    bool destroyed_garble = ad_string_destroy(&garble.value);
-    bool destroyed_string = ad_string_destroy(&string);
+    bool destroyed_garble = aft_string_destroy(&garble.value);
+    bool destroyed_string = aft_string_destroy(&string);
     ASSERT(destroyed_garble);
     ASSERT(destroyed_string);
 
@@ -185,25 +184,25 @@ static bool test_add_end(Test* test)
     const char* chicken = u8"курица";
     const char* egg = u8"蛋";
 
-    AdMaybeString outer =
-            ad_string_from_c_string_with_allocator(chicken, &test->allocator);
-    AdMaybeString inner =
-            ad_string_from_c_string_with_allocator(egg, &test->allocator);
+    AftMaybeString outer =
+            aft_string_from_c_string_with_allocator(chicken, &test->allocator);
+    AftMaybeString inner =
+            aft_string_from_c_string_with_allocator(egg, &test->allocator);
     ASSERT(outer.valid);
     ASSERT(inner.valid);
 
-    bool combined = ad_string_add(&outer.value, &inner.value,
+    bool combined = aft_string_add(&outer.value, &inner.value,
             string_size(chicken));
     ASSERT(combined);
 
-    const char* contents = ad_string_get_contents_const(&outer.value);
+    const char* contents = aft_string_get_contents_const(&outer.value);
     bool contents_match = strings_match(contents, u8"курица蛋");
     bool size_correct =
-            ad_string_get_count(&outer.value) == string_size(contents);
+            aft_string_get_count(&outer.value) == string_size(contents);
     bool result = contents_match && size_correct;
 
-    ad_string_destroy(&outer.value);
-    ad_string_destroy(&inner.value);
+    aft_string_destroy(&outer.value);
+    aft_string_destroy(&inner.value);
 
     return result;
 }
@@ -213,24 +212,24 @@ static bool test_add_middle(Test* test)
     const char* chicken = u8"курица";
     const char* egg = u8"蛋";
 
-    AdMaybeString outer =
-            ad_string_from_c_string_with_allocator(chicken, &test->allocator);
-    AdMaybeString inner =
-            ad_string_from_c_string_with_allocator(egg, &test->allocator);
+    AftMaybeString outer =
+            aft_string_from_c_string_with_allocator(chicken, &test->allocator);
+    AftMaybeString inner =
+            aft_string_from_c_string_with_allocator(egg, &test->allocator);
     ASSERT(outer.valid);
     ASSERT(inner.valid);
 
-    bool combined = ad_string_add(&outer.value, &inner.value, 4);
+    bool combined = aft_string_add(&outer.value, &inner.value, 4);
     ASSERT(combined);
 
-    const char* contents = ad_string_get_contents_const(&outer.value);
+    const char* contents = aft_string_get_contents_const(&outer.value);
     bool contents_match = strings_match(contents, u8"ку蛋рица");
     bool size_correct =
-            ad_string_get_count(&outer.value) == string_size(contents);
+            aft_string_get_count(&outer.value) == string_size(contents);
     bool result = contents_match && size_correct;
 
-    ad_string_destroy(&outer.value);
-    ad_string_destroy(&inner.value);
+    aft_string_destroy(&outer.value);
+    aft_string_destroy(&inner.value);
 
     return result;
 }
@@ -240,24 +239,24 @@ static bool test_add_start(Test* test)
     const char* chicken = u8"курица";
     const char* egg = u8"蛋";
 
-    AdMaybeString outer =
-            ad_string_from_c_string_with_allocator(chicken, &test->allocator);
-    AdMaybeString inner =
-            ad_string_from_c_string_with_allocator(egg, &test->allocator);
+    AftMaybeString outer =
+            aft_string_from_c_string_with_allocator(chicken, &test->allocator);
+    AftMaybeString inner =
+            aft_string_from_c_string_with_allocator(egg, &test->allocator);
     ASSERT(outer.valid);
     ASSERT(inner.valid);
 
-    bool combined = ad_string_add(&outer.value, &inner.value, 0);
+    bool combined = aft_string_add(&outer.value, &inner.value, 0);
     ASSERT(combined);
 
-    const char* contents = ad_string_get_contents_const(&outer.value);
+    const char* contents = aft_string_get_contents_const(&outer.value);
     bool contents_match = strings_match(contents, u8"蛋курица");
     bool size_correct =
-            ad_string_get_count(&outer.value) == string_size(contents);
+            aft_string_get_count(&outer.value) == string_size(contents);
     bool result = contents_match && size_correct;
 
-    ad_string_destroy(&outer.value);
-    ad_string_destroy(&inner.value);
+    aft_string_destroy(&outer.value);
+    aft_string_destroy(&inner.value);
 
     return result;
 }
@@ -266,24 +265,24 @@ static bool test_append(Test* test)
 {
     const char* a = u8"a猫🍌";
     const char* b = u8"a猫🍌";
-    AdMaybeString base =
-            ad_string_from_c_string_with_allocator(a, &test->allocator);
-    AdMaybeString extension =
-                ad_string_from_c_string_with_allocator(b, &test->allocator);
+    AftMaybeString base =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
+    AftMaybeString extension =
+                aft_string_from_c_string_with_allocator(b, &test->allocator);
     ASSERT(base.valid);
     ASSERT(extension.valid);
 
-    bool appended = ad_string_append(&base.value, &extension.value);
+    bool appended = aft_string_append(&base.value, &extension.value);
     ASSERT(appended);
 
-    const char* combined = ad_string_get_contents_const(&base.value);
+    const char* combined = aft_string_get_contents_const(&base.value);
     bool contents_match = strings_match(combined, u8"a猫🍌a猫🍌");
     bool size_correct =
-            ad_string_get_count(&base.value) == string_size(combined);
+            aft_string_get_count(&base.value) == string_size(combined);
     bool result = contents_match && size_correct;
 
-    ad_string_destroy(&base.value);
-    ad_string_destroy(&extension.value);
+    aft_string_destroy(&base.value);
+    aft_string_destroy(&extension.value);
 
     return result;
 }
@@ -292,20 +291,20 @@ static bool test_append_c_string(Test* test)
 {
     const char* a = u8"👌🏼";
     const char* b = u8"🙋🏾‍♀️";
-    AdMaybeString base =
-            ad_string_from_c_string_with_allocator(a, &test->allocator);
+    AftMaybeString base =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
     ASSERT(base.valid);
 
-    bool appended = ad_string_append_c_string(&base.value, b);
+    bool appended = aft_string_append_c_string(&base.value, b);
     ASSERT(appended);
 
-    const char* combined = ad_string_get_contents_const(&base.value);
+    const char* combined = aft_string_get_contents_const(&base.value);
     bool contents_match = strings_match(combined, u8"👌🏼🙋🏾‍♀️");
     bool size_correct =
-            ad_string_get_count(&base.value) == string_size(combined);
+            aft_string_get_count(&base.value) == string_size(combined);
     bool result = contents_match && size_correct;
 
-    ad_string_destroy(&base.value);
+    aft_string_destroy(&base.value);
 
     return result;
 }
@@ -313,17 +312,17 @@ static bool test_append_c_string(Test* test)
 static bool test_assign(Test* test)
 {
     const char* reference = u8"a猫🍌";
-    AdMaybeString original =
-            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    AftMaybeString original =
+            aft_string_from_c_string_with_allocator(reference, &test->allocator);
 
-    AdString string;
-    ad_string_initialise_with_allocator(&string, &test->allocator);
-    bool assigned = ad_string_assign(&string, &original.value);
+    AftString string;
+    aft_string_initialise_with_allocator(&string, &test->allocator);
+    bool assigned = aft_string_assign(&string, &original.value);
 
-    bool matched = ad_strings_match(&original.value, &string);
+    bool matched = aft_strings_match(&original.value, &string);
 
-    bool destroyed_original = ad_string_destroy(&original.value);
-    bool destroyed_string = ad_string_destroy(&string);
+    bool destroyed_original = aft_string_destroy(&original.value);
+    bool destroyed_string = aft_string_destroy(&string);
     ASSERT(destroyed_original);
     ASSERT(destroyed_string);
 
@@ -334,23 +333,23 @@ static bool test_copy(Test* test)
 {
     const char* reference = u8"a猫🍌";
 
-    AdMaybeString original =
-            ad_string_from_c_string_with_allocator(reference, &test->allocator);
-    AdMaybeString copy = ad_string_copy(&original.value);
+    AftMaybeString original =
+            aft_string_from_c_string_with_allocator(reference, &test->allocator);
+    AftMaybeString copy = aft_string_copy(&original.value);
     ASSERT(original.valid);
     ASSERT(copy.valid);
 
-    const char* original_contents = ad_string_get_contents_const(&original.value);
-    const char* copy_contents = ad_string_get_contents_const(&copy.value);
+    const char* original_contents = aft_string_get_contents_const(&original.value);
+    const char* copy_contents = aft_string_get_contents_const(&copy.value);
 
     bool size_correct =
-            ad_string_get_count(&original.value) == ad_string_get_count(&copy.value);
+            aft_string_get_count(&original.value) == aft_string_get_count(&copy.value);
     bool result = strings_match(original_contents, copy_contents)
             && size_correct
             && original.value.allocator == copy.value.allocator;
 
-    ad_string_destroy(&original.value);
-    ad_string_destroy(&copy.value);
+    aft_string_destroy(&original.value);
+    aft_string_destroy(&copy.value);
 
     return result;
 }
@@ -358,13 +357,13 @@ static bool test_copy(Test* test)
 static bool test_destroy(Test* test)
 {
     const char* reference = "Moist";
-    AdMaybeString original =
-            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    AftMaybeString original =
+            aft_string_from_c_string_with_allocator(reference, &test->allocator);
     ASSERT(original.valid);
 
-    bool destroyed = ad_string_destroy(&original.value);
+    bool destroyed = aft_string_destroy(&original.value);
 
-    int post_count = ad_string_get_count(&original.value);
+    int post_count = aft_string_get_count(&original.value);
 
     return destroyed
             && post_count == 0
@@ -375,17 +374,17 @@ static bool test_ends_with(Test* test)
 {
     const char* a = u8"Wow a猫🍌";
     const char* b = u8"a猫🍌";
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(a, &test->allocator);
-    AdMaybeString ending =
-            ad_string_from_c_string_with_allocator(b, &test->allocator);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
+    AftMaybeString ending =
+            aft_string_from_c_string_with_allocator(b, &test->allocator);
     ASSERT(string.valid);
     ASSERT(ending.valid);
 
-    bool result = ad_string_ends_with(&string.value, &ending.value);
+    bool result = aft_string_ends_with(&string.value, &ending.value);
 
-    ad_string_destroy(&string.value);
-    ad_string_destroy(&ending.value);
+    aft_string_destroy(&string.value);
+    aft_string_destroy(&ending.value);
 
     return result;
 }
@@ -395,15 +394,15 @@ static bool test_find_first_char(Test* test)
     const char* a = "a A AA s";
     int known_index = 2;
 
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(a, &test->allocator);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
     ASSERT(string.valid);
 
-    AdMaybeInt index = ad_string_find_first_char(&string.value, 'A');
+    AftMaybeInt index = aft_string_find_first_char(&string.value, 'A');
 
     bool result = index.value == known_index;
 
-    ad_string_destroy(&string.value);
+    aft_string_destroy(&string.value);
 
     return result;
 }
@@ -414,20 +413,20 @@ static bool test_find_first_string(Test* test)
     const char* b = u8"الْعَ";
     int known_index = 112;
 
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(a, &test->allocator);
-    AdMaybeString target =
-            ad_string_from_c_string_with_allocator(b, &test->allocator);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
+    AftMaybeString target =
+            aft_string_from_c_string_with_allocator(b, &test->allocator);
     ASSERT(string.valid);
     ASSERT(target.valid);
 
-    AdMaybeInt index =
-            ad_string_find_first_string(&string.value, &target.value);
+    AftMaybeInt index =
+            aft_string_find_first_string(&string.value, &target.value);
 
     bool result = index.value == known_index;
 
-    ad_string_destroy(&string.value);
-    ad_string_destroy(&target.value);
+    aft_string_destroy(&string.value);
+    aft_string_destroy(&target.value);
 
     return result;
 }
@@ -437,15 +436,15 @@ static bool test_find_last_char(Test* test)
     const char* a = "a A AA s";
     int known_index = 5;
 
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(a, &test->allocator);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
     ASSERT(string.valid);
 
-    AdMaybeInt index = ad_string_find_last_char(&string.value, 'A');
+    AftMaybeInt index = aft_string_find_last_char(&string.value, 'A');
 
     bool result = index.value == known_index;
 
-    ad_string_destroy(&string.value);
+    aft_string_destroy(&string.value);
 
     return result;
 }
@@ -456,19 +455,19 @@ static bool test_find_last_string(Test* test)
     const char* b = u8"My";
     int known_index = 37;
 
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(a, &test->allocator);
-    AdMaybeString target =
-            ad_string_from_c_string_with_allocator(b, &test->allocator);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
+    AftMaybeString target =
+            aft_string_from_c_string_with_allocator(b, &test->allocator);
     ASSERT(string.valid);
     ASSERT(target.valid);
 
-    AdMaybeInt index = ad_string_find_last_string(&string.value, &target.value);
+    AftMaybeInt index = aft_string_find_last_string(&string.value, &target.value);
 
     bool result = (index.value == known_index);
 
-    ad_string_destroy(&string.value);
-    ad_string_destroy(&target.value);
+    aft_string_destroy(&string.value);
+    aft_string_destroy(&target.value);
 
     return result;
 }
@@ -476,13 +475,13 @@ static bool test_find_last_string(Test* test)
 static bool test_from_c_string(Test* test)
 {
     const char* reference = u8"a猫🍌";
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(reference, &test->allocator);
-    const char* contents = ad_string_get_contents_const(&string.value);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference, &test->allocator);
+    const char* contents = aft_string_get_contents_const(&string.value);
 
     bool result = string.valid && strings_match(contents, reference);
 
-    ad_string_destroy(&string.value);
+    aft_string_destroy(&string.value);
 
     return result;
 }
@@ -491,16 +490,16 @@ static bool test_from_buffer(Test* test)
 {
     const char* reference = u8"a猫🍌";
     int bytes = string_size(reference);
-    AdMaybeString string =
-            ad_string_from_buffer_with_allocator(reference, bytes,
+    AftMaybeString string =
+            aft_string_from_buffer_with_allocator(reference, bytes,
                     &test->allocator);
-    const char* contents = ad_string_get_contents_const(&string.value);
+    const char* contents = aft_string_get_contents_const(&string.value);
 
     bool result = string.valid
             && strings_match(contents, reference)
-            && ad_string_get_count(&string.value) == bytes;
+            && aft_string_get_count(&string.value) == bytes;
 
-    ad_string_destroy(&string.value);
+    aft_string_destroy(&string.value);
 
     return result;
 }
@@ -508,15 +507,15 @@ static bool test_from_buffer(Test* test)
 static bool test_get_contents(Test* test)
 {
     const char* reference = "Test me in the most basic way possible.";
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
-    char* contents = ad_string_get_contents(&string.value);
+    char* contents = aft_string_get_contents(&string.value);
 
     bool result = contents && strings_match(contents, reference);
 
-    ad_string_destroy(&string.value);
+    aft_string_destroy(&string.value);
 
     return result;
 }
@@ -524,48 +523,48 @@ static bool test_get_contents(Test* test)
 static bool test_get_contents_const(Test* test)
 {
     const char* original = u8"👌🏼";
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(original, &test->allocator);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(original, &test->allocator);
     ASSERT(string.valid);
 
-    const char* after = ad_string_get_contents_const(&string.value);
+    const char* after = aft_string_get_contents_const(&string.value);
 
     bool result = after && strings_match(original, after);
 
-    ad_string_destroy(&string.value);
+    aft_string_destroy(&string.value);
 
     return result;
 }
 
 static bool test_initialise(Test* test)
 {
-    AdString string;
-    ad_string_initialise_with_allocator(&string, &test->allocator);
+    AftString string;
+    aft_string_initialise_with_allocator(&string, &test->allocator);
     return string.allocator == &test->allocator
-            && ad_string_get_count(&string) == 0;
+            && aft_string_get_count(&string) == 0;
 }
 
 static bool test_iterator_next(Test* test)
 {
     const char* reference = u8"Бума́га всё сте́рпит.";
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
-    AdCodepointIterator it;
-    ad_codepoint_iterator_set_string(&it, &string.value);
-    ad_codepoint_iterator_next(&it);
+    AftCodepointIterator it;
+    aft_codepoint_iterator_set_string(&it, &string.value);
+    aft_codepoint_iterator_next(&it);
 
-    int before_index = ad_codepoint_iterator_get_index(&it);
-    AdMaybeChar32 next = ad_codepoint_iterator_next(&it);
-    int after_index = ad_codepoint_iterator_get_index(&it);
+    int before_index = aft_codepoint_iterator_get_index(&it);
+    AftMaybeChar32 next = aft_codepoint_iterator_next(&it);
+    int after_index = aft_codepoint_iterator_get_index(&it);
 
     bool result = next.valid
             && next.value == U'у'
             && before_index == 2
             && after_index == 4;
 
-    ad_string_destroy(&string.value);
+    aft_string_destroy(&string.value);
 
     return result;
 }
@@ -573,25 +572,25 @@ static bool test_iterator_next(Test* test)
 static bool test_iterator_prior(Test* test)
 {
     const char* reference = u8"Бума́га всё сте́рпит.";
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
-    AdCodepointIterator it;
-    ad_codepoint_iterator_set_string(&it, &string.value);
-    ad_codepoint_iterator_end(&it);
-    ad_codepoint_iterator_prior(&it);
+    AftCodepointIterator it;
+    aft_codepoint_iterator_set_string(&it, &string.value);
+    aft_codepoint_iterator_end(&it);
+    aft_codepoint_iterator_prior(&it);
 
-    int before_index = ad_codepoint_iterator_get_index(&it);
-    AdMaybeChar32 prior = ad_codepoint_iterator_prior(&it);
-    int after_index = ad_codepoint_iterator_get_index(&it);
+    int before_index = aft_codepoint_iterator_get_index(&it);
+    AftMaybeChar32 prior = aft_codepoint_iterator_prior(&it);
+    int after_index = aft_codepoint_iterator_get_index(&it);
 
     bool result = prior.valid
             && prior.value == U'т'
             && before_index == 38
             && after_index == 36;
 
-    ad_string_destroy(&string.value);
+    aft_string_destroy(&string.value);
 
     return result;
 }
@@ -599,18 +598,18 @@ static bool test_iterator_prior(Test* test)
 static bool test_iterator_set_string(Test* test)
 {
     const char* reference = "9876543210";
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
-    AdCodepointIterator it;
-    ad_codepoint_iterator_set_string(&it, &string.value);
+    AftCodepointIterator it;
+    aft_codepoint_iterator_set_string(&it, &string.value);
 
     bool result =
-            ad_codepoint_iterator_get_string(&it) == &string.value
-            && ad_codepoint_iterator_get_index(&it) == 0;
+            aft_codepoint_iterator_get_string(&it) == &string.value
+            && aft_codepoint_iterator_get_index(&it) == 0;
 
-    ad_string_destroy(&string.value);
+    aft_string_destroy(&string.value);
 
     return result;
 }
@@ -618,16 +617,16 @@ static bool test_iterator_set_string(Test* test)
 static bool test_remove(Test* test)
 {
     const char* reference = "9876543210";
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
-    AdStringRange range = {3, 6};
-    ad_string_remove(&string.value, &range);
-    const char* contents = ad_string_get_contents_const(&string.value);
+    AftStringRange range = {3, 6};
+    aft_string_remove(&string.value, &range);
+    const char* contents = aft_string_get_contents_const(&string.value);
     bool result = strings_match(contents, "9873210");
 
-    ad_string_destroy(&string.value);
+    aft_string_destroy(&string.value);
 
     return result;
 }
@@ -636,35 +635,35 @@ static bool test_replace(Test* test)
 {
     const char* reference = "9876543210";
     const char* insert = "abc";
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(reference, &test->allocator);
-    AdMaybeString replacement =
-            ad_string_from_c_string_with_allocator(insert, &test->allocator);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference, &test->allocator);
+    AftMaybeString replacement =
+            aft_string_from_c_string_with_allocator(insert, &test->allocator);
     ASSERT(string.valid);
     ASSERT(replacement.valid);
 
-    AdStringRange range = {3, 6};
-    ad_string_replace(&string.value, &range, &replacement.value);
-    const char* contents = ad_string_get_contents_const(&string.value);
+    AftStringRange range = {3, 6};
+    aft_string_replace(&string.value, &range, &replacement.value);
+    const char* contents = aft_string_get_contents_const(&string.value);
     bool result = strings_match(contents, "987abc3210");
 
-    ad_string_destroy(&string.value);
-    ad_string_destroy(&replacement.value);
+    aft_string_destroy(&string.value);
+    aft_string_destroy(&replacement.value);
 
     return result;
 }
 
 static bool test_reserve(Test* test)
 {
-    AdString string;
-    ad_string_initialise_with_allocator(&string, &test->allocator);
+    AftString string;
+    aft_string_initialise_with_allocator(&string, &test->allocator);
     int requested_cap = 100;
 
-    bool reserved = ad_string_reserve(&string, requested_cap);
-    int cap = ad_string_get_capacity(&string);
+    bool reserved = aft_string_reserve(&string, requested_cap);
+    int cap = aft_string_get_capacity(&string);
     bool result = reserved && cap == requested_cap;
 
-    ad_string_destroy(&string);
+    aft_string_destroy(&string);
 
     return result;
 }
@@ -673,17 +672,17 @@ static bool test_starts_with(Test* test)
 {
     const char* a = u8"a猫🍌 Wow";
     const char* b = u8"a猫🍌";
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(a, &test->allocator);
-    AdMaybeString ending =
-            ad_string_from_c_string_with_allocator(b, &test->allocator);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
+    AftMaybeString ending =
+            aft_string_from_c_string_with_allocator(b, &test->allocator);
     ASSERT(string.valid);
     ASSERT(ending.valid);
 
-    bool result = ad_string_starts_with(&string.value, &ending.value);
+    bool result = aft_string_starts_with(&string.value, &ending.value);
 
-    ad_string_destroy(&string.value);
-    ad_string_destroy(&ending.value);
+    aft_string_destroy(&string.value);
+    aft_string_destroy(&ending.value);
 
     return result;
 }
@@ -691,20 +690,20 @@ static bool test_starts_with(Test* test)
 static bool test_substring(Test* test)
 {
     const char* reference = "9876543210";
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
-    AdStringRange range = {3, 6};
-    AdMaybeString middle = ad_string_substring(&string.value, &range);
+    AftStringRange range = {3, 6};
+    AftMaybeString middle = aft_string_substring(&string.value, &range);
     ASSERT(middle.valid);
 
-    const char* contents = ad_string_get_contents_const(&middle.value);
+    const char* contents = aft_string_get_contents_const(&middle.value);
     bool result = strings_match(contents, "654")
             && string.value.allocator == &test->allocator;
 
-    ad_string_destroy(&string.value);
-    ad_string_destroy(&middle.value);
+    aft_string_destroy(&string.value);
+    aft_string_destroy(&middle.value);
 
     return result;
 }
@@ -712,17 +711,17 @@ static bool test_substring(Test* test)
 static bool test_to_c_string(Test* test)
 {
     const char* reference = "It's okay.";
-    AdMaybeString string =
-            ad_string_from_c_string_with_allocator(reference, &test->allocator);
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
     char* copy =
-            ad_string_to_c_string_with_allocator(&string.value,
+            aft_string_to_c_string_with_allocator(&string.value,
                     &test->allocator);
     bool result = strings_match(copy, reference);
 
-    ad_string_destroy(&string.value);
-    ad_c_string_deallocate_with_allocator(&test->allocator, copy);
+    aft_string_destroy(&string.value);
+    aft_c_string_deallocate_with_allocator(&test->allocator, copy);
 
     return result;
 }
@@ -776,7 +775,7 @@ static bool run_tests()
     {
         Test test = {0};
         test.type = (TestType) test_index;
-        test.bad_allocator.force_allocation_failure = true;
+        test.baft_allocator.force_allocation_failure = true;
 
         random_seed_by_time(&test.generator);
 
@@ -843,7 +842,7 @@ int main(int argc, const char** argv)
     return !success;
 }
 
-AdMemoryBlock ad_string_allocate(void* allocator_pointer, uint64_t bytes)
+AftMemoryBlock aft_allocate(void* allocator_pointer, uint64_t bytes)
 {
     ASSERT(allocator_pointer);
 
@@ -851,7 +850,7 @@ AdMemoryBlock ad_string_allocate(void* allocator_pointer, uint64_t bytes)
 
     if(allocator->force_allocation_failure)
     {
-        AdMemoryBlock empty =
+        AftMemoryBlock empty =
         {
             .memory = NULL,
             .bytes = 0,
@@ -861,7 +860,7 @@ AdMemoryBlock ad_string_allocate(void* allocator_pointer, uint64_t bytes)
 
     allocator->bytes_used += bytes;
 
-    AdMemoryBlock block =
+    AftMemoryBlock block =
     {
         .memory = calloc(bytes, 1),
         .bytes = bytes,
@@ -875,7 +874,7 @@ AdMemoryBlock ad_string_allocate(void* allocator_pointer, uint64_t bytes)
     return block;
 }
 
-bool ad_string_deallocate(void* allocator_pointer, AdMemoryBlock block)
+bool aft_deallocate(void* allocator_pointer, AftMemoryBlock block)
 {
     ASSERT(allocator_pointer);
 

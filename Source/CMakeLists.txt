@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.0)
-project(AdString VERSION 1.0.0)
+project(AftString VERSION 1.0.0)
 
-add_library(AdString "")
+add_library(AftString "")
 
 set_target_properties(
-    AdString
+    AftString
     PROPERTIES
     C_STANDARD 99
     C_STANDARD_REQUIRED ON
@@ -12,8 +12,8 @@ set_target_properties(
 )
 
 target_sources(
-    AdString
+    AftString
     PRIVATE
-    ad_number_format.c
-    ad_string.c
+    aft_number_format.c
+    aft_string.c
 )

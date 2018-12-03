@@ -1,5 +1,4 @@
-#include "ad_number_format.h"
-
+#include "aft_number_format.h"
 
 #include <stddef.h>
 
@@ -16,12 +15,12 @@ static int count_digits_uint64(uint64_t value, int base)
     return digits;
 }
 
-static bool default_number_symbols(AdNumberSymbols* symbols, void* allocator)
+static bool default_number_symbols(AftNumberSymbols* symbols, void* allocator)
 {
     struct
     {
         const char* symbol;
-        AdString* result;
+        AftString* result;
     } table[22] =
     {
         {"0", &symbols->digits[0]},
@@ -51,8 +50,8 @@ static bool default_number_symbols(AdNumberSymbols* symbols, void* allocator)
     for(int symbol_index = 0; symbol_index < 22; symbol_index += 1)
     {
         const char* symbol = table[symbol_index].symbol;
-        AdMaybeString result =
-                ad_string_from_c_string_with_allocator(symbol, allocator);
+        AftMaybeString result =
+                aft_string_from_c_string_with_allocator(symbol, allocator);
 
         if(!result.valid)
         {
@@ -60,7 +59,7 @@ static bool default_number_symbols(AdNumberSymbols* symbols, void* allocator)
                     destroy_index < symbol_index;
                     destroy_index += 1)
             {
-                ad_string_destroy(table[destroy_index].result);
+                aft_string_destroy(table[destroy_index].result);
             }
 
             return false;
@@ -72,34 +71,34 @@ static bool default_number_symbols(AdNumberSymbols* symbols, void* allocator)
     return true;
 }
 
-static void destroy_number_symbols(AdNumberSymbols* symbols)
+static void destroy_number_symbols(AftNumberSymbols* symbols)
 {
     for(int digit_index = 0; digit_index < 10; digit_index += 1)
     {
-        ad_string_destroy(&symbols->digits[digit_index]);
+        aft_string_destroy(&symbols->digits[digit_index]);
     }
 
-    ad_string_destroy(&symbols->currency_decimal_separator);
-    ad_string_destroy(&symbols->currency_group_separator);
-    ad_string_destroy(&symbols->radix_separator);
-    ad_string_destroy(&symbols->exponential_sign);
-    ad_string_destroy(&symbols->group_separator);
-    ad_string_destroy(&symbols->infinity_sign);
-    ad_string_destroy(&symbols->minus_sign);
-    ad_string_destroy(&symbols->nan_sign);
-    ad_string_destroy(&symbols->per_mille_sign);
-    ad_string_destroy(&symbols->percent_sign);
-    ad_string_destroy(&symbols->plus_sign);
-    ad_string_destroy(&symbols->superscripting_exponent_sign);
+    aft_string_destroy(&symbols->currency_decimal_separator);
+    aft_string_destroy(&symbols->currency_group_separator);
+    aft_string_destroy(&symbols->radix_separator);
+    aft_string_destroy(&symbols->exponential_sign);
+    aft_string_destroy(&symbols->group_separator);
+    aft_string_destroy(&symbols->infinity_sign);
+    aft_string_destroy(&symbols->minus_sign);
+    aft_string_destroy(&symbols->nan_sign);
+    aft_string_destroy(&symbols->per_mille_sign);
+    aft_string_destroy(&symbols->percent_sign);
+    aft_string_destroy(&symbols->plus_sign);
+    aft_string_destroy(&symbols->superscripting_exponent_sign);
 }
 
 
-bool ad_number_format_default(AdNumberFormat* format)
+bool aft_number_format_default(AftNumberFormat* format)
 {
-    return ad_number_format_default_with_allocator(format, NULL);
+    return aft_number_format_default_with_allocator(format, NULL);
 }
 
-bool ad_number_format_default_with_allocator(AdNumberFormat* format,
+bool aft_number_format_default_with_allocator(AftNumberFormat* format,
         void* allocator)
 {
     bool symbols_done = default_number_symbols(&format->symbols, allocator);
@@ -108,19 +107,19 @@ bool ad_number_format_default_with_allocator(AdNumberFormat* format,
         return false;
     }
 
-    AdMaybeString negative_pattern =
-            ad_string_from_c_string_with_allocator("-#,##0.###", allocator);
+    AftMaybeString negative_pattern =
+            aft_string_from_c_string_with_allocator("-#,##0.###", allocator);
     if(!negative_pattern.valid)
     {
         return false;
     }
     format->negative_pattern = negative_pattern.value;
 
-    AdMaybeString positive_pattern =
-            ad_string_from_c_string_with_allocator("#,##0.###", allocator);
+    AftMaybeString positive_pattern =
+            aft_string_from_c_string_with_allocator("#,##0.###", allocator);
     if(!positive_pattern.valid)
     {
-        ad_string_destroy(&format->negative_pattern);
+        aft_string_destroy(&format->negative_pattern);
         return false;
     }
     format->positive_pattern = positive_pattern.value;
@@ -141,33 +140,33 @@ bool ad_number_format_default_with_allocator(AdNumberFormat* format,
 }
 
 
-void ad_number_format_destroy(AdNumberFormat* format)
+void aft_number_format_destroy(AftNumberFormat* format)
 {
     destroy_number_symbols(&format->symbols);
 
-    ad_string_destroy(&format->negative_pattern);
-    ad_string_destroy(&format->positive_pattern);
+    aft_string_destroy(&format->negative_pattern);
+    aft_string_destroy(&format->positive_pattern);
 }
 
-AdMaybeString ad_string_from_uint64(uint64_t value,
-        const AdNumberFormat* format)
+AftMaybeString aft_string_from_uint64(uint64_t value,
+        const AftNumberFormat* format)
 {
-    return ad_string_from_uint64_with_allocator(value, format, NULL);
+    return aft_string_from_uint64_with_allocator(value, format, NULL);
 }
 
-AdMaybeString ad_string_from_uint64_with_allocator(uint64_t value,
-        const AdNumberFormat* format, void* allocator)
+AftMaybeString aft_string_from_uint64_with_allocator(uint64_t value,
+        const AftNumberFormat* format, void* allocator)
 {
-    AdMaybeString result;
+    AftMaybeString result;
     result.valid = true;
-    ad_string_initialise_with_allocator(&result.value, allocator);
+    aft_string_initialise_with_allocator(&result.value, allocator);
 
     if(format->style == AD_NUMBER_FORMAT_STYLE_PERCENT)
     {
         value *= format->percent.multiplier;
     }
 
-    const AdString* pattern = &format->positive_pattern;
+    const AftString* pattern = &format->positive_pattern;
 
     int total_digits = count_digits_uint64(value, format->base);
 

@@ -1,23 +1,22 @@
-#include "ad_string.h"
+#include "aft_string.h"
 
 #include <assert.h>
 #include <stddef.h>
 
-
-#define AD_ASSERT(expression) \
+#define AFT_ASSERT(expression) \
     assert(expression)
 
 #define UINT64_MAX_DIGITS 20
 
 
-#if !defined(AD_USE_CUSTOM_ALLOCATOR)
+#if !defined(AFT_USE_CUSTOM_ALLOCATOR)
 
 #include <stdlib.h>
 
-AdMemoryBlock ad_string_allocate(void* allocator, uint64_t bytes)
+AftMemoryBlock aft_allocate(void* allocator, uint64_t bytes)
 {
     (void) allocator;
-    AdMemoryBlock block =
+    AftMemoryBlock block =
     {
         .memory = calloc(bytes, 1),
         .bytes = bytes,
@@ -29,14 +28,14 @@ AdMemoryBlock ad_string_allocate(void* allocator, uint64_t bytes)
     return block;
 }
 
-bool ad_string_deallocate(void* allocator, AdMemoryBlock block)
+bool aft_deallocate(void* allocator, AftMemoryBlock block)
 {
     (void) allocator;
     free(block.memory);
     return true;
 }
 
-#endif // !defined(AD_USE_CUSTOM_ALLOCATOR)
+#endif // !defined(AFT_USE_CUSTOM_ALLOCATOR)
 
 
 static const uint64_t powers_of_ten[UINT64_MAX_DIGITS] =
@@ -97,20 +96,20 @@ static const uint8_t utf8_decode_type_table[] =
 };
 
 
-static bool ad_string_is_big(const AdString* string)
+static bool aft_string_is_big(const AftString* string)
 {
-    return string->cap > AD_STRING_SMALL_CAP;
+    return string->cap > AFT_STRING_SMALL_CAP;
 }
 
-static void ad_string_set_count(AdString* string, int count)
+static void aft_string_set_count(AftString* string, int count)
 {
-    if(ad_string_is_big(string))
+    if(aft_string_is_big(string))
     {
         string->big.count = count;
     }
     else
     {
-        string->small.bytes_left = AD_STRING_SMALL_CAP - count;
+        string->small.bytes_left = AFT_STRING_SMALL_CAP - count;
     }
 }
 
@@ -149,8 +148,8 @@ static bool is_heading_byte(char c)
 
 static bool memory_matches(const void* a, const void* b, int n)
 {
-    AD_ASSERT(a);
-    AD_ASSERT(b);
+    AFT_ASSERT(a);
+    AFT_ASSERT(b);
 
     const uint8_t* p1 = (const uint8_t*) a;
     const uint8_t* p2 = (const uint8_t*) b;
@@ -192,19 +191,19 @@ static void zero_memory(void* memory, uint64_t bytes)
 }
 
 
-bool ad_ascii_check(const AdString* string)
+bool aft_ascii_check(const AftString* string)
 {
-    int count = ad_string_get_count(string);
-    AdStringRange range = {0, count};
-    return ad_ascii_check_range(string, &range);
+    int count = aft_string_get_count(string);
+    AftStringRange range = {0, count};
+    return aft_ascii_check_range(string, &range);
 }
 
-bool ad_ascii_check_range(const AdString* string, const AdStringRange* range)
+bool aft_ascii_check_range(const AftString* string, const AftStringRange* range)
 {
-    AD_ASSERT(string);
-    AD_ASSERT(range);
+    AFT_ASSERT(string);
+    AFT_ASSERT(range);
 
-    const char* contents = ad_string_get_contents_const(string);
+    const char* contents = aft_string_get_contents_const(string);
 
     for(int char_index = range->start; char_index < range->end; char_index += 1)
     {
@@ -217,20 +216,20 @@ bool ad_ascii_check_range(const AdString* string, const AdStringRange* range)
     return true;
 }
 
-int ad_ascii_compare_alphabetic(const AdString* a, const AdString* b)
+int aft_ascii_compare_alphabetic(const AftString* a, const AftString* b)
 {
-    AD_ASSERT(a);
-    AD_ASSERT(b);
+    AFT_ASSERT(a);
+    AFT_ASSERT(b);
 
-    const char* a_contents = ad_string_get_contents_const(a);
-    const char* b_contents = ad_string_get_contents_const(b);
-    int a_count = ad_string_get_count(a);
-    int b_count = ad_string_get_count(b);
+    const char* a_contents = aft_string_get_contents_const(a);
+    const char* b_contents = aft_string_get_contents_const(b);
+    int a_count = aft_string_get_count(a);
+    int b_count = aft_string_get_count(b);
 
     for(int char_index = 0; char_index < a_count; char_index += 1)
     {
-        char c0 = ad_ascii_to_uppercase_char(a_contents[char_index]);
-        char c1 = ad_ascii_to_uppercase_char(b_contents[char_index]);
+        char c0 = aft_ascii_to_uppercase_char(a_contents[char_index]);
+        char c1 = aft_ascii_to_uppercase_char(b_contents[char_index]);
 
         if(c0 != c1)
         {
@@ -241,7 +240,7 @@ int ad_ascii_compare_alphabetic(const AdString* a, const AdString* b)
     return a_count - b_count;
 }
 
-int ad_ascii_digit_to_int(char c)
+int aft_ascii_digit_to_int(char c)
 {
     if('0' <= c && c <= '9')
     {
@@ -258,62 +257,63 @@ int ad_ascii_digit_to_int(char c)
     return 0;
 }
 
-bool ad_ascii_is_alphabetic(char c)
+bool aft_ascii_is_alphabetic(char c)
 {
     return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
 
-bool ad_ascii_is_alphanumeric(char c)
+bool aft_ascii_is_alphanumeric(char c)
 {
-    return ad_ascii_is_alphabetic(c) || ad_ascii_is_numeric(c);
+    return aft_ascii_is_alphabetic(c) || aft_ascii_is_numeric(c);
 }
 
-bool ad_ascii_is_lowercase(char c)
+bool aft_ascii_is_lowercase(char c)
 {
     return c >= 'a' && c <= 'z';
 }
 
-bool ad_ascii_is_newline(char c)
+bool aft_ascii_is_newline(char c)
 {
     return c >= '\n' && c <= '\r';
 }
 
-bool ad_ascii_is_numeric(char c)
+bool aft_ascii_is_numeric(char c)
 {
     return c >= '0' && c <= '9';
 }
 
-bool ad_ascii_is_space_or_tab(char c)
+bool aft_ascii_is_space_or_tab(char c)
 {
     return c == ' ' || c == '\t';
 }
 
-bool ad_ascii_is_uppercase(char c)
+bool aft_ascii_is_uppercase(char c)
 {
     return c >= 'A' && c <= 'Z';
 }
 
-bool ad_ascii_is_whitespace(char c)
+bool aft_ascii_is_whitespace(char c)
 {
     return c == ' ' || c - 9 <= 5;
 }
 
-void ad_ascii_to_lowercase(AdString* string)
+void aft_ascii_to_lowercase(AftString* string)
 {
-    AD_ASSERT(string);
+    AFT_ASSERT(string);
 
-    char* contents = ad_string_get_contents(string);
-    int count = ad_string_get_count(string);
+    char* contents = aft_string_get_contents(string);
+    int count = aft_string_get_count(string);
 
     for(int char_index = 0; char_index < count; char_index += 1)
     {
-        contents[char_index] = ad_ascii_to_lowercase_char(contents[char_index]);
+        contents[char_index] =
+                aft_ascii_to_lowercase_char(contents[char_index]);
     }
 }
 
-char ad_ascii_to_lowercase_char(char c)
+char aft_ascii_to_lowercase_char(char c)
 {
-    if(ad_ascii_is_uppercase(c))
+    if(aft_ascii_is_uppercase(c))
     {
         return 'A' + (c - 'a');
     }
@@ -323,22 +323,23 @@ char ad_ascii_to_lowercase_char(char c)
     }
 }
 
-void ad_ascii_to_uppercase(AdString* string)
+void aft_ascii_to_uppercase(AftString* string)
 {
-    AD_ASSERT(string);
+    AFT_ASSERT(string);
 
-    char* contents = ad_string_get_contents(string);
-    int count = ad_string_get_count(string);
+    char* contents = aft_string_get_contents(string);
+    int count = aft_string_get_count(string);
 
     for(int char_index = 0; char_index < count; char_index += 1)
     {
-        contents[char_index] = ad_ascii_to_uppercase_char(contents[char_index]);
+        contents[char_index] =
+                aft_ascii_to_uppercase_char(contents[char_index]);
     }
 }
 
-char ad_ascii_to_uppercase_char(char c)
+char aft_ascii_to_uppercase_char(char c)
 {
-    if(ad_ascii_is_lowercase(c))
+    if(aft_ascii_is_lowercase(c))
     {
         return 'A' + (c - 'a');
     }
@@ -348,28 +349,28 @@ char ad_ascii_to_uppercase_char(char c)
     }
 }
 
-AdMaybeUint64 ad_ascii_uint64_from_string(const AdString* string)
+AftMaybeUint64 aft_ascii_uint64_from_string(const AftString* string)
 {
-    int count = ad_string_get_count(string);
-    AdStringRange range = {0, count};
-    return ad_ascii_uint64_from_string_range(string, &range);
+    int count = aft_string_get_count(string);
+    AftStringRange range = {0, count};
+    return aft_ascii_uint64_from_string_range(string, &range);
 }
 
-AdMaybeUint64 ad_ascii_uint64_from_string_range(const AdString* string,
-        const AdStringRange* range)
+AftMaybeUint64 aft_ascii_uint64_from_string_range(const AftString* string,
+        const AftStringRange* range)
 {
-    AD_ASSERT(string);
-    AD_ASSERT(range);
-    AD_ASSERT(ad_string_range_check(string, range));
-    AD_ASSERT(ad_ascii_check_range(string, range));
+    AFT_ASSERT(string);
+    AFT_ASSERT(range);
+    AFT_ASSERT(aft_string_range_check(string, range));
+    AFT_ASSERT(aft_ascii_check_range(string, range));
 
-    AdMaybeUint64 result;
+    AftMaybeUint64 result;
     result.valid = true;
     result.value = 0;
 
-    const char* contents = ad_string_get_contents_const(string);
+    const char* contents = aft_string_get_contents_const(string);
 
-    int count = ad_string_get_count(string);
+    int count = aft_string_get_count(string);
     int power_index = UINT64_MAX_DIGITS - count;
 
     for(int char_index = range->start; char_index < range->end; char_index += 1)
@@ -388,33 +389,33 @@ AdMaybeUint64 ad_ascii_uint64_from_string_range(const AdString* string,
 }
 
 
-bool ad_c_string_deallocate(char* string)
+bool aft_c_string_deallocate(char* string)
 {
-    return ad_c_string_deallocate_with_allocator(NULL, string);
+    return aft_c_string_deallocate_with_allocator(NULL, string);
 }
 
-bool ad_c_string_deallocate_with_allocator(void* allocator, char* string)
+bool aft_c_string_deallocate_with_allocator(void* allocator, char* string)
 {
-    AdMemoryBlock block =
+    AftMemoryBlock block =
     {
         .memory = string,
         .bytes = string_size(string) + 1,
     };
-    return ad_string_deallocate(allocator, block);
+    return aft_string_deallocate(allocator, block);
 }
 
 
-bool ad_string_add(AdString* to, const AdString* from, int index)
+bool aft_string_add(AftString* to, const AftString* from, int index)
 {
-    int to_count = ad_string_get_count(to);
-    int from_count = ad_string_get_count(from);
+    int to_count = aft_string_get_count(to);
+    int from_count = aft_string_get_count(from);
 
-    AD_ASSERT(to);
-    AD_ASSERT(from);
-    AD_ASSERT(index >= 0 && index <= to_count);
+    AFT_ASSERT(to);
+    AFT_ASSERT(from);
+    AFT_ASSERT(index >= 0 && index <= to_count);
 
     int count = to_count + from_count;
-    bool reserved = ad_string_reserve(to, count);
+    bool reserved = aft_string_reserve(to, count);
 
     if(!reserved)
     {
@@ -422,9 +423,9 @@ bool ad_string_add(AdString* to, const AdString* from, int index)
     }
 
     int prior_count = to_count;
-    ad_string_set_count(to, count);
-    char* to_contents = ad_string_get_contents(to);
-    const char* from_contents = ad_string_get_contents_const(from);
+    aft_string_set_count(to, count);
+    char* to_contents = aft_string_get_contents(to);
+    const char* from_contents = aft_string_get_contents_const(from);
     int shift_bytes = prior_count - index;
     if(shift_bytes > 0)
     {
@@ -437,15 +438,15 @@ bool ad_string_add(AdString* to, const AdString* from, int index)
     return true;
 }
 
-bool ad_string_append(AdString* to, const AdString* from)
+bool aft_string_append(AftString* to, const AftString* from)
 {
-    AD_ASSERT(to);
-    AD_ASSERT(from);
+    AFT_ASSERT(to);
+    AFT_ASSERT(from);
 
-    int to_count = ad_string_get_count(to);
-    int from_count = ad_string_get_count(from);
+    int to_count = aft_string_get_count(to);
+    int from_count = aft_string_get_count(from);
     int count = to_count + from_count;
-    bool reserved = ad_string_reserve(to, count);
+    bool reserved = aft_string_reserve(to, count);
 
     if(!reserved)
     {
@@ -453,24 +454,24 @@ bool ad_string_append(AdString* to, const AdString* from)
     }
 
     int prior_count = to_count;
-    ad_string_set_count(to, count);
-    char* to_contents = ad_string_get_contents(to);
-    const char* from_contents = ad_string_get_contents_const(from);
+    aft_string_set_count(to, count);
+    char* to_contents = aft_string_get_contents(to);
+    const char* from_contents = aft_string_get_contents_const(from);
     copy_memory(&to_contents[prior_count], from_contents, from_count);
     to_contents[count] = '\0';
 
     return true;
 }
 
-bool ad_string_append_c_string(AdString* to, const char* from)
+bool aft_string_append_c_string(AftString* to, const char* from)
 {
-    AD_ASSERT(to);
-    AD_ASSERT(from);
+    AFT_ASSERT(to);
+    AFT_ASSERT(from);
 
     int from_count = string_size(from);
-    int to_count = ad_string_get_count(to);
+    int to_count = aft_string_get_count(to);
     int count = to_count + from_count;
-    bool reserved = ad_string_reserve(to, count);
+    bool reserved = aft_string_reserve(to, count);
 
     if(!reserved)
     {
@@ -478,21 +479,21 @@ bool ad_string_append_c_string(AdString* to, const char* from)
     }
 
     int prior_count = to_count;
-    ad_string_set_count(to, count);
-    char* to_contents = ad_string_get_contents(to);
+    aft_string_set_count(to, count);
+    char* to_contents = aft_string_get_contents(to);
     copy_memory(&to_contents[prior_count], from, from_count);
     to_contents[count] = '\0';
 
     return true;
 }
 
-bool ad_string_assign(AdString* to, const AdString* from)
+bool aft_string_assign(AftString* to, const AftString* from)
 {
-    AD_ASSERT(to);
-    AD_ASSERT(from);
+    AFT_ASSERT(to);
+    AFT_ASSERT(from);
 
-    int from_count = ad_string_get_count(from);
-    bool reserved = ad_string_reserve(to, from_count);
+    int from_count = aft_string_get_count(from);
+    bool reserved = aft_string_reserve(to, from_count);
 
     if(!reserved)
     {
@@ -500,27 +501,27 @@ bool ad_string_assign(AdString* to, const AdString* from)
     }
 
     int count = from_count;
-    ad_string_set_count(to, count);
-    char* to_contents = ad_string_get_contents(to);
-    const char* from_contents = ad_string_get_contents_const(from);
+    aft_string_set_count(to, count);
+    char* to_contents = aft_string_get_contents(to);
+    const char* from_contents = aft_string_get_contents_const(from);
     copy_memory(to_contents, from_contents, count);
     to_contents[count] = '\0';
 
     return true;
 }
 
-AdMaybeString ad_string_copy(AdString* string)
+AftMaybeString aft_string_copy(AftString* string)
 {
-    AD_ASSERT(string);
+    AFT_ASSERT(string);
 
-    int count = ad_string_get_count(string);
+    int count = aft_string_get_count(string);
 
-    AdMaybeString result;
+    AftMaybeString result;
     result.valid = true;
     result.value.allocator = string->allocator;
-    result.value.cap = AD_STRING_SMALL_CAP;
-    ad_string_set_count(&result.value, count);
-    bool reserved = ad_string_reserve(&result.value, count);
+    result.value.cap = AFT_STRING_SMALL_CAP;
+    aft_string_set_count(&result.value, count);
+    bool reserved = aft_string_reserve(&result.value, count);
 
     if(!reserved)
     {
@@ -529,42 +530,42 @@ AdMaybeString ad_string_copy(AdString* string)
         return result;
     }
 
-    char* to_contents = ad_string_get_contents(&result.value);
-    const char* from_contents = ad_string_get_contents_const(string);
+    char* to_contents = aft_string_get_contents(&result.value);
+    const char* from_contents = aft_string_get_contents_const(string);
     copy_memory(to_contents, from_contents, count);
     to_contents[count] = '\0';
 
     return result;
 }
 
-bool ad_string_destroy(AdString* string)
+bool aft_string_destroy(AftString* string)
 {
-    AD_ASSERT(string);
+    AFT_ASSERT(string);
 
     bool result = true;
 
-    if(ad_string_is_big(string))
+    if(aft_string_is_big(string))
     {
-        AdMemoryBlock block =
+        AftMemoryBlock block =
         {
             .memory = string->big.contents,
             .bytes = string->cap,
         };
-        result = ad_string_deallocate(string->allocator, block);
+        result = aft_string_deallocate(string->allocator, block);
     }
 
-    ad_string_initialise_with_allocator(string, string->allocator);
+    aft_string_initialise_with_allocator(string, string->allocator);
 
     return result;
 }
 
-bool ad_string_ends_with(const AdString* string, const AdString* lookup)
+bool aft_string_ends_with(const AftString* string, const AftString* lookup)
 {
-    AD_ASSERT(string);
-    AD_ASSERT(lookup);
+    AFT_ASSERT(string);
+    AFT_ASSERT(lookup);
 
-    int lookup_count = ad_string_get_count(lookup);
-    int string_count = ad_string_get_count(string);
+    int lookup_count = aft_string_get_count(lookup);
+    int string_count = aft_string_get_count(string);
 
     if(lookup_count > string_count)
     {
@@ -572,21 +573,21 @@ bool ad_string_ends_with(const AdString* string, const AdString* lookup)
     }
     else
     {
-        const char* string_contents = ad_string_get_contents_const(string);
-        const char* lookup_contents = ad_string_get_contents_const(lookup);
+        const char* string_contents = aft_string_get_contents_const(string);
+        const char* lookup_contents = aft_string_get_contents_const(lookup);
         const char* near_end = &string_contents[string_count - lookup_count];
         return memory_matches(near_end, lookup_contents, lookup_count);
     }
 }
 
-AdMaybeInt ad_string_find_first_char(const AdString* string, char c)
+AftMaybeInt aft_string_find_first_char(const AftString* string, char c)
 {
-    AD_ASSERT(string);
+    AFT_ASSERT(string);
 
-    AdMaybeInt result;
+    AftMaybeInt result;
 
-    const char* contents = ad_string_get_contents_const(string);
-    int count = ad_string_get_count(string);
+    const char* contents = aft_string_get_contents_const(string);
+    int count = aft_string_get_count(string);
 
     for(int char_index = 0; char_index < count; char_index += 1)
     {
@@ -603,19 +604,19 @@ AdMaybeInt ad_string_find_first_char(const AdString* string, char c)
     return result;
 }
 
-AdMaybeInt ad_string_find_first_string(const AdString* string,
-        const AdString* lookup)
+AftMaybeInt aft_string_find_first_string(const AftString* string,
+        const AftString* lookup)
 {
-    AD_ASSERT(string);
-    AD_ASSERT(lookup);
+    AFT_ASSERT(string);
+    AFT_ASSERT(lookup);
 
-    AdMaybeInt result;
+    AftMaybeInt result;
 
-    const char* string_contents = ad_string_get_contents_const(string);
-    const char* lookup_contents = ad_string_get_contents_const(lookup);
+    const char* string_contents = aft_string_get_contents_const(string);
+    const char* lookup_contents = aft_string_get_contents_const(lookup);
 
-    int string_count = ad_string_get_count(string);
-    int lookup_count = ad_string_get_count(lookup);
+    int string_count = aft_string_get_count(string);
+    int lookup_count = aft_string_get_count(lookup);
     int search_count = string_count - lookup_count;
 
     for(int char_index = 0; char_index < search_count; char_index += 1)
@@ -634,14 +635,14 @@ AdMaybeInt ad_string_find_first_string(const AdString* string,
     return result;
 }
 
-AdMaybeInt ad_string_find_last_char(const AdString* string, char c)
+AftMaybeInt aft_string_find_last_char(const AftString* string, char c)
 {
-    AD_ASSERT(string);
+    AFT_ASSERT(string);
 
-    AdMaybeInt result;
+    AftMaybeInt result;
 
-    const char* contents = ad_string_get_contents_const(string);
-    int count = ad_string_get_count(string);
+    const char* contents = aft_string_get_contents_const(string);
+    int count = aft_string_get_count(string);
 
     for(int char_index = count - 1; char_index >= 0; char_index -= 1)
     {
@@ -658,19 +659,19 @@ AdMaybeInt ad_string_find_last_char(const AdString* string, char c)
     return result;
 }
 
-AdMaybeInt ad_string_find_last_string(const AdString* string,
-        const AdString* lookup)
+AftMaybeInt aft_string_find_last_string(const AftString* string,
+        const AftString* lookup)
 {
-    AD_ASSERT(string);
-    AD_ASSERT(lookup);
+    AFT_ASSERT(string);
+    AFT_ASSERT(lookup);
 
-    AdMaybeInt result;
+    AftMaybeInt result;
 
-    const char* string_contents = ad_string_get_contents_const(string);
-    const char* lookup_contents = ad_string_get_contents_const(lookup);
+    const char* string_contents = aft_string_get_contents_const(string);
+    const char* lookup_contents = aft_string_get_contents_const(lookup);
 
-    int string_count = ad_string_get_count(string);
-    int lookup_count = ad_string_get_count(lookup);
+    int string_count = aft_string_get_count(string);
+    int lookup_count = aft_string_get_count(lookup);
     int search_count = string_count - lookup_count;
 
     for(int char_index = search_count - 1; char_index >= 0; char_index -= 1)
@@ -689,23 +690,23 @@ AdMaybeInt ad_string_find_last_string(const AdString* string,
     return result;
 }
 
-AdMaybeString ad_string_from_buffer(const char* buffer, int bytes)
+AftMaybeString aft_string_from_buffer(const char* buffer, int bytes)
 {
-    return ad_string_from_buffer_with_allocator(buffer, bytes, NULL);
+    return aft_string_from_buffer_with_allocator(buffer, bytes, NULL);
 }
 
-AdMaybeString ad_string_from_buffer_with_allocator(const char* buffer,
+AftMaybeString aft_string_from_buffer_with_allocator(const char* buffer,
         int bytes, void* allocator)
 {
     int cap = bytes + 1;
 
-    AdMaybeString result;
+    AftMaybeString result;
     result.valid = true;
     result.value.allocator = allocator;
 
-    if(cap > AD_STRING_SMALL_CAP)
+    if(cap > AFT_STRING_SMALL_CAP)
     {
-        AdMemoryBlock block = ad_string_allocate(allocator, cap);
+        AftMemoryBlock block = aft_string_allocate(allocator, cap);
         char* copy = block.memory;
 
         if(!copy)
@@ -719,37 +720,37 @@ AdMaybeString ad_string_from_buffer_with_allocator(const char* buffer,
         copy[bytes] = '\0';
         result.value.big.contents = copy;
         result.value.cap = cap;
-        ad_string_set_count(&result.value, bytes);
+        aft_string_set_count(&result.value, bytes);
     }
     else
     {
         copy_memory(result.value.small.contents, buffer, bytes);
         result.value.small.contents[bytes] = '\0';
-        result.value.cap = AD_STRING_SMALL_CAP;
-        ad_string_set_count(&result.value, bytes);
+        result.value.cap = AFT_STRING_SMALL_CAP;
+        aft_string_set_count(&result.value, bytes);
     }
 
     return result;
 }
 
-AdMaybeString ad_string_from_c_string(const char* original)
+AftMaybeString aft_string_from_c_string(const char* original)
 {
-    return ad_string_from_c_string_with_allocator(original, NULL);
+    return aft_string_from_c_string_with_allocator(original, NULL);
 }
 
-AdMaybeString ad_string_from_c_string_with_allocator(const char* original,
+AftMaybeString aft_string_from_c_string_with_allocator(const char* original,
         void* allocator)
 {
     int bytes = string_size(original);
     int cap = bytes + 1;
 
-    AdMaybeString result;
+    AftMaybeString result;
     result.valid = true;
     result.value.allocator = allocator;
 
-    if(cap > AD_STRING_SMALL_CAP)
+    if(cap > AFT_STRING_SMALL_CAP)
     {
-        AdMemoryBlock block = ad_string_allocate(allocator, cap);
+        AftMemoryBlock block = aft_string_allocate(allocator, cap);
         char* copy = block.memory;
 
         if(!copy)
@@ -763,31 +764,31 @@ AdMaybeString ad_string_from_c_string_with_allocator(const char* original,
         copy[bytes] = '\0';
         result.value.big.contents = copy;
         result.value.cap = cap;
-        ad_string_set_count(&result.value, bytes);
+        aft_string_set_count(&result.value, bytes);
     }
     else
     {
         copy_memory(result.value.small.contents, original, bytes);
         result.value.small.contents[bytes] = '\0';
-        result.value.cap = AD_STRING_SMALL_CAP;
-        ad_string_set_count(&result.value, bytes);
+        result.value.cap = AFT_STRING_SMALL_CAP;
+        aft_string_set_count(&result.value, bytes);
     }
 
     return result;
 }
 
-int ad_string_get_capacity(const AdString* string)
+int aft_string_get_capacity(const AftString* string)
 {
-    AD_ASSERT(string);
+    AFT_ASSERT(string);
 
     return string->cap - 1;
 }
 
-char* ad_string_get_contents(AdString* string)
+char* aft_string_get_contents(AftString* string)
 {
-    AD_ASSERT(string);
+    AFT_ASSERT(string);
 
-    if(ad_string_is_big(string))
+    if(aft_string_is_big(string))
     {
         return string->big.contents;
     }
@@ -797,11 +798,11 @@ char* ad_string_get_contents(AdString* string)
     }
 }
 
-const char* ad_string_get_contents_const(const AdString* string)
+const char* aft_string_get_contents_const(const AftString* string)
 {
-    AD_ASSERT(string);
+    AFT_ASSERT(string);
 
-    if(ad_string_is_big(string))
+    if(aft_string_is_big(string))
     {
         return string->big.contents;
     }
@@ -811,74 +812,74 @@ const char* ad_string_get_contents_const(const AdString* string)
     }
 }
 
-int ad_string_get_count(const AdString* string)
+int aft_string_get_count(const AftString* string)
 {
-    AD_ASSERT(string);
+    AFT_ASSERT(string);
 
-    if(ad_string_is_big(string))
+    if(aft_string_is_big(string))
     {
         return string->big.count;
     }
     else
     {
-        return AD_STRING_SMALL_CAP - string->small.bytes_left;
+        return AFT_STRING_SMALL_CAP - string->small.bytes_left;
     }
 }
 
-void ad_string_initialise(AdString* string)
+void aft_string_initialise(AftString* string)
 {
-    ad_string_initialise_with_allocator(string, NULL);
+    aft_string_initialise_with_allocator(string, NULL);
 }
 
-void ad_string_initialise_with_allocator(AdString* string, void* allocator)
+void aft_string_initialise_with_allocator(AftString* string, void* allocator)
 {
-    AD_ASSERT(string);
+    AFT_ASSERT(string);
 
     string->allocator = allocator;
-    string->cap = AD_STRING_SMALL_CAP;
-    ad_string_set_count(string, 0);
-    zero_memory(string->small.contents, AD_STRING_SMALL_CAP - 1);
+    string->cap = AFT_STRING_SMALL_CAP;
+    aft_string_set_count(string, 0);
+    zero_memory(string->small.contents, AFT_STRING_SMALL_CAP - 1);
 }
 
-void ad_string_remove(AdString* string, const AdStringRange* range)
+void aft_string_remove(AftString* string, const AftStringRange* range)
 {
-    AD_ASSERT(string);
-    AD_ASSERT(range);
-    AD_ASSERT(ad_string_range_check(string, range));
+    AFT_ASSERT(string);
+    AFT_ASSERT(range);
+    AFT_ASSERT(aft_string_range_check(string, range));
 
-    int count = ad_string_get_count(string);
+    int count = aft_string_get_count(string);
     int copied_bytes = count - range->end;
     int removed_bytes = range->end - range->start;
 
-    char* contents = ad_string_get_contents(string);
+    char* contents = aft_string_get_contents(string);
     copy_memory(&contents[range->start], &contents[range->end], copied_bytes);
     count -= removed_bytes;
-    ad_string_set_count(string, count);
+    aft_string_set_count(string, count);
     contents[count] = '\0';
 }
 
-bool ad_string_replace(AdString* to, const AdStringRange* range,
-        const AdString* from)
+bool aft_string_replace(AftString* to, const AftStringRange* range,
+        const AftString* from)
 {
-    AD_ASSERT(to);
-    AD_ASSERT(range);
-    AD_ASSERT(from);
-    AD_ASSERT(ad_string_range_check(to, range));
+    AFT_ASSERT(to);
+    AFT_ASSERT(range);
+    AFT_ASSERT(from);
+    AFT_ASSERT(aft_string_range_check(to, range));
 
     int view_bytes = range->end - range->start;
-    int to_count = ad_string_get_count(to);
-    int from_count = ad_string_get_count(from);
+    int to_count = aft_string_get_count(to);
+    int from_count = aft_string_get_count(from);
     int count = to_count - view_bytes + from_count;
 
-    bool reserved = ad_string_reserve(to, count);
+    bool reserved = aft_string_reserve(to, count);
 
     if(!reserved)
     {
         return false;
     }
 
-    char* to_contents = ad_string_get_contents(to);
-    const char* from_contents = ad_string_get_contents_const(from);
+    char* to_contents = aft_string_get_contents(to);
+    const char* from_contents = aft_string_get_contents_const(from);
 
     int inserted_end = range->start + from_count;
     int moved_bytes = to_count - range->end;
@@ -886,25 +887,25 @@ bool ad_string_replace(AdString* to, const AdStringRange* range,
             moved_bytes);
 
     copy_memory(&to_contents[range->start], from_contents, from_count);
-    ad_string_set_count(to, count);
+    aft_string_set_count(to, count);
     to_contents[count] = '\0';
 
     return true;
 }
 
-bool ad_string_reserve(AdString* string, int space)
+bool aft_string_reserve(AftString* string, int space)
 {
-    AD_ASSERT(string);
-    AD_ASSERT(space > 0);
+    AFT_ASSERT(string);
+    AFT_ASSERT(space > 0);
 
     int needed_cap = space + 1;
-    int existing_cap = ad_string_get_capacity(string);
+    int existing_cap = aft_string_get_capacity(string);
 
     if(needed_cap > existing_cap)
     {
         int prior_cap = existing_cap;
         int cap = int_max(2 * prior_cap, needed_cap);
-        AdMemoryBlock block = ad_string_allocate(string->allocator, cap);
+        AftMemoryBlock block = aft_string_allocate(string->allocator, cap);
         char* contents = block.memory;
 
         if(!contents)
@@ -912,20 +913,20 @@ bool ad_string_reserve(AdString* string, int space)
             return false;
         }
 
-        int count = ad_string_get_count(string);
+        int count = aft_string_get_count(string);
 
         if(count)
         {
-            if(prior_cap > AD_STRING_SMALL_CAP)
+            if(prior_cap > AFT_STRING_SMALL_CAP)
             {
                 char* prior_contents = string->big.contents;
                 copy_memory(contents, prior_contents, count);
-                AdMemoryBlock block =
+                AftMemoryBlock block =
                 {
                     .memory = prior_contents,
                     .bytes = string->cap,
                 };
-                ad_string_deallocate(string->allocator, block);
+                aft_string_deallocate(string->allocator, block);
             }
             else
             {
@@ -935,7 +936,7 @@ bool ad_string_reserve(AdString* string, int space)
             }
         }
 
-        AD_ASSERT(cap > AD_STRING_SMALL_CAP);
+        AFT_ASSERT(cap > AFT_STRING_SMALL_CAP);
         string->big.contents = contents;
         string->cap = cap;
     }
@@ -943,13 +944,13 @@ bool ad_string_reserve(AdString* string, int space)
     return true;
 }
 
-bool ad_string_starts_with(const AdString* string, const AdString* lookup)
+bool aft_string_starts_with(const AftString* string, const AftString* lookup)
 {
-    AD_ASSERT(string);
-    AD_ASSERT(lookup);
+    AFT_ASSERT(string);
+    AFT_ASSERT(lookup);
 
-    int string_count = ad_string_get_count(string);
-    int lookup_count = ad_string_get_count(lookup);
+    int string_count = aft_string_get_count(string);
+    int lookup_count = aft_string_get_count(lookup);
 
     if(lookup_count > string_count)
     {
@@ -957,38 +958,38 @@ bool ad_string_starts_with(const AdString* string, const AdString* lookup)
     }
     else
     {
-        const char* string_contents = ad_string_get_contents_const(string);
-        const char* lookup_contents = ad_string_get_contents_const(lookup);
+        const char* string_contents = aft_string_get_contents_const(string);
+        const char* lookup_contents = aft_string_get_contents_const(lookup);
         return memory_matches(string_contents, lookup_contents, lookup_count);
     }
 }
 
-AdMaybeString ad_string_substring(const AdString* string,
-        const AdStringRange* range)
+AftMaybeString aft_string_substring(const AftString* string,
+        const AftStringRange* range)
 {
-    AD_ASSERT(string);
-    AD_ASSERT(range);
-    AD_ASSERT(ad_string_range_check(string, range));
+    AFT_ASSERT(string);
+    AFT_ASSERT(range);
+    AFT_ASSERT(aft_string_range_check(string, range));
 
-    const char* contents = ad_string_get_contents_const(string);
+    const char* contents = aft_string_get_contents_const(string);
     const char* buffer = &contents[range->start];
     int bytes = range->end - range->start;
-    return ad_string_from_buffer_with_allocator(buffer, bytes,
+    return aft_string_from_buffer_with_allocator(buffer, bytes,
             string->allocator);
 }
 
-char* ad_string_to_c_string(const AdString* string)
+char* aft_string_to_c_string(const AftString* string)
 {
-    return ad_string_to_c_string_with_allocator(string, NULL);
+    return aft_string_to_c_string_with_allocator(string, NULL);
 }
 
-char* ad_string_to_c_string_with_allocator(const AdString* string,
+char* aft_string_to_c_string_with_allocator(const AftString* string,
         void* allocator)
 {
-    AD_ASSERT(string);
+    AFT_ASSERT(string);
 
-    int count = ad_string_get_count(string);
-    AdMemoryBlock block = ad_string_allocate(allocator, count + 1);
+    int count = aft_string_get_count(string);
+    AftMemoryBlock block = aft_string_allocate(allocator, count + 1);
     char* result = block.memory;
 
     if(!result)
@@ -996,16 +997,17 @@ char* ad_string_to_c_string_with_allocator(const AdString* string,
         return NULL;
     }
 
-    const char* contents = ad_string_get_contents_const(string);
+    const char* contents = aft_string_get_contents_const(string);
     copy_memory(result, contents, count);
     result[count] = '\0';
     return result;
 }
 
 
-bool ad_string_range_check(const AdString* string, const AdStringRange* range)
+bool aft_string_range_check(const AftString* string,
+        const AftStringRange* range)
 {
-    int count = ad_string_get_count(string);
+    int count = aft_string_get_count(string);
 
     return range->start <= range->end
             && range->start > 0
@@ -1014,21 +1016,21 @@ bool ad_string_range_check(const AdString* string, const AdStringRange* range)
 }
 
 
-bool ad_strings_match(const AdString* a, const AdString* b)
+bool aft_strings_match(const AftString* a, const AftString* b)
 {
-    AD_ASSERT(a);
-    AD_ASSERT(b);
+    AFT_ASSERT(a);
+    AFT_ASSERT(b);
 
-    int a_count = ad_string_get_count(a);
-    int b_count = ad_string_get_count(b);
+    int a_count = aft_string_get_count(a);
+    int b_count = aft_string_get_count(b);
 
     if(a_count != b_count)
     {
         return false;
     }
 
-    const char* a_contents = ad_string_get_contents_const(a);
-    const char* b_contents = ad_string_get_contents_const(b);
+    const char* a_contents = aft_string_get_contents_const(a);
+    const char* b_contents = aft_string_get_contents_const(b);
 
     for(int char_index = 0; char_index < a_count; char_index += 1)
     {
@@ -1042,33 +1044,33 @@ bool ad_strings_match(const AdString* a, const AdString* b)
 }
 
 
-bool ad_utf32_destroy(AdUtf32String* string)
+bool aft_utf32_destroy(AftUtf32String* string)
 {
-    return ad_utf32_destroy_with_allocator(string, NULL);
+    return aft_utf32_destroy_with_allocator(string, NULL);
 }
 
-bool ad_utf32_destroy_with_allocator(AdUtf32String* string, void* allocator)
+bool aft_utf32_destroy_with_allocator(AftUtf32String* string, void* allocator)
 {
-    AdMemoryBlock block =
+    AftMemoryBlock block =
     {
         .memory = string->contents,
         .bytes = sizeof(char32_t) * string->count,
     };
-    return ad_string_deallocate(allocator, block);
+    return aft_string_deallocate(allocator, block);
 }
 
-AdMaybeString ad_utf32_to_utf8(const AdUtf32String* string)
+AftMaybeString aft_utf32_to_utf8(const AftUtf32String* string)
 {
-    return ad_utf32_to_utf8_with_allocator(string, NULL);
+    return aft_utf32_to_utf8_with_allocator(string, NULL);
 }
 
-AdMaybeString ad_utf32_to_utf8_with_allocator(const AdUtf32String* string,
+AftMaybeString aft_utf32_to_utf8_with_allocator(const AftUtf32String* string,
         void* allocator)
 {
-    AD_ASSERT(string);
+    AFT_ASSERT(string);
 
-    AdMaybeString result;
-    ad_string_initialise_with_allocator(&result.value, allocator);
+    AftMaybeString result;
+    aft_string_initialise_with_allocator(&result.value, allocator);
     result.valid = true;
 
     int char_index = 0;
@@ -1106,15 +1108,15 @@ AdMaybeString ad_utf32_to_utf8_with_allocator(const AdUtf32String* string,
         }
         else
         {
-            ad_string_destroy(&result.value);
+            aft_string_destroy(&result.value);
             result.valid = false;
             return result;
         }
 
-        bool appended = ad_string_append_c_string(&result.value, buffer);
+        bool appended = aft_string_append_c_string(&result.value, buffer);
         if(!appended)
         {
-            ad_string_destroy(&result.value);
+            aft_string_destroy(&result.value);
             result.valid = false;
             return result;
         }
@@ -1124,13 +1126,13 @@ AdMaybeString ad_utf32_to_utf8_with_allocator(const AdUtf32String* string,
 }
 
 
-bool ad_utf8_check(const AdString* string)
+bool aft_utf8_check(const AftString* string)
 {
-    AD_ASSERT(string);
+    AFT_ASSERT(string);
 
     const uint8_t* contents =
-            (const uint8_t*) ad_string_get_contents_const(string);
-    int count = ad_string_get_count(string);
+            (const uint8_t*) aft_string_get_contents_const(string);
+    int count = aft_string_get_count(string);
     uint8_t state = 0;
 
     for(int char_index = 0; char_index < count; char_index += 1)
@@ -1148,13 +1150,13 @@ bool ad_utf8_check(const AdString* string)
     return state != 0;
 }
 
-int ad_utf8_codepoint_count(const AdString* string)
+int aft_utf8_codepoint_count(const AftString* string)
 {
-    AD_ASSERT(string);
+    AFT_ASSERT(string);
 
     int count = 0;
-    int string_count = ad_string_get_count(string);
-    const char* contents = ad_string_get_contents_const(string);
+    int string_count = aft_string_get_count(string);
+    const char* contents = aft_string_get_contents_const(string);
 
     for(int char_index = 0; char_index < string_count; char_index += 1)
     {
@@ -1165,17 +1167,17 @@ int ad_utf8_codepoint_count(const AdString* string)
     return count;
 }
 
-AdMaybeUtf32String ad_utf8_to_utf32(const AdString* string)
+AftMaybeUtf32String aft_utf8_to_utf32(const AftString* string)
 {
-    AD_ASSERT(string);
-    AD_ASSERT(ad_utf8_check(string));
+    AFT_ASSERT(string);
+    AFT_ASSERT(aft_utf8_check(string));
 
-    AdMaybeUtf32String result;
+    AftMaybeUtf32String result;
     result.valid = true;
 
-    int count = ad_utf8_codepoint_count(string) + 1;
+    int count = aft_utf8_codepoint_count(string) + 1;
     int bytes = sizeof(char32_t) * count;
-    AdMemoryBlock block = ad_string_allocate(string->allocator, bytes);
+    AftMemoryBlock block = aft_string_allocate(string->allocator, bytes);
     char32_t* result_contents = block.memory;
 
     if(!result_contents)
@@ -1190,8 +1192,8 @@ AdMaybeUtf32String ad_utf8_to_utf32(const AdString* string)
 
     uint32_t codepoint = 0;
     uint32_t state = 0;
-    const char* string_contents = ad_string_get_contents_const(string);
-    int string_count = ad_string_get_count(string);
+    const char* string_contents = aft_string_get_contents_const(string);
+    int string_count = aft_string_get_count(string);
     int codepoint_index = 0;
 
     for(int byte_index = 0; byte_index < string_count; byte_index += 1)
@@ -1217,43 +1219,43 @@ AdMaybeUtf32String ad_utf8_to_utf32(const AdString* string)
         }
     }
 
-    AD_ASSERT(codepoint_index == count);
+    AFT_ASSERT(codepoint_index == count);
 
     return result;
 }
 
 
-void ad_codepoint_iterator_end(AdCodepointIterator* it)
+void aft_codepoint_iterator_end(AftCodepointIterator* it)
 {
-    AD_ASSERT(it);
+    AFT_ASSERT(it);
 
     it->index = it->range.end;
 }
 
-int ad_codepoint_iterator_get_index(AdCodepointIterator* it)
+int aft_codepoint_iterator_get_index(AftCodepointIterator* it)
 {
-    AD_ASSERT(it);
+    AFT_ASSERT(it);
 
     return it->index;
 }
 
-AdString* ad_codepoint_iterator_get_string(AdCodepointIterator* it)
+AftString* aft_codepoint_iterator_get_string(AftCodepointIterator* it)
 {
-    AD_ASSERT(it);
+    AFT_ASSERT(it);
 
     return it->string;
 }
 
-AdMaybeChar32 ad_codepoint_iterator_next(AdCodepointIterator* it)
+AftMaybeChar32 aft_codepoint_iterator_next(AftCodepointIterator* it)
 {
-    AD_ASSERT(it);
-    AD_ASSERT(it->string);
+    AFT_ASSERT(it);
+    AFT_ASSERT(it->string);
 
     if(it->index < it->range.end)
     {
         char32_t codepoint = 0;
 
-        const char* contents = ad_string_get_contents_const(it->string);
+        const char* contents = aft_string_get_contents_const(it->string);
         uint32_t state = 0;
 
         for(int byte_index = it->index;
@@ -1277,13 +1279,13 @@ AdMaybeChar32 ad_codepoint_iterator_next(AdCodepointIterator* it)
             if(!state)
             {
                 it->index = byte_index + 1;
-                AdMaybeChar32 result = {codepoint, true};
+                AftMaybeChar32 result = {codepoint, true};
                 return result;
             }
         }
     }
 
-    AdMaybeChar32 result = {U'\0', false};
+    AftMaybeChar32 result = {U'\0', false};
     return result;
 }
 
@@ -1299,16 +1301,16 @@ AdMaybeChar32 ad_codepoint_iterator_next(AdCodepointIterator* it)
 // disadvantage of not being able to determine the byte the error first occurs,
 // just that it was somewhere before it finally hit a heading byte. Which the
 // state machine does do!
-AdMaybeChar32 ad_codepoint_iterator_prior(AdCodepointIterator* it)
+AftMaybeChar32 aft_codepoint_iterator_prior(AftCodepointIterator* it)
 {
-    AD_ASSERT(it);
-    AD_ASSERT(it->string);
+    AFT_ASSERT(it);
+    AFT_ASSERT(it->string);
 
     if(it->index - 1 >= it->range.start)
     {
         char32_t codepoint = 0;
 
-        const char* contents = ad_string_get_contents_const(it->string);
+        const char* contents = aft_string_get_contents_const(it->string);
         int codepoint_index = it->range.start;
 
         for(int byte_index = it->index - 1;
@@ -1345,30 +1347,31 @@ AdMaybeChar32 ad_codepoint_iterator_prior(AdCodepointIterator* it)
             if(!state)
             {
                 it->index = codepoint_index;
-                AdMaybeChar32 result = {codepoint, true};
+                AftMaybeChar32 result = {codepoint, true};
                 return result;
             }
         }
     }
 
-    AdMaybeChar32 result = {U'\0', false};
+    AftMaybeChar32 result = {U'\0', false};
     return result;
 }
 
-void ad_codepoint_iterator_set_string(AdCodepointIterator* it, AdString* string)
+void aft_codepoint_iterator_set_string(AftCodepointIterator* it,
+        AftString* string)
 {
-    AD_ASSERT(it);
-    AD_ASSERT(string);
+    AFT_ASSERT(it);
+    AFT_ASSERT(string);
 
     it->string = string;
     it->range.start = 0;
-    it->range.end = ad_string_get_count(it->string);
-    ad_codepoint_iterator_start(it);
+    it->range.end = aft_string_get_count(it->string);
+    aft_codepoint_iterator_start(it);
 }
 
-void ad_codepoint_iterator_start(AdCodepointIterator* it)
+void aft_codepoint_iterator_start(AftCodepointIterator* it)
 {
-    AD_ASSERT(it);
+    AFT_ASSERT(it);
 
     it->index = it->range.start;
 }

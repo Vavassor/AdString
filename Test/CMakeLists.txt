@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.0)
-project(AdStringTest)
+project(AftStringTest)
 
 enable_testing()
-if(NOT TARGET AdString)
-    find_package(AdString CONFIG REQUIRED)
+if(NOT TARGET AftString)
+    find_package(AftString CONFIG REQUIRED)
 endif()
 
 add_executable(TestBasic "")
@@ -11,7 +11,7 @@ add_executable(TestBasic "")
 target_link_libraries(
     TestBasic
     PRIVATE
-    AdString
+    AftString
 )
 
 target_sources(
