@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# AdString documentation build configuration file, created by
+# AftString documentation build configuration file, created by
 # sphinx-quickstart on Tue Nov 20 22:55:11 2018.
 #
 # This file is execfile()d with the current directory set to its
@@ -47,7 +47,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'AdString'
+project = u'AftString'
 copyright = u'2018, Andrew Dawson'
 author = u'Andrew Dawson'
 
@@ -117,7 +117,7 @@ html_theme = 'alabaster'
 html_theme_options = {
     "description": "A growable string library for C11",
     "github_user": "Vavassor",
-    "github_repo": "AdString",
+    "github_repo": "AftString",
     "show_related": True,
 }
 
@@ -214,7 +214,7 @@ html_sidebars = {
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'AdStringdoc'
+htmlhelp_basename = 'AftStringdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -236,7 +236,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'AdString.tex', u'AdString Documentation',
+    (master_doc, 'AftString.tex', u'AftString Documentation',
      u'Andrew Dawson', 'manual'),
 ]
 
@@ -266,7 +266,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'adstring', u'AdString Documentation',
+    (master_doc, 'aftstring', u'AftString Documentation',
      [author], 1)
 ]
 
@@ -280,8 +280,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'AdString', u'AdString Documentation',
-     author, 'AdString', 'One line description of project.',
+    (master_doc, 'AftString', u'AftString Documentation',
+     author, 'AftString', 'One line description of project.',
      'Miscellaneous'),
 ]
 

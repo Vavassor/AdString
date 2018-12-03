@@ -1,18 +1,18 @@
 Customizing Memory Management
 =============================
 
-By default, AdString uses the C standard library's functions for memory
+By default, AftString uses the C standard library's functions for memory
 allocation. To override this behaviour, add the following definition to
-:file:`ad_string.h`.
+:file:`aft_string.h`.
 
 .. code-block:: c
 
-    #define AD_USE_CUSTOM_ALLOCATOR
+    #define AFT_USE_CUSTOM_ALLOCATOR
 
-:c:func:`ad_string_allocate` and :c:func:`ad_string_deallocate` can then be
-defined by the user at link time. The names and function definition must match
-the declarations. There is no way to redefine the functions at run-time, so
-custom memory functions can only be used when building from source or statically
+:c:func:`aft_allocate` and :c:func:`aft_deallocate` can then be defined by the
+user at link time. The names and function definition must match the
+declarations. There is no way to redefine the functions at run-time, so custom
+memory functions can only be used when building from source or statically
 linking the library.
 
 .. _using-an-allocator:

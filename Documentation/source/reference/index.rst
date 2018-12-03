@@ -7,6 +7,6 @@ Reference
     :maxdepth: 2
     :glob:
 
-    ad-string/*
+    aft-string/*
     custom-memory-management
 
