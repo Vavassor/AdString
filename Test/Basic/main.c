@@ -107,7 +107,7 @@ static AftMaybeString make_random_string(RandomGenerator* generator,
     int codepoint_count = random_int_range(generator, 1, 128);
     uint64_t bytes = sizeof(char32_t) * codepoint_count;
 
-    AftMemoryBlock block = aft_string_allocate(allocator, bytes);
+    AftMemoryBlock block = aft_allocate(allocator, bytes);
 
     if(!block.memory)
     {

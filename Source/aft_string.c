@@ -401,7 +401,7 @@ bool aft_c_string_deallocate_with_allocator(void* allocator, char* string)
         .memory = string,
         .bytes = string_size(string) + 1,
     };
-    return aft_string_deallocate(allocator, block);
+    return aft_deallocate(allocator, block);
 }
 
 
@@ -551,7 +551,7 @@ bool aft_string_destroy(AftString* string)
             .memory = string->big.contents,
             .bytes = string->cap,
         };
-        result = aft_string_deallocate(string->allocator, block);
+        result = aft_deallocate(string->allocator, block);
     }
 
     aft_string_initialise_with_allocator(string, string->allocator);
@@ -706,7 +706,7 @@ AftMaybeString aft_string_from_buffer_with_allocator(const char* buffer,
 
     if(cap > AFT_STRING_SMALL_CAP)
     {
-        AftMemoryBlock block = aft_string_allocate(allocator, cap);
+        AftMemoryBlock block = aft_allocate(allocator, cap);
         char* copy = block.memory;
 
         if(!copy)
@@ -750,7 +750,7 @@ AftMaybeString aft_string_from_c_string_with_allocator(const char* original,
 
     if(cap > AFT_STRING_SMALL_CAP)
     {
-        AftMemoryBlock block = aft_string_allocate(allocator, cap);
+        AftMemoryBlock block = aft_allocate(allocator, cap);
         char* copy = block.memory;
 
         if(!copy)
@@ -905,7 +905,7 @@ bool aft_string_reserve(AftString* string, int space)
     {
         int prior_cap = existing_cap;
         int cap = int_max(2 * prior_cap, needed_cap);
-        AftMemoryBlock block = aft_string_allocate(string->allocator, cap);
+        AftMemoryBlock block = aft_allocate(string->allocator, cap);
         char* contents = block.memory;
 
         if(!contents)
@@ -926,7 +926,7 @@ bool aft_string_reserve(AftString* string, int space)
                     .memory = prior_contents,
                     .bytes = string->cap,
                 };
-                aft_string_deallocate(string->allocator, block);
+                aft_deallocate(string->allocator, block);
             }
             else
             {
@@ -989,7 +989,7 @@ char* aft_string_to_c_string_with_allocator(const AftString* string,
     AFT_ASSERT(string);
 
     int count = aft_string_get_count(string);
-    AftMemoryBlock block = aft_string_allocate(allocator, count + 1);
+    AftMemoryBlock block = aft_allocate(allocator, count + 1);
     char* result = block.memory;
 
     if(!result)
@@ -1056,7 +1056,7 @@ bool aft_utf32_destroy_with_allocator(AftUtf32String* string, void* allocator)
         .memory = string->contents,
         .bytes = sizeof(char32_t) * string->count,
     };
-    return aft_string_deallocate(allocator, block);
+    return aft_deallocate(allocator, block);
 }
 
 AftMaybeString aft_utf32_to_utf8(const AftUtf32String* string)
@@ -1177,7 +1177,7 @@ AftMaybeUtf32String aft_utf8_to_utf32(const AftString* string)
 
     int count = aft_utf8_codepoint_count(string) + 1;
     int bytes = sizeof(char32_t) * count;
-    AftMemoryBlock block = aft_string_allocate(string->allocator, bytes);
+    AftMemoryBlock block = aft_allocate(string->allocator, bytes);
     char32_t* result_contents = block.memory;
 
     if(!result_contents)
