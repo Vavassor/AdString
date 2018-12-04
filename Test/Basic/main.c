@@ -3,45 +3,12 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../../Source/aft_string.h"
 
 
 #define ASSERT(expression) \
     assert(expression)
-
-
-typedef enum TestType
-{
-    TEST_TYPE_ADD_END,
-    TEST_TYPE_ADD_MIDDLE,
-    TEST_TYPE_ADD_START,
-    TEST_TYPE_APPEND,
-    TEST_TYPE_APPEND_C_STRING,
-    TEST_TYPE_ASSIGN,
-    TEST_TYPE_COPY,
-    TEST_TYPE_DESTROY,
-    TEST_TYPE_ENDS_WITH,
-    TEST_TYPE_FIND_FIRST_CHAR,
-    TEST_TYPE_FIND_FIRST_STRING,
-    TEST_TYPE_FIND_LAST_STRING,
-    TEST_TYPE_FIND_LAST_CHAR,
-    TEST_TYPE_FROM_BUFFER,
-    TEST_TYPE_FROM_C_STRING,
-    TEST_TYPE_FUZZ_ASSIGN,
-    TEST_TYPE_GET_CONTENTS,
-    TEST_TYPE_GET_CONTENTS_CONST,
-    TEST_TYPE_INITIALISE,
-    TEST_TYPE_ITERATOR_NEXT,
-    TEST_TYPE_ITERATOR_PRIOR,
-    TEST_TYPE_ITERATOR_SET_STRING,
-    TEST_TYPE_REMOVE,
-    TEST_TYPE_REPLACE,
-    TEST_TYPE_RESERVE,
-    TEST_TYPE_STARTS_WITH,
-    TEST_TYPE_SUBSTRING,
-    TEST_TYPE_TO_C_STRING,
-    TEST_TYPE_COUNT,
-} TestType;
 
 
 typedef struct Allocator
@@ -50,53 +17,59 @@ typedef struct Allocator
     bool force_allocation_failure;
 } Allocator;
 
-typedef struct Test
+typedef struct Test Test;
+
+typedef bool (*RunCall)(Test* test);
+
+struct Test
 {
     Allocator allocator;
-    Allocator baft_allocator;
+    Allocator bad_allocator;
     RandomGenerator generator;
-    TestType type;
-} Test;
+};
 
-
-static const char* describe_test(TestType type)
+typedef struct TestSpec
 {
-    switch(type)
+    RunCall run;
+    const char* name;
+} TestSpec;
+
+typedef struct Suite
+{
+    TestSpec* specs;
+    bool* tests_failed;
+    int test_count;
+    int test_cap;
+} Suite;
+
+
+static void add_test(Suite* suite, RunCall run, const char* name)
+{
+    if(suite->test_count + 1 >= suite->test_cap)
     {
-        case TEST_TYPE_ADD_END:             return "Add End";
-        case TEST_TYPE_ADD_MIDDLE:          return "Add Middle";
-        case TEST_TYPE_ADD_START:           return "Add Start";
-        case TEST_TYPE_APPEND:              return "Append";
-        case TEST_TYPE_APPEND_C_STRING:     return "Append C String";
-        case TEST_TYPE_ASSIGN:              return "Assign";
-        case TEST_TYPE_COPY:                return "Copy";
-        case TEST_TYPE_DESTROY:             return "Destroy";
-        case TEST_TYPE_ENDS_WITH:           return "Ends With";
-        case TEST_TYPE_FIND_FIRST_CHAR:     return "Find First Char";
-        case TEST_TYPE_FIND_FIRST_STRING:   return "Find First String";
-        case TEST_TYPE_FIND_LAST_CHAR:      return "Find Last Char";
-        case TEST_TYPE_FIND_LAST_STRING:    return "Find Last String";
-        case TEST_TYPE_FROM_BUFFER:         return "From Buffer";
-        case TEST_TYPE_FROM_C_STRING:       return "From C String";
-        case TEST_TYPE_FUZZ_ASSIGN:         return "Fuzz Assign";
-        case TEST_TYPE_GET_CONTENTS:        return "Get Contents";
-        case TEST_TYPE_GET_CONTENTS_CONST:  return "Get Contents Const";
-        case TEST_TYPE_INITIALISE:          return "Initialise";
-        case TEST_TYPE_ITERATOR_NEXT:       return "Iterator Next";
-        case TEST_TYPE_ITERATOR_PRIOR:      return "Iterator Prior";
-        case TEST_TYPE_ITERATOR_SET_STRING: return "Iterator Set String";
-        case TEST_TYPE_REMOVE:              return "Remove";
-        case TEST_TYPE_REPLACE:             return "Replace";
-        case TEST_TYPE_RESERVE:             return "Reserve";
-        case TEST_TYPE_STARTS_WITH:         return "Starts With";
-        case TEST_TYPE_SUBSTRING:           return "Substring";
-        case TEST_TYPE_TO_C_STRING:         return "To C String";
-        default:
+        int prior_cap = suite->test_cap;
+        int cap = (suite->test_cap) ? suite->test_cap * 2 : 16;
+
+        TestSpec* specs = calloc(cap, sizeof(TestSpec));
+        bool* tests_failed = calloc(cap, sizeof(bool));
+
+        if(prior_cap)
         {
-            ASSERT(false);
-            return "Unknown";
+            memcpy(specs, suite->specs, sizeof(TestSpec) * prior_cap);
+            memcpy(tests_failed, suite->tests_failed, sizeof(bool) * prior_cap);
+            free(suite->specs);
+            free(suite->tests_failed);
         }
+
+        suite->specs = specs;
+        suite->tests_failed = tests_failed;
+        suite->test_cap = cap;
     }
+
+    int index = suite->test_count;
+    suite->specs[index].name = name;
+    suite->specs[index].run = run;
+    suite->test_count += 1;
 }
 
 static AftMaybeString make_random_string(RandomGenerator* generator,
@@ -726,62 +699,53 @@ static bool test_to_c_string(Test* test)
     return result;
 }
 
-static bool run_test(Test* test)
-{
-    switch(test->type)
-    {
-        case TEST_TYPE_ADD_END:             return test_add_end(test);
-        case TEST_TYPE_ADD_MIDDLE:          return test_add_middle(test);
-        case TEST_TYPE_ADD_START:           return test_add_start(test);
-        case TEST_TYPE_APPEND:              return test_append(test);
-        case TEST_TYPE_APPEND_C_STRING:     return test_append_c_string(test);
-        case TEST_TYPE_ASSIGN:              return test_assign(test);
-        case TEST_TYPE_COPY:                return test_copy(test);
-        case TEST_TYPE_DESTROY:             return test_destroy(test);
-        case TEST_TYPE_ENDS_WITH:           return test_ends_with(test);
-        case TEST_TYPE_FIND_FIRST_CHAR:     return test_find_first_char(test);
-        case TEST_TYPE_FIND_FIRST_STRING:   return test_find_first_string(test);
-        case TEST_TYPE_FIND_LAST_CHAR:      return test_find_last_char(test);
-        case TEST_TYPE_FIND_LAST_STRING:    return test_find_last_string(test);
-        case TEST_TYPE_FROM_BUFFER:         return test_from_buffer(test);
-        case TEST_TYPE_FROM_C_STRING:       return test_from_c_string(test);
-        case TEST_TYPE_FUZZ_ASSIGN:         return fuzz_assign(test);
-        case TEST_TYPE_GET_CONTENTS:        return test_get_contents(test);
-        case TEST_TYPE_GET_CONTENTS_CONST:  return test_get_contents_const(test);
-        case TEST_TYPE_INITIALISE:          return test_initialise(test);
-        case TEST_TYPE_ITERATOR_NEXT:       return test_iterator_next(test);
-        case TEST_TYPE_ITERATOR_PRIOR:      return test_iterator_prior(test);
-        case TEST_TYPE_ITERATOR_SET_STRING: return test_iterator_set_string(test);
-        case TEST_TYPE_REMOVE:              return test_remove(test);
-        case TEST_TYPE_REPLACE:             return test_replace(test);
-        case TEST_TYPE_RESERVE:             return test_reserve(test);
-        case TEST_TYPE_STARTS_WITH:         return test_starts_with(test);
-        case TEST_TYPE_SUBSTRING:           return test_substring(test);
-        case TEST_TYPE_TO_C_STRING:         return test_to_c_string(test);
-        default:
-        {
-            ASSERT(false);
-            return false;
-        }
-    }
-}
-
 static bool run_tests()
 {
-    bool tests_failed[TEST_TYPE_COUNT];
+    Suite suite = {0};
+
+    add_test(&suite, fuzz_assign, "Fuzz Assign");
+    add_test(&suite, test_add_end, "Add End");
+    add_test(&suite, test_add_middle, "Add Middle");
+    add_test(&suite, test_add_start, "Add Start");
+    add_test(&suite, test_append, "Append");
+    add_test(&suite, test_append_c_string, "Append C String");
+    add_test(&suite, test_assign, "Assign");
+    add_test(&suite, test_copy, "Copy");
+    add_test(&suite, test_destroy, "Destroy");
+    add_test(&suite, test_ends_with, "Ends With");
+    add_test(&suite, test_find_first_char, "Find First Char");
+    add_test(&suite, test_find_first_string, "Find First String");
+    add_test(&suite, test_find_last_char, "Find Last Char");
+    add_test(&suite, test_find_last_string, "Find Last String");
+    add_test(&suite, test_from_c_string, "From C String");
+    add_test(&suite, test_from_buffer, "From Buffer");
+    add_test(&suite, test_get_contents, "Get Contents");
+    add_test(&suite, test_get_contents_const, "Get Contents Const");
+    add_test(&suite, test_initialise, "Initialise");
+    add_test(&suite, test_iterator_next, "Iterator Next");
+    add_test(&suite, test_iterator_prior, "Iterator Prior");
+    add_test(&suite, test_iterator_set_string, "Iterator Set String");
+    add_test(&suite, test_remove, "Remove");
+    add_test(&suite, test_replace, "Replace");
+    add_test(&suite, test_reserve, "Reserve");
+    add_test(&suite, test_starts_with, "Starts With");
+    add_test(&suite, test_substring, "Substring");
+    add_test(&suite, test_to_c_string, "To C String");
+
     int total_failed = 0;
 
-    for(int test_index = 0; test_index < TEST_TYPE_COUNT; test_index += 1)
+    for(int test_index = 0; test_index < suite.test_count; test_index += 1)
     {
+        TestSpec spec = suite.specs[test_index];
+
         Test test = {0};
-        test.type = (TestType) test_index;
-        test.baft_allocator.force_allocation_failure = true;
+        test.bad_allocator.force_allocation_failure = true;
 
         random_seed_by_time(&test.generator);
 
-        bool failure = !run_test(&test);
+        bool failure = !spec.run(&test);
         total_failed += failure;
-        tests_failed[test_index] = failure;
+        suite.tests_failed[test_index] = failure;
 
         ASSERT(test.allocator.bytes_used == 0);
     }
@@ -794,7 +758,7 @@ static bool run_tests()
 
         int printed = 0;
 
-        for(int test_index = 0; test_index < TEST_TYPE_COUNT; test_index += 1)
+        for(int test_index = 0; test_index < suite.test_count; test_index += 1)
         {
             const char* separator = "";
             const char* also = "";
@@ -816,11 +780,10 @@ static bool run_tests()
                 }
             }
 
-            if(tests_failed[test_index])
+            if(suite.tests_failed[test_index])
             {
-                TestType type = (TestType) test_index;
-                const char* test = describe_test(type);
-                fprintf(file, "%s%s%s", separator, also, test);
+                fprintf(file, "%s%s%s", separator, also,
+                        suite.specs[test_index].name);
                 printed += 1;
             }
         }
@@ -832,7 +795,7 @@ static bool run_tests()
         fprintf(file, "All tests succeeded!\n\n");
     }
 
-    return tests_failed == 0;
+    return total_failed == 0;
 }
 
 
