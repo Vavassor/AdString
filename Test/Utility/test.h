@@ -3,6 +3,8 @@
 
 #include "random.h"
 
+#include "../../Source/aft_string.h"
+
 #include <assert.h>
 #include <stdbool.h>
 
@@ -44,6 +46,9 @@ typedef struct Suite
 
 
 void add_test(Suite* suite, RunCall run, const char* name);
+AftMaybeString make_random_string(RandomGenerator* generator,
+        Allocator* allocator);
+bool run_tests(Suite* suite);
 int string_size(const char* string);
 bool strings_match(const char* a, const char* b);
 

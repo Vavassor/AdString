@@ -5,7 +5,7 @@ aft_allocate
 
     Allocate a block of memory.
 
-    This function may be used-defined as described in
+    This function may be user-defined as described in
     :doc:`../../custom-memory-management`. Otherwise, the default implementation
     of this function will use :c:func:`calloc` to get the required memory.
 

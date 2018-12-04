@@ -6,12 +6,43 @@ Types
 
 .. toctree::
     :maxdepth: 1
-    :glob:
 
-    types/*
+    types/aft-codepoint-iterator
+    types/aft-maybe-char32
+    types/aft-maybe-int
+    types/aft-maybe-string
+    types/aft-maybe-uint64
+    types/aft-memory-block
+    types/aft-string
+    types/aft-string-range
 
 Functions
 ---------
+
+ASCII
+^^^^^
+
+.. toctree::
+    :maxdepth: 1
+
+    functions/aft-ascii-check
+    functions/aft-ascii-check-range
+    functions/aft-ascii-compare-alphabetic
+    functions/aft-ascii-digit-to-int
+    functions/aft-ascii-is-alphabetic
+    functions/aft-ascii-is-alphanumeric
+    functions/aft-ascii-is-lowercase
+    functions/aft-ascii-is-newline
+    functions/aft-ascii-is-numeric
+    functions/aft-ascii-is-space-or-tab
+    functions/aft-ascii-is-uppercase
+    functions/aft-ascii-is-whitespace
+    functions/aft-ascii-to-lowercase
+    functions/aft-ascii-to-lowercase-char
+    functions/aft-ascii-to-uppercase
+    functions/aft-ascii-to-uppercase-char
+    functions/aft-ascii-uint64-from-string
+    functions/aft-ascii-uint64-from-string-range
 
 Codepoint Iterator
 ^^^^^^^^^^^^^^^^^^

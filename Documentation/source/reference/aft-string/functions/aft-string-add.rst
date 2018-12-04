@@ -10,3 +10,15 @@ aft_string_add
     :param from: the inserted string
     :return: true if the string is added
 
+Example
+-------
+
+.. literalinclude:: aft-string-add.c
+    :language: C
+
+Output:
+
+.. code::
+
+    Price 99¢
+

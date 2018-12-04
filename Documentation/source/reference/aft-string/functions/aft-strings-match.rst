@@ -1,5 +1,5 @@
 aft_strings_match
-================
+=================
 
 .. c:function:: bool aft_strings_match(const AftString* a, const AftString* b)
 

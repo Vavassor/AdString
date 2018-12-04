@@ -7,7 +7,6 @@
 
 
 #define AFT_STRING_SMALL_CAP sizeof(AftStringBig)
-#define AFT_USE_CUSTOM_ALLOCATOR
 
 
 typedef struct AftMemoryBlock

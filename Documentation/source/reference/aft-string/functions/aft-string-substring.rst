@@ -1,5 +1,5 @@
 aft_string_substring
-===================
+====================
 
 .. c:function:: AftMaybeString aft_string_substring(const AftString* string, \
         const AftStringRange* range)

@@ -5,8 +5,7 @@ Reference
 
 .. toctree::
     :maxdepth: 2
-    :glob:
 
-    aft-string/*
+    aft-string/aft-string
     custom-memory-management
 
