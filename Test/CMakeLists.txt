@@ -18,7 +18,8 @@ target_sources(
     TestBasic
     PRIVATE
     Basic/main.c
-    Basic/random.c
+    Utility/random.c
+    Utility/test.c
 )
 
 add_test(Basic TestBasic)

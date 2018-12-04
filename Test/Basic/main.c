@@ -1,76 +1,9 @@
-#include "random.h"
+#include "../../Source/aft_string.h"
+#include "../Utility/test.h"
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include "../../Source/aft_string.h"
 
-
-#define ASSERT(expression) \
-    assert(expression)
-
-
-typedef struct Allocator
-{
-    uint64_t bytes_used;
-    bool force_allocation_failure;
-} Allocator;
-
-typedef struct Test Test;
-
-typedef bool (*RunCall)(Test* test);
-
-struct Test
-{
-    Allocator allocator;
-    Allocator bad_allocator;
-    RandomGenerator generator;
-};
-
-typedef struct TestSpec
-{
-    RunCall run;
-    const char* name;
-} TestSpec;
-
-typedef struct Suite
-{
-    TestSpec* specs;
-    bool* tests_failed;
-    int test_count;
-    int test_cap;
-} Suite;
-
-
-static void add_test(Suite* suite, RunCall run, const char* name)
-{
-    if(suite->test_count + 1 >= suite->test_cap)
-    {
-        int prior_cap = suite->test_cap;
-        int cap = (suite->test_cap) ? suite->test_cap * 2 : 16;
-
-        TestSpec* specs = calloc(cap, sizeof(TestSpec));
-        bool* tests_failed = calloc(cap, sizeof(bool));
-
-        if(prior_cap)
-        {
-            memcpy(specs, suite->specs, sizeof(TestSpec) * prior_cap);
-            memcpy(tests_failed, suite->tests_failed, sizeof(bool) * prior_cap);
-            free(suite->specs);
-            free(suite->tests_failed);
-        }
-
-        suite->specs = specs;
-        suite->tests_failed = tests_failed;
-        suite->test_cap = cap;
-    }
-
-    int index = suite->test_count;
-    suite->specs[index].name = name;
-    suite->specs[index].run = run;
-    suite->test_count += 1;
-}
 
 static AftMaybeString make_random_string(RandomGenerator* generator,
         Allocator* allocator)
@@ -128,28 +61,6 @@ static bool fuzz_assign(Test* test)
     ASSERT(destroyed_string);
 
     return assigned && matched;
-}
-
-static int string_size(const char* string)
-{
-    if(string)
-    {
-        const char* s;
-        for(s = string; *s; s += 1);
-        return (int) (s - string);
-    }
-
-    return 0;
-}
-
-static bool strings_match(const char* a, const char* b)
-{
-    while(*a && (*a == *b))
-    {
-        a += 1;
-        b += 1;
-    }
-    return *a == *b;
 }
 
 static bool test_add_end(Test* test)
@@ -286,7 +197,8 @@ static bool test_assign(Test* test)
 {
     const char* reference = u8"a猫🍌";
     AftMaybeString original =
-            aft_string_from_c_string_with_allocator(reference, &test->allocator);
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
 
     AftString string;
     aft_string_initialise_with_allocator(&string, &test->allocator);
@@ -307,16 +219,19 @@ static bool test_copy(Test* test)
     const char* reference = u8"a猫🍌";
 
     AftMaybeString original =
-            aft_string_from_c_string_with_allocator(reference, &test->allocator);
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
     AftMaybeString copy = aft_string_copy(&original.value);
     ASSERT(original.valid);
     ASSERT(copy.valid);
 
-    const char* original_contents = aft_string_get_contents_const(&original.value);
+    const char* original_contents =
+            aft_string_get_contents_const(&original.value);
     const char* copy_contents = aft_string_get_contents_const(&copy.value);
 
-    bool size_correct =
-            aft_string_get_count(&original.value) == aft_string_get_count(&copy.value);
+    int original_count = aft_string_get_count(&original.value);
+    int copy_count = aft_string_get_count(&copy.value);
+    bool size_correct = original_count == copy_count;
     bool result = strings_match(original_contents, copy_contents)
             && size_correct
             && original.value.allocator == copy.value.allocator;
@@ -331,7 +246,8 @@ static bool test_destroy(Test* test)
 {
     const char* reference = "Moist";
     AftMaybeString original =
-            aft_string_from_c_string_with_allocator(reference, &test->allocator);
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
     ASSERT(original.valid);
 
     bool destroyed = aft_string_destroy(&original.value);
@@ -435,7 +351,8 @@ static bool test_find_last_string(Test* test)
     ASSERT(string.valid);
     ASSERT(target.valid);
 
-    AftMaybeInt index = aft_string_find_last_string(&string.value, &target.value);
+    AftMaybeInt index =
+            aft_string_find_last_string(&string.value, &target.value);
 
     bool result = (index.value == known_index);
 
@@ -449,7 +366,8 @@ static bool test_from_c_string(Test* test)
 {
     const char* reference = u8"a猫🍌";
     AftMaybeString string =
-            aft_string_from_c_string_with_allocator(reference, &test->allocator);
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
     const char* contents = aft_string_get_contents_const(&string.value);
 
     bool result = string.valid && strings_match(contents, reference);
@@ -481,7 +399,8 @@ static bool test_get_contents(Test* test)
 {
     const char* reference = "Test me in the most basic way possible.";
     AftMaybeString string =
-            aft_string_from_c_string_with_allocator(reference, &test->allocator);
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
     ASSERT(string.valid);
 
     char* contents = aft_string_get_contents(&string.value);
@@ -521,7 +440,8 @@ static bool test_iterator_next(Test* test)
 {
     const char* reference = u8"Бума́га всё сте́рпит.";
     AftMaybeString string =
-            aft_string_from_c_string_with_allocator(reference, &test->allocator);
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
     ASSERT(string.valid);
 
     AftCodepointIterator it;
@@ -546,7 +466,8 @@ static bool test_iterator_prior(Test* test)
 {
     const char* reference = u8"Бума́га всё сте́рпит.";
     AftMaybeString string =
-            aft_string_from_c_string_with_allocator(reference, &test->allocator);
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
     ASSERT(string.valid);
 
     AftCodepointIterator it;
@@ -572,7 +493,8 @@ static bool test_iterator_set_string(Test* test)
 {
     const char* reference = "9876543210";
     AftMaybeString string =
-            aft_string_from_c_string_with_allocator(reference, &test->allocator);
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
     ASSERT(string.valid);
 
     AftCodepointIterator it;
@@ -591,7 +513,8 @@ static bool test_remove(Test* test)
 {
     const char* reference = "9876543210";
     AftMaybeString string =
-            aft_string_from_c_string_with_allocator(reference, &test->allocator);
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
     ASSERT(string.valid);
 
     AftStringRange range = {3, 6};
@@ -609,7 +532,8 @@ static bool test_replace(Test* test)
     const char* reference = "9876543210";
     const char* insert = "abc";
     AftMaybeString string =
-            aft_string_from_c_string_with_allocator(reference, &test->allocator);
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
     AftMaybeString replacement =
             aft_string_from_c_string_with_allocator(insert, &test->allocator);
     ASSERT(string.valid);
@@ -664,7 +588,8 @@ static bool test_substring(Test* test)
 {
     const char* reference = "9876543210";
     AftMaybeString string =
-            aft_string_from_c_string_with_allocator(reference, &test->allocator);
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
     ASSERT(string.valid);
 
     AftStringRange range = {3, 6};
@@ -685,7 +610,8 @@ static bool test_to_c_string(Test* test)
 {
     const char* reference = "It's okay.";
     AftMaybeString string =
-            aft_string_from_c_string_with_allocator(reference, &test->allocator);
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
     ASSERT(string.valid);
 
     char* copy =
