@@ -7,6 +7,7 @@
 
 
 #define AFT_STRING_SMALL_CAP sizeof(AftStringBig)
+#define AFT_USE_CUSTOM_ALLOCATOR
 
 
 typedef struct AftMemoryBlock
@@ -104,6 +105,8 @@ bool aft_ascii_is_numeric(char c);
 bool aft_ascii_is_space_or_tab(char c);
 bool aft_ascii_is_uppercase(char c);
 bool aft_ascii_is_whitespace(char c);
+void aft_ascii_reverse(AftString* string);
+void aft_ascii_reverse_range(AftString* string, const AftStringRange* range);
 void aft_ascii_to_lowercase(AftString* string);
 char aft_ascii_to_lowercase_char(char c);
 void aft_ascii_to_uppercase(AftString* string);

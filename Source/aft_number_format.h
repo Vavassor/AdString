@@ -1,8 +1,9 @@
 #ifndef AD_NUMBER_FORMAT_H_
 #define AD_NUMBER_FORMAT_H_
 
+#include <AftString/aft_string.h>
+
 #include <stdint.h>
-#include "aft_string.h"
 
 
 typedef enum AftNumberFormatRoundingMode

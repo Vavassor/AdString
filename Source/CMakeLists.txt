@@ -11,6 +11,13 @@ set_target_properties(
     RUNTIME_OUTPUT_DIRECTORY bin
 )
 
+target_include_directories(
+    AftString
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Include>
+    $<INSTALL_INTERFACE:include>
+)
+
 target_sources(
     AftString
     PRIVATE

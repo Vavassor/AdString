@@ -1,4 +1,4 @@
-#include "aft_string.h"
+#include <AftString/aft_string.h>
 
 #include <stdio.h>
 

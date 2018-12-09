@@ -3,7 +3,7 @@
 
 #include "random.h"
 
-#include "../../Source/aft_string.h"
+#include <AftString/aft_string.h>
 
 #include <assert.h>
 #include <stdbool.h>

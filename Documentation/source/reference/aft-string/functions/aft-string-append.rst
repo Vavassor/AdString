@@ -9,3 +9,15 @@ aft_string_append
     :param from: the appended string
     :return: true if the string is appended
 
+Example
+-------
+
+.. literalinclude:: aft-string-append.c
+    :language: C
+
+Output:
+
+.. code::
+
+    Date: 2018-12-09
+

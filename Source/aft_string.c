@@ -1,4 +1,4 @@
-#include "aft_string.h"
+#include <AftString/aft_string.h>
 
 #include <assert.h>
 #include <stddef.h>
@@ -295,6 +295,28 @@ bool aft_ascii_is_uppercase(char c)
 bool aft_ascii_is_whitespace(char c)
 {
     return c == ' ' || c - 9 <= 5;
+}
+
+void aft_ascii_reverse(AftString* string)
+{
+    AftStringRange range = {0, aft_string_get_count(string)};
+    aft_ascii_reverse_range(string, &range);
+}
+
+void aft_ascii_reverse_range(AftString* string, const AftStringRange* range)
+{
+    AFT_ASSERT(string);
+
+    char* contents = aft_string_get_contents(string);
+
+    for(int start = range->start, end = range->end;
+            start < end;
+            start += 1, end -= 1)
+    {
+        char temp = contents[start];
+        contents[start] = contents[end];
+        contents[end] = temp;
+    }
 }
 
 void aft_ascii_to_lowercase(AftString* string)
