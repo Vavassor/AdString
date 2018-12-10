@@ -812,10 +812,12 @@ char* aft_string_get_contents(AftString* string)
 
     if(aft_string_is_big(string))
     {
+        AFT_ASSERT(string->big.contents);
         return string->big.contents;
     }
     else
     {
+        AFT_ASSERT(string->small.contents);
         return string->small.contents;
     }
 }
@@ -826,10 +828,12 @@ const char* aft_string_get_contents_const(const AftString* string)
 
     if(aft_string_is_big(string))
     {
+        AFT_ASSERT(string->big.contents);
         return string->big.contents;
     }
     else
     {
+        AFT_ASSERT(string->small.contents);
         return string->small.contents;
     }
 }
