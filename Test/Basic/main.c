@@ -129,6 +129,76 @@ static bool test_append(Test* test)
     return result;
 }
 
+static bool test_append_nothing(Test* test)
+{
+    const char* a = "a";
+    AftMaybeString base =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
+    ASSERT(base.valid);
+
+    AftString extension;
+    aft_string_initialise_with_allocator(&extension, &test->allocator);
+
+    bool appended = aft_string_append(&base.value, &extension);
+    ASSERT(appended);
+
+    const char* combined = aft_string_get_contents_const(&base.value);
+    bool contents_match = strings_match(combined, a);
+    bool size_correct =
+            aft_string_get_count(&base.value) == string_size(combined);
+    bool result = contents_match && size_correct;
+
+    aft_string_destroy(&base.value);
+    aft_string_destroy(&extension);
+
+    return result;
+}
+
+static bool test_append_nothing_to_nothing(Test* test)
+{
+    AftString base;
+    aft_string_initialise_with_allocator(&base, &test->allocator);
+    AftString extension;
+    aft_string_initialise_with_allocator(&extension, &test->allocator);
+
+    bool appended = aft_string_append(&base, &extension);
+    ASSERT(appended);
+
+    const char* combined = aft_string_get_contents_const(&base);
+    bool size_correct =
+            aft_string_get_count(&base) == string_size(combined);
+    bool result = size_correct;
+
+    aft_string_destroy(&base);
+    aft_string_destroy(&extension);
+
+    return result;
+}
+
+static bool test_append_to_nothing(Test* test)
+{
+    const char* b = "a";
+    AftString base;
+    aft_string_initialise_with_allocator(&base, &test->allocator);
+
+    AftMaybeString extension =
+            aft_string_from_c_string_with_allocator(b, &test->allocator);
+    ASSERT(extension.valid);
+
+    bool appended = aft_string_append(&base, &extension.value);
+    ASSERT(appended);
+
+    const char* combined = aft_string_get_contents_const(&base);
+    bool contents_match = strings_match(combined, b);
+    bool size_correct = aft_string_get_count(&base) == string_size(combined);
+    bool result = contents_match && size_correct;
+
+    aft_string_destroy(&base);
+    aft_string_destroy(&extension.value);
+
+    return result;
+}
+
 static bool test_append_c_string(Test* test)
 {
     const char* a = u8"👌🏼";
@@ -485,6 +555,39 @@ static bool test_remove(Test* test)
     return result;
 }
 
+static bool test_remove_nothing(Test* test)
+{
+    const char* reference = "9876543210";
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
+    ASSERT(string.valid);
+
+    AftStringRange range = {3, 3};
+    aft_string_remove(&string.value, &range);
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = strings_match(contents, "9876543210");
+
+    aft_string_destroy(&string.value);
+
+    return result;
+}
+
+static bool test_remove_nothing_from_nothing(Test* test)
+{
+    AftString string;
+    aft_string_initialise_with_allocator(&string, &test->allocator);
+
+    AftStringRange range = {0, 0};
+    aft_string_remove(&string, &range);
+    const char* contents = aft_string_get_contents_const(&string);
+    bool result = strings_match(contents, "");
+
+    aft_string_destroy(&string);
+
+    return result;
+}
+
 static bool test_replace(Test* test)
 {
     const char* reference = "9876543210";
@@ -593,6 +696,10 @@ int main(int argc, const char** argv)
     add_test(&suite, test_add_middle, "Add Middle");
     add_test(&suite, test_add_start, "Add Start");
     add_test(&suite, test_append, "Append");
+    add_test(&suite, test_append_nothing, "Append Nothing");
+    add_test(&suite, test_append_nothing_to_nothing,
+            "Append Nothing To Nothing");
+    add_test(&suite, test_append_to_nothing, "Append To Nothing");
     add_test(&suite, test_append_c_string, "Append C String");
     add_test(&suite, test_assign, "Assign");
     add_test(&suite, test_copy, "Copy");
@@ -611,6 +718,9 @@ int main(int argc, const char** argv)
     add_test(&suite, test_iterator_prior, "Iterator Prior");
     add_test(&suite, test_iterator_set_string, "Iterator Set String");
     add_test(&suite, test_remove, "Remove");
+    add_test(&suite, test_remove_nothing, "Remove Nothing");
+    add_test(&suite, test_remove_nothing_from_nothing,
+            "Remove Nothing From Nothing");
     add_test(&suite, test_replace, "Replace");
     add_test(&suite, test_reserve, "Reserve");
     add_test(&suite, test_starts_with, "Starts With");

@@ -7,7 +7,7 @@ aft_string_substring
     Create a copy of a range within a string.
 
     The substring inherits the :term:`allocator` associated with the original
-    string.
+    string. See also :ref:`allocator-propagation`.
 
     :param string: the string
     :param range: the range

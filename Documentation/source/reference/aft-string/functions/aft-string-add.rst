@@ -8,6 +8,7 @@ aft_string_add
 
     :param to: the recieving string
     :param from: the inserted string
+    :param index: the index in the recieving string, from zero to its count
     :return: true if the string is added
 
 Example

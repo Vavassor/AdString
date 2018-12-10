@@ -918,7 +918,7 @@ bool aft_string_replace(AftString* to, const AftStringRange* range,
 bool aft_string_reserve(AftString* string, int space)
 {
     AFT_ASSERT(string);
-    AFT_ASSERT(space > 0);
+    AFT_ASSERT(space >= 0);
 
     int needed_cap = space + 1;
     int existing_cap = aft_string_get_capacity(string);
@@ -1032,9 +1032,9 @@ bool aft_string_range_check(const AftString* string,
     int count = aft_string_get_count(string);
 
     return range->start <= range->end
-            && range->start > 0
-            && range->end > 0
-            && range->end < count;
+            && range->start >= 0
+            && range->end >= 0
+            && range->end <= count;
 }
 
 
