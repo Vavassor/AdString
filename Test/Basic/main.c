@@ -175,6 +175,27 @@ static bool test_append_nothing_to_nothing(Test* test)
     return result;
 }
 
+static bool test_append_self(Test* test)
+{
+    const char* a = u8"a猫🍌";
+    AftMaybeString base =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
+    ASSERT(base.valid);
+
+    bool appended = aft_string_append(&base.value, &base.value);
+    ASSERT(appended);
+
+    const char* combined = aft_string_get_contents_const(&base.value);
+    bool contents_match = strings_match(combined, u8"a猫🍌a猫🍌");
+    bool size_correct =
+            aft_string_get_count(&base.value) == string_size(combined);
+    bool result = contents_match && size_correct;
+
+    aft_string_destroy(&base.value);
+
+    return result;
+}
+
 static bool test_append_to_nothing(Test* test)
 {
     const char* b = "a";
@@ -240,6 +261,26 @@ static bool test_assign(Test* test)
     ASSERT(destroyed_string);
 
     return assigned && matched;
+}
+
+static bool test_assign_self(Test* test)
+{
+    const char* reference = u8"a猫🍌";
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
+
+    bool assigned = aft_string_assign(&string.value, &string.value);
+
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool contents_match = strings_match(contents, reference);
+    bool size_correct =
+            aft_string_get_count(&string.value) == string_size(reference);
+    bool result = assigned && contents_match;
+
+    aft_string_destroy(&string.value);
+
+    return result;
 }
 
 static bool test_assign_nothing(Test* test)
@@ -364,6 +405,20 @@ static bool test_ends_with_nothing(Test* test)
 
     aft_string_destroy(&string.value);
     aft_string_destroy(&ending);
+
+    return result;
+}
+
+static bool test_ends_with_self(Test* test)
+{
+    const char* a = u8"a猫🍌";
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
+    ASSERT(string.valid);
+
+    bool result = aft_string_ends_with(&string.value, &string.value);
+
+    aft_string_destroy(&string.value);
 
     return result;
 }
@@ -924,6 +979,20 @@ static bool test_starts_with_nothing(Test* test)
     return result;
 }
 
+static bool test_starts_with_self(Test* test)
+{
+    const char* a = u8"a猫🍌 ";
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
+    ASSERT(string.valid);
+
+    bool result = aft_string_starts_with(&string.value, &string.value);
+
+    aft_string_destroy(&string.value);
+
+    return result;
+}
+
 static bool test_substring(Test* test)
 {
     const char* reference = "9876543210";
@@ -965,6 +1034,25 @@ static bool test_to_c_string(Test* test)
     return result;
 }
 
+static bool test_to_c_string_empty(Test* test)
+{
+    const char* reference = "";
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
+    ASSERT(string.valid);
+
+    char* copy =
+            aft_string_to_c_string_with_allocator(&string.value,
+                    &test->allocator);
+    bool result = strings_match(copy, reference);
+
+    aft_string_destroy(&string.value);
+    aft_c_string_deallocate_with_allocator(&test->allocator, copy);
+
+    return result;
+}
+
 
 int main(int argc, const char** argv)
 {
@@ -978,15 +1066,18 @@ int main(int argc, const char** argv)
     add_test(&suite, test_append_nothing, "Append Nothing");
     add_test(&suite, test_append_nothing_to_nothing,
             "Append Nothing To Nothing");
+    add_test(&suite, test_append_self, "Append Self");
     add_test(&suite, test_append_to_nothing, "Append To Nothing");
     add_test(&suite, test_append_c_string, "Append C String");
     add_test(&suite, test_assign, "Assign");
     add_test(&suite, test_assign_nothing, "Assign Nothing");
+    add_test(&suite, test_assign_self, "Assign Self");
     add_test(&suite, test_copy, "Copy");
     add_test(&suite, test_destroy, "Destroy");
     add_test(&suite, test_ends_with, "Ends With");
     add_test(&suite, test_ends_with_missing, "Ends With Missing");
     add_test(&suite, test_ends_with_nothing, "Ends With Nothing");
+    add_test(&suite, test_ends_with_self, "Ends With Self");
     add_test(&suite, test_find_first_char, "Find First Char");
     add_test(&suite, test_find_first_char_missing, "Find First Char Missing");
     add_test(&suite, test_find_first_string, "Find First String");
@@ -1017,8 +1108,10 @@ int main(int argc, const char** argv)
     add_test(&suite, test_starts_with, "Starts With");
     add_test(&suite, test_starts_with_missing, "Starts With Missing");
     add_test(&suite, test_starts_with_nothing, "Starts With Nothing");
+    add_test(&suite, test_starts_with_self, "Starts With Self");
     add_test(&suite, test_substring, "Substring");
     add_test(&suite, test_to_c_string, "To C String");
+    add_test(&suite, test_to_c_string_empty, "To C String Empty");
 
     bool success = run_tests(&suite);
     return !success;
