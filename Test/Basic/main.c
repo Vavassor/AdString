@@ -76,6 +76,28 @@ static bool test_add_middle(Test* test)
     return result;
 }
 
+static bool test_add_self_middle(Test* test)
+{
+    const char* chicken = u8"курица";
+
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(chicken, &test->allocator);
+    ASSERT(string.valid);
+
+    bool combined = aft_string_add(&string.value, &string.value, 4);
+    ASSERT(combined);
+
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool contents_match = strings_match(contents, u8"кукурицарица");
+    bool size_correct =
+            aft_string_get_count(&string.value) == string_size(contents);
+    bool result = contents_match && size_correct;
+
+    aft_string_destroy(&string.value);
+
+    return result;
+}
+
 static bool test_add_start(Test* test)
 {
     const char* chicken = u8"курица";
@@ -482,6 +504,29 @@ static bool test_find_first_string(Test* test)
     return result;
 }
 
+static bool test_find_first_string_missing(Test* test)
+{
+    const char* a = u8"وَالشَّمْسُ تَجْرِي لِمُسْتَقَرٍّ لَّهَا ذَٰلِكَ تَقْدِيرُ الْعَزِيزِ الْعَلِيمِ";
+    const char* b = "lies";
+
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
+    AftMaybeString target =
+            aft_string_from_c_string_with_allocator(b, &test->allocator);
+    ASSERT(string.valid);
+    ASSERT(target.valid);
+
+    AftMaybeInt index =
+            aft_string_find_first_string(&string.value, &target.value);
+
+    bool result = !index.valid;
+
+    aft_string_destroy(&string.value);
+    aft_string_destroy(&target.value);
+
+    return result;
+}
+
 static bool test_find_last_char(Test* test)
 {
     const char* a = "a A AA s";
@@ -534,6 +579,29 @@ static bool test_find_last_string(Test* test)
             aft_string_find_last_string(&string.value, &target.value);
 
     bool result = (index.value == known_index);
+
+    aft_string_destroy(&string.value);
+    aft_string_destroy(&target.value);
+
+    return result;
+}
+
+static bool test_find_last_string_missing(Test* test)
+{
+    const char* a = u8"My 1st page הדף מספר 2 שלי My 3rd page";
+    const char* b = "egap";
+
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
+    AftMaybeString target =
+            aft_string_from_c_string_with_allocator(b, &test->allocator);
+    ASSERT(string.valid);
+    ASSERT(target.valid);
+
+    AftMaybeInt index =
+            aft_string_find_last_string(&string.value, &target.value);
+
+    bool result = !index.valid;
 
     aft_string_destroy(&string.value);
     aft_string_destroy(&target.value);
@@ -1061,6 +1129,7 @@ int main(int argc, const char** argv)
     add_test(&suite, fuzz_assign, "Fuzz Assign");
     add_test(&suite, test_add_end, "Add End");
     add_test(&suite, test_add_middle, "Add Middle");
+    add_test(&suite, test_add_self_middle, "Add Self Middle");
     add_test(&suite, test_add_start, "Add Start");
     add_test(&suite, test_append, "Append");
     add_test(&suite, test_append_nothing, "Append Nothing");
@@ -1081,9 +1150,12 @@ int main(int argc, const char** argv)
     add_test(&suite, test_find_first_char, "Find First Char");
     add_test(&suite, test_find_first_char_missing, "Find First Char Missing");
     add_test(&suite, test_find_first_string, "Find First String");
+    add_test(&suite, test_find_first_string_missing,
+            "Find First String Missing");
     add_test(&suite, test_find_last_char, "Find Last Char");
     add_test(&suite, test_find_last_char_missing, "Find Last Char Missing");
     add_test(&suite, test_find_last_string, "Find Last String");
+    add_test(&suite, test_find_last_string_missing, "Find Last String Missing");
     add_test(&suite, test_from_c_string, "From C String");
     add_test(&suite, test_from_c_string_empty, "From C String Empty");
     add_test(&suite, test_from_buffer, "From Buffer");
