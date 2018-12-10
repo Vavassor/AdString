@@ -8,4 +8,5 @@ Reference
 
     aft-string/aft-string
     custom-memory-management
+    string-modification
 

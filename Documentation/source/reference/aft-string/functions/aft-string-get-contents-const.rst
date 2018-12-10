@@ -7,7 +7,8 @@ aft_string_get_contents_const
     Get a direct reference to the contents of the string.
 
     The reference only remains valid as long as the original string isn't
-    modified.
+    modified. This is further specified in the section
+    :ref:`string-modification`.
 
     The contents is guaranteed to be a null-terminated :term:`C string`.
 

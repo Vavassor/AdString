@@ -5,6 +5,10 @@ aft_string_assign
 
     Overwrite the contents of one string with another string.
 
+    The strings do not need to be associated with the same allocator, which
+    makes it usable for an allocator transfer as described in
+    :ref:`allocator-propagation`.
+
     :param to: the recieving string
     :param from: the giving string
     :return: true if the string is assigned

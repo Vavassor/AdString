@@ -25,6 +25,10 @@ structure can be used for allocation. This can be used for local or per-thread
 allocation. Global memory allocation functions, like in the C standard library,
 don't need to use this.
 
+The allocator is set only when the string is created and should not be changed.
+This is to ensure the same allocator is used for allocating and deallocating a
+memory block.
+
 .. _allocator-propagation:
 
 Allocator Propagation
@@ -37,5 +41,5 @@ will be associated with the same allocator as the string it came from.
 
 Generally this would be fine, but it may be a detail to consider because
 transferring ownership of a string between allocators after it's created is
-prevented by design.
+prevented by design. If transfer is needed, use :c:func:`aft_string_assign`.
 
