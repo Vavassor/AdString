@@ -537,7 +537,25 @@ static bool test_iterator_set_string(Test* test)
     return result;
 }
 
-static bool test_remove(Test* test)
+static bool test_remove_end(Test* test)
+{
+    const char* reference = "9876543210";
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
+    ASSERT(string.valid);
+
+    AftStringRange range = {7, 10};
+    aft_string_remove(&string.value, &range);
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = strings_match(contents, "9876543");
+
+    aft_string_destroy(&string.value);
+
+    return result;
+}
+
+static bool test_remove_middle(Test* test)
 {
     const char* reference = "9876543210";
     AftMaybeString string =
@@ -584,6 +602,24 @@ static bool test_remove_nothing_from_nothing(Test* test)
     bool result = strings_match(contents, "");
 
     aft_string_destroy(&string);
+
+    return result;
+}
+
+static bool test_remove_start(Test* test)
+{
+    const char* reference = "9876543210";
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
+    ASSERT(string.valid);
+
+    AftStringRange range = {0, 3};
+    aft_string_remove(&string.value, &range);
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = strings_match(contents, "6543210");
+
+    aft_string_destroy(&string.value);
 
     return result;
 }
@@ -717,10 +753,12 @@ int main(int argc, const char** argv)
     add_test(&suite, test_iterator_next, "Iterator Next");
     add_test(&suite, test_iterator_prior, "Iterator Prior");
     add_test(&suite, test_iterator_set_string, "Iterator Set String");
-    add_test(&suite, test_remove, "Remove");
+    add_test(&suite, test_remove_end, "Remove End");
+    add_test(&suite, test_remove_middle, "Remove Middle");
     add_test(&suite, test_remove_nothing, "Remove Nothing");
     add_test(&suite, test_remove_nothing_from_nothing,
             "Remove Nothing From Nothing");
+    add_test(&suite, test_remove_start, "Remove Start");
     add_test(&suite, test_replace, "Replace");
     add_test(&suite, test_reserve, "Reserve");
     add_test(&suite, test_starts_with, "Starts With");
