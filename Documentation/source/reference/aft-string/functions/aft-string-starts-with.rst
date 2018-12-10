@@ -10,3 +10,5 @@ aft_string_starts_with
     :param lookup: the beginning
     :return: true if the string has the beginning
 
+        This is always true when the beginning is the empty string.
+

@@ -10,3 +10,5 @@ aft_string_ends_with
     :param lookup: the ending
     :return: true if the string has the ending
 
+        This is always true when the ending is the empty string.
+
