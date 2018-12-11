@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 project(AftString VERSION 1.0.0)
 
+include(GNUInstallDirs)
+
 add_library(AftString "")
 
 set_target_properties(
@@ -8,14 +10,13 @@ set_target_properties(
     PROPERTIES
     C_STANDARD 99
     C_STANDARD_REQUIRED ON
-    RUNTIME_OUTPUT_DIRECTORY bin
 )
 
 target_include_directories(
     AftString
     PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Include>
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 target_sources(
@@ -28,19 +29,19 @@ target_sources(
 install(
     TARGETS AftString
     EXPORT AftStringTargets
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    RUNTIME DESTINATION bin
-    INCLUDES DESTINATION include
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 install(
     EXPORT AftStringTargets
-    DESTINATION lib/cmake/AftString
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/AftString
     FILE AftStringTargets.cmake
 )
 install(
     DIRECTORY Include/AftString
-    DESTINATION include
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 include(CMakePackageConfigHelpers)
@@ -52,6 +53,6 @@ install(
     FILES
     AftStringConfig.cmake
     ${CMAKE_CURRENT_BINARY_DIR}/AftStringConfigVersion.cmake
-    DESTINATION lib/cmake/AftString
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/AftString
 )
 
