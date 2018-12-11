@@ -13,3 +13,16 @@ aft_string_assign
     :param from: the giving string
     :return: true if the string is assigned
 
+Example
+-------
+
+.. literalinclude:: aft-string-assign.c
+    :language: C
+
+Output:
+
+.. code::
+
+    one thing
+    and then another
+

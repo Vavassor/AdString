@@ -13,3 +13,15 @@ aft_string_destroy
     :param string: the string
     :return: true if the string was destroyed
 
+Example
+-------
+
+.. literalinclude:: aft-string-destroy.c
+    :language: C
+
+Output:
+
+.. code::
+
+    shown instead
+

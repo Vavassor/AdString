@@ -11,3 +11,15 @@ aft_string_copy
     :param string: the string
     :return: a copy
 
+Example
+-------
+
+.. literalinclude:: aft-string-copy.c
+    :language: C
+
+Output:
+
+.. code::
+
+    It's me!
+
