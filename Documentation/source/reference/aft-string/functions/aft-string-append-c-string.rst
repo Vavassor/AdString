@@ -9,3 +9,15 @@ aft_string_append_c_string
     :param from: the appended string
     :return: true if the string is appended
 
+Example
+-------
+
+.. literalinclude:: aft-string-append-c-string.c
+    :language: C
+
+Output:
+
+.. code::
+
+    30.5m/s
+
