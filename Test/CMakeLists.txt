@@ -22,4 +22,8 @@ target_sources(
     Utility/test.c
 )
 
-add_test(Basic TestBasic)
+add_test(
+    NAME Basic
+    COMMAND TestBasic
+)
+

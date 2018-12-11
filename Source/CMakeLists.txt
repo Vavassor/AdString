@@ -24,3 +24,34 @@ target_sources(
     aft_number_format.c
     aft_string.c
 )
+
+install(
+    TARGETS AftString
+    EXPORT AftStringTargets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+)
+install(
+    EXPORT AftStringTargets
+    DESTINATION lib/cmake/AftString
+    FILE AftStringTargets.cmake
+)
+install(
+    DIRECTORY Include/AftString
+    DESTINATION include
+)
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    AftStringConfigVersion.cmake
+    COMPATIBILITY SameMajorVersion
+)
+install(
+    FILES
+    AftStringConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/AftStringConfigVersion.cmake
+    DESTINATION lib/cmake/AftString
+)
+
