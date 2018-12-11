@@ -9,6 +9,10 @@
 #define AFT_STRING_SMALL_CAP sizeof(AftStringBig)
 #define AFT_USE_CUSTOM_ALLOCATOR
 
+#if !defined(NDEBUG)
+#define AFT_CHECK_CORRUPTION
+#endif // !defined(NDEBUG)
+
 
 typedef struct AftMemoryBlock
 {
@@ -33,11 +37,17 @@ typedef struct AftStringSmall
 
 typedef struct AftString
 {
+#if defined(AFT_CHECK_CORRUPTION)
+    uint32_t canary_start;
+#endif
     union
     {
         AftStringBig big;
         AftStringSmall small;
     };
+#if defined(AFT_CHECK_CORRUPTION)
+    uint32_t canary_end;
+#endif
     void* allocator;
     int cap;
 } AftString;

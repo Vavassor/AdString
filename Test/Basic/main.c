@@ -527,6 +527,23 @@ static bool test_find_first_string_missing(Test* test)
     return result;
 }
 
+static bool test_find_first_string_self(Test* test)
+{
+    const char* a = u8"وَالشَّمْسُ تَجْرِي لِمُسْتَقَرٍّ لَّهَا ذَٰلِكَ تَقْدِيرُ الْعَزِيزِ الْعَلِيمِ";
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
+    ASSERT(string.valid);
+
+    AftMaybeInt index =
+            aft_string_find_first_string(&string.value, &string.value);
+
+    bool result = index.valid && index.value == 0;
+
+    aft_string_destroy(&string.value);
+
+    return result;
+}
+
 static bool test_find_last_char(Test* test)
 {
     const char* a = "a A AA s";
@@ -605,6 +622,23 @@ static bool test_find_last_string_missing(Test* test)
 
     aft_string_destroy(&string.value);
     aft_string_destroy(&target.value);
+
+    return result;
+}
+
+static bool test_find_last_string_self(Test* test)
+{
+    const char* a = u8"My 1st page הדף מספר 2 שלי My 3rd page";
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(a, &test->allocator);
+    ASSERT(string.valid);
+
+    AftMaybeInt index =
+            aft_string_find_last_string(&string.value, &string.value);
+
+    bool result = index.valid && index.value == 0;
+
+    aft_string_destroy(&string.value);
 
     return result;
 }
@@ -807,6 +841,25 @@ static bool test_remove_end(Test* test)
     return result;
 }
 
+static bool test_remove_everything(Test* test)
+{
+    const char* reference = "9876543210";
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
+    ASSERT(string.valid);
+
+    AftStringRange range = {0, aft_string_get_count(&string.value)};
+    aft_string_remove(&string.value, &range);
+
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = strings_match(contents, "");
+
+    aft_string_destroy(&string.value);
+
+    return result;
+}
+
 static bool test_remove_middle(Test* test)
 {
     const char* reference = "9876543210";
@@ -902,6 +955,32 @@ static bool test_replace(Test* test)
     return result;
 }
 
+static bool test_replace_everything(Test* test)
+{
+    const char* reference = "9876543210";
+    const char* insert = "abcdefghij";
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
+    AftMaybeString replacement =
+            aft_string_from_c_string_with_allocator(insert, &test->allocator);
+    ASSERT(string.valid);
+    ASSERT(replacement.valid);
+
+    AftStringRange range = {0, aft_string_get_count(&string.value)};
+    bool replaced =
+            aft_string_replace(&string.value, &range, &replacement.value);
+    ASSERT(replaced);
+
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = strings_match(contents, insert);
+
+    aft_string_destroy(&string.value);
+    aft_string_destroy(&replacement.value);
+
+    return result;
+}
+
 static bool test_replace_nothing(Test* test)
 {
     const char* insert = "abcdef";
@@ -926,28 +1005,42 @@ static bool test_replace_nothing(Test* test)
     return result;
 }
 
-static bool test_replace_everything(Test* test)
+static bool test_replace_nothing_with_nothing(Test* test)
+{
+    AftString string;
+    aft_string_initialise_with_allocator(&string, &test->allocator);
+    AftString replacement;
+    aft_string_initialise_with_allocator(&replacement, &test->allocator);
+
+    AftStringRange range = {0, 0};
+    bool replaced = aft_string_replace(&string, &range, &replacement);
+
+    const char* contents = aft_string_get_contents_const(&string);
+    bool result = replaced && strings_match(contents, "");
+
+    aft_string_destroy(&string);
+    aft_string_destroy(&replacement);
+
+    return result;
+}
+
+static bool test_replace_self_middle(Test* test)
 {
     const char* reference = "9876543210";
-    const char* insert = "abcdefghij";
     AftMaybeString string =
             aft_string_from_c_string_with_allocator(reference,
                     &test->allocator);
-    AftMaybeString replacement =
-            aft_string_from_c_string_with_allocator(insert, &test->allocator);
     ASSERT(string.valid);
-    ASSERT(replacement.valid);
 
-    AftStringRange range = {0, aft_string_get_count(&string.value)};
+    AftStringRange range = {3, 6};
     bool replaced =
-            aft_string_replace(&string.value, &range, &replacement.value);
+            aft_string_replace(&string.value, &range, &string.value);
     ASSERT(replaced);
 
     const char* contents = aft_string_get_contents_const(&string.value);
-    bool result = strings_match(contents, insert);
+    bool result = strings_match(contents, "98798765432103210");
 
     aft_string_destroy(&string.value);
-    aft_string_destroy(&replacement.value);
 
     return result;
 }
@@ -1083,6 +1176,28 @@ static bool test_substring(Test* test)
     return result;
 }
 
+static bool test_substring_nothing(Test* test)
+{
+    const char* reference = "9876543210";
+    AftMaybeString string =
+            aft_string_from_c_string_with_allocator(reference,
+                    &test->allocator);
+    ASSERT(string.valid);
+
+    AftStringRange range = {3, 3};
+    AftMaybeString middle = aft_string_substring(&string.value, &range);
+    ASSERT(middle.valid);
+
+    const char* contents = aft_string_get_contents_const(&middle.value);
+    bool result = strings_match(contents, "")
+            && string.value.allocator == &test->allocator;
+
+    aft_string_destroy(&string.value);
+    aft_string_destroy(&middle.value);
+
+    return result;
+}
+
 static bool test_to_c_string(Test* test)
 {
     const char* reference = "It's okay.";
@@ -1152,10 +1267,12 @@ int main(int argc, const char** argv)
     add_test(&suite, test_find_first_string, "Find First String");
     add_test(&suite, test_find_first_string_missing,
             "Find First String Missing");
+    add_test(&suite, test_find_first_string_self, "Find First String Self");
     add_test(&suite, test_find_last_char, "Find Last Char");
     add_test(&suite, test_find_last_char_missing, "Find Last Char Missing");
     add_test(&suite, test_find_last_string, "Find Last String");
     add_test(&suite, test_find_last_string_missing, "Find Last String Missing");
+    add_test(&suite, test_find_last_string_self, "Find Last String Self");
     add_test(&suite, test_from_c_string, "From C String");
     add_test(&suite, test_from_c_string_empty, "From C String Empty");
     add_test(&suite, test_from_buffer, "From Buffer");
@@ -1167,6 +1284,7 @@ int main(int argc, const char** argv)
     add_test(&suite, test_iterator_prior, "Iterator Prior");
     add_test(&suite, test_iterator_set_string, "Iterator Set String");
     add_test(&suite, test_remove_end, "Remove End");
+    add_test(&suite, test_remove_everything, "Remove Everything");
     add_test(&suite, test_remove_middle, "Remove Middle");
     add_test(&suite, test_remove_nothing, "Remove Nothing");
     add_test(&suite, test_remove_nothing_from_nothing,
@@ -1175,6 +1293,9 @@ int main(int argc, const char** argv)
     add_test(&suite, test_replace, "Replace");
     add_test(&suite, test_replace_everything, "Replace Everything");
     add_test(&suite, test_replace_nothing, "Replace Nothing");
+    add_test(&suite, test_replace_nothing_with_nothing,
+            "Replace Nothing With Nothing");
+    add_test(&suite, test_replace_self_middle, "Replace Self Middle");
     add_test(&suite, test_replace_with_nothing, "Replace With Nothing");
     add_test(&suite, test_reserve, "Reserve");
     add_test(&suite, test_starts_with, "Starts With");
@@ -1182,6 +1303,7 @@ int main(int argc, const char** argv)
     add_test(&suite, test_starts_with_nothing, "Starts With Nothing");
     add_test(&suite, test_starts_with_self, "Starts With Self");
     add_test(&suite, test_substring, "Substring");
+    add_test(&suite, test_substring_nothing, "Substring Nothing");
     add_test(&suite, test_to_c_string, "To C String");
     add_test(&suite, test_to_c_string_empty, "To C String Empty");
 
