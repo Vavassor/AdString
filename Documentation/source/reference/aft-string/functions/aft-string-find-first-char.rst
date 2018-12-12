@@ -10,3 +10,15 @@ aft_string_find_first_char
     :param c: the :c:type:`char` to find
     :return: the byte index of the :c:type:`char`
 
+Example
+-------
+
+.. literalinclude:: aft-string-find-first-char.c
+    :language: C
+
+Output:
+
+.. code::
+
+    aft_string_append_c_string(&amp;string, "?")
+

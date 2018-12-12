@@ -12,3 +12,15 @@ aft_string_ends_with
 
         This is always true when the ending is the empty string.
 
+Example
+-------
+
+.. literalinclude:: aft-string-ends-with.c
+    :language: C
+
+Output:
+
+.. code::
+
+    /home/fella/.local/include
+
