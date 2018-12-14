@@ -27,3 +27,25 @@ add_test(
     COMMAND TestBasic
 )
 
+
+add_executable(TestNumberFormat "")
+
+target_link_libraries(
+    TestNumberFormat
+    PRIVATE
+    AftString
+)
+
+target_sources(
+    TestNumberFormat
+    PRIVATE
+    "Number Format/main.c"
+    Utility/random.c
+    Utility/test.c
+)
+
+add_test(
+    NAME NumberFormat
+    COMMAND TestNumberFormat
+)
+

@@ -191,4 +191,7 @@ bool aft_utf8_check(const AftString* string);
 int aft_utf8_codepoint_count(const AftString* string);
 AftMaybeUtf32String aft_utf8_to_utf32(const AftString* string);
 
+
+#include <AftString/aft_number_format.h>
+
 #endif // AFT_STRING_H_

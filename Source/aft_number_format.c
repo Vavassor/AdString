@@ -1,19 +1,10 @@
-#include "aft_number_format.h"
+#include <AftString/aft_string.h>
 
 #include <stddef.h>
 
 
-static int count_digits_uint64(uint64_t value, int base)
-{
-    uint64_t divisor = (uint64_t) base;
-    int digits = 0;
-    while(value)
-    {
-        value /= divisor;
-        digits += 1;
-    }
-    return digits;
-}
+#define AFT_UINT64_MAX_DIGITS 20
+
 
 static bool default_number_symbols(AftNumberSymbols* symbols, void* allocator)
 {
@@ -128,8 +119,8 @@ bool aft_number_format_default_with_allocator(AftNumberFormat* format,
     format->max_integer_digits = 42;
     format->min_fraction_digits = 0;
     format->min_integer_digits = 1;
-    format->rounding_mode = AD_NUMBER_FORMAT_ROUNDING_MODE_HALF_EVEN;
-    format->style = AD_NUMBER_FORMAT_STYLE_FIXED_POINT;
+    format->rounding_mode = AFT_NUMBER_FORMAT_ROUNDING_MODE_HALF_EVEN;
+    format->style = AFT_NUMBER_FORMAT_STYLE_FIXED_POINT;
     format->rounding_increment_int = 1;
     format->base = 10;
     format->use_explicit_plus_sign = false;
@@ -161,14 +152,27 @@ AftMaybeString aft_string_from_uint64_with_allocator(uint64_t value,
     result.valid = true;
     aft_string_initialise_with_allocator(&result.value, allocator);
 
-    if(format->style == AD_NUMBER_FORMAT_STYLE_PERCENT)
+    if(format->style == AFT_NUMBER_FORMAT_STYLE_PERCENT)
     {
         value *= format->percent.multiplier;
     }
 
     const AftString* pattern = &format->positive_pattern;
 
-    int total_digits = count_digits_uint64(value, format->base);
+    uint64_t digits[AFT_UINT64_MAX_DIGITS];
+    int digit_index = 0;
+    do
+    {
+        digits[digit_index] = value % 10;
+        digit_index += 1;
+        value /= 10;
+    } while(value && digit_index < AFT_UINT64_MAX_DIGITS);
+
+    for(digit_index -= 1; digit_index >= 0; digit_index -= 1)
+    {
+        aft_string_append(&result.value,
+                &format->symbols.digits[digits[digit_index]]);
+    }
 
     return result;
 }
