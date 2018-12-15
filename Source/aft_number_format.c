@@ -1,9 +1,20 @@
 #include <AftString/aft_string.h>
 
+#include <assert.h>
 #include <stddef.h>
 
 
-#define AFT_UINT64_MAX_DIGITS 20
+#define AFT_ASSERT(expression) \
+    assert(expression)
+
+#define AFT_UINT64_MAX_BINARY_DIGITS 64
+#define AFT_UINT64_MAX_DECIMAL_DIGITS 20
+
+
+static const char* base36_digits_uppercase =
+        "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+static const char* base36_digits_lowercase =
+        "0123456789abcdefghijklmnopqrstuvwxyz";
 
 
 static bool default_number_symbols(AftNumberSymbols* symbols, void* allocator)
@@ -84,6 +95,44 @@ static void destroy_number_symbols(AftNumberSymbols* symbols)
 }
 
 
+AftMaybeString aft_ascii_from_uint64(uint64_t value,
+        const AftBaseFormat* format)
+{
+    return aft_ascii_from_uint64_with_allocator(value, format, NULL);
+}
+
+AftMaybeString aft_ascii_from_uint64_with_allocator(uint64_t value,
+        const AftBaseFormat* format, void* allocator)
+{
+    AFT_ASSERT(allocator);
+    AFT_ASSERT(format);
+    AFT_ASSERT(format->base >= 2);
+    AFT_ASSERT(format->base <= 36);
+
+    const char* base36_digits = base36_digits_lowercase;
+    if(format->use_uppercase)
+    {
+        base36_digits = base36_digits_uppercase;
+    }
+
+    char digits[AFT_UINT64_MAX_BINARY_DIGITS + 1];
+    int digit_index = 0;
+    do
+    {
+        digits[digit_index] = base36_digits[value % format->base];
+        digit_index += 1;
+        value /= format->base;
+    } while(value && digit_index < AFT_UINT64_MAX_BINARY_DIGITS);
+
+    digits[digit_index] = '\0';
+
+    AftMaybeString result =
+            aft_string_from_c_string_with_allocator(digits, allocator);
+    aft_ascii_reverse(&result.value);
+
+    return result;
+}
+
 bool aft_number_format_default(AftNumberFormat* format)
 {
     return aft_number_format_default_with_allocator(format, NULL);
@@ -159,14 +208,14 @@ AftMaybeString aft_string_from_uint64_with_allocator(uint64_t value,
 
     const AftString* pattern = &format->positive_pattern;
 
-    uint64_t digits[AFT_UINT64_MAX_DIGITS];
+    uint64_t digits[AFT_UINT64_MAX_DECIMAL_DIGITS];
     int digit_index = 0;
     do
     {
         digits[digit_index] = value % 10;
         digit_index += 1;
         value /= 10;
-    } while(value && digit_index < AFT_UINT64_MAX_DIGITS);
+    } while(value && digit_index < AFT_UINT64_MAX_DECIMAL_DIGITS);
 
     for(digit_index -= 1; digit_index >= 0; digit_index -= 1)
     {

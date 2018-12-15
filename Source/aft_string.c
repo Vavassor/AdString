@@ -330,7 +330,7 @@ void aft_ascii_reverse_range(AftString* string, const AftStringRange* range)
 
     char* contents = aft_string_get_contents(string);
 
-    for(int start = range->start, end = range->end;
+    for(int start = range->start, end = range->end - 1;
             start < end;
             start += 1, end -= 1)
     {

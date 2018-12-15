@@ -26,6 +26,12 @@ typedef enum AftNumberFormatStyle
 } AftNumberFormatStyle;
 
 
+typedef struct AftBaseFormat
+{
+    int base;
+    bool use_uppercase;
+} AftBaseFormat;
+
 typedef struct AftNumberSymbols
 {
     AftString digits[10];
@@ -96,6 +102,11 @@ typedef struct AftNumberFormat
     bool use_significant_digits;
 } AftNumberFormat;
 
+
+AftMaybeString aft_ascii_from_uint64(uint64_t value,
+        const AftBaseFormat* format);
+AftMaybeString aft_ascii_from_uint64_with_allocator(uint64_t value,
+        const AftBaseFormat* format, void* allocator);
 
 bool aft_number_format_default(AftNumberFormat* format);
 bool aft_number_format_default_with_allocator(AftNumberFormat* format,
