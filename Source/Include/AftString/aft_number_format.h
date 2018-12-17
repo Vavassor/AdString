@@ -6,24 +6,24 @@
 #include <stdint.h>
 
 
-typedef enum AftNumberFormatRoundingMode
+typedef enum AftDecimalFormatRoundingMode
 {
-    AFT_NUMBER_FORMAT_ROUNDING_MODE_CEILING,
-    AFT_NUMBER_FORMAT_ROUNDING_MODE_DOWN,
-    AFT_NUMBER_FORMAT_ROUNDING_MODE_FLOOR,
-    AFT_NUMBER_FORMAT_ROUNDING_MODE_HALF_DOWN,
-    AFT_NUMBER_FORMAT_ROUNDING_MODE_HALF_EVEN,
-    AFT_NUMBER_FORMAT_ROUNDING_MODE_HALF_UP,
-    AFT_NUMBER_FORMAT_ROUNDING_MODE_UP,
-} AftNumberFormatRoundingMode;
+    AFT_DECIMAL_FORMAT_ROUNDING_MODE_CEILING,
+    AFT_DECIMAL_FORMAT_ROUNDING_MODE_DOWN,
+    AFT_DECIMAL_FORMAT_ROUNDING_MODE_FLOOR,
+    AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_DOWN,
+    AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_EVEN,
+    AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_UP,
+    AFT_DECIMAL_FORMAT_ROUNDING_MODE_UP,
+} AftDecimalFormatRoundingMode;
 
-typedef enum AftNumberFormatStyle
+typedef enum AftDecimalFormatStyle
 {
-    AFT_NUMBER_FORMAT_STYLE_CURRENCY,
-    AFT_NUMBER_FORMAT_STYLE_FIXED_POINT,
-    AFT_NUMBER_FORMAT_STYLE_PERCENT,
-    AFT_NUMBER_FORMAT_STYLE_SCIENTIFIC,
-} AftNumberFormatStyle;
+    AFT_DECIMAL_FORMAT_STYLE_CURRENCY,
+    AFT_DECIMAL_FORMAT_STYLE_FIXED_POINT,
+    AFT_DECIMAL_FORMAT_STYLE_PERCENT,
+    AFT_DECIMAL_FORMAT_STYLE_SCIENTIFIC,
+} AftDecimalFormatStyle;
 
 
 typedef struct AftBaseFormat
@@ -49,17 +49,17 @@ typedef struct AftNumberSymbols
     AftString superscripting_exponent_sign;
 } AftNumberSymbols;
 
-typedef struct AftNumberFormatCurrency
+typedef struct AftDecimalFormatCurrency
 {
     AftString symbol;
-} AftNumberFormatCurrency;
+} AftDecimalFormatCurrency;
 
-typedef struct AftNumberFormatPercent
+typedef struct AftDecimalFormatPercent
 {
     int multiplier;
-} AftNumberFormatPercent;
+} AftDecimalFormatPercent;
 
-typedef struct AftNumberFormat
+typedef struct AftDecimalFormat
 {
     AftNumberSymbols symbols;
     AftString negative_pattern;
@@ -67,8 +67,8 @@ typedef struct AftNumberFormat
 
     union
     {
-        AftNumberFormatCurrency currency;
-        AftNumberFormatPercent percent;
+        AftDecimalFormatCurrency currency;
+        AftDecimalFormatPercent percent;
     };
 
     union
@@ -94,13 +94,14 @@ typedef struct AftNumberFormat
         double rounding_increment_double;
     };
 
-    AftNumberFormatRoundingMode rounding_mode;
-    AftNumberFormatStyle style;
-    int base;
+    AftDecimalFormatRoundingMode rounding_mode;
+    AftDecimalFormatStyle style;
+    int primary_grouping_size;
+    int secondary_grouping_size;
     bool use_explicit_plus_sign;
     bool use_grouping;
     bool use_significant_digits;
-} AftNumberFormat;
+} AftDecimalFormat;
 
 
 AftMaybeString aft_ascii_from_uint64(uint64_t value,
@@ -108,14 +109,14 @@ AftMaybeString aft_ascii_from_uint64(uint64_t value,
 AftMaybeString aft_ascii_from_uint64_with_allocator(uint64_t value,
         const AftBaseFormat* format, void* allocator);
 
-bool aft_number_format_default(AftNumberFormat* format);
-bool aft_number_format_default_with_allocator(AftNumberFormat* format,
+bool aft_number_format_default(AftDecimalFormat* format);
+bool aft_number_format_default_with_allocator(AftDecimalFormat* format,
         void* allocator);
-void aft_number_format_destroy(AftNumberFormat* format);
+void aft_number_format_destroy(AftDecimalFormat* format);
 
 AftMaybeString aft_string_from_uint64(uint64_t value,
-        const AftNumberFormat* format);
+        const AftDecimalFormat* format);
 AftMaybeString aft_string_from_uint64_with_allocator(uint64_t value,
-        const AftNumberFormat* format, void* allocator);
+        const AftDecimalFormat* format, void* allocator);
 
 #endif // AD_NUMBER_FORMAT_H_

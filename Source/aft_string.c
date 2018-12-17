@@ -413,7 +413,7 @@ AftMaybeUint64 aft_ascii_uint64_from_string_range(const AftString* string,
 
     const char* contents = aft_string_get_contents_const(string);
 
-    int count = aft_string_get_count(string);
+    int count = range->end - range->start;
     int power_index = UINT64_MAX_DIGITS - count;
 
     for(int char_index = range->start; char_index < range->end; char_index += 1)

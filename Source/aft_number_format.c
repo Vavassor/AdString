@@ -94,6 +94,73 @@ static void destroy_number_symbols(AftNumberSymbols* symbols)
     aft_string_destroy(&symbols->superscripting_exponent_sign);
 }
 
+static uint64_t round_down(uint64_t value, uint64_t increment)
+{
+    AFT_ASSERT(increment > 0);
+
+    return increment * (value / increment);
+}
+
+static uint64_t round_half_down(uint64_t value, uint64_t increment)
+{
+    AFT_ASSERT(increment > 0);
+
+    return increment * ((value + increment / 2 - 1) / increment);
+}
+
+static uint64_t round_half_up(uint64_t value, uint64_t increment)
+{
+    AFT_ASSERT(increment > 0);
+
+    return increment * ((value + (increment / 2)) / increment);
+}
+
+static uint64_t round_half_even(uint64_t value, uint64_t increment)
+{
+    AFT_ASSERT(increment > 0);
+
+    uint64_t even_increment = (1 & (value / increment)) ^ 1;
+    return increment * ((value + increment / 2 - even_increment) / increment);
+}
+
+static uint64_t round_up(uint64_t value, uint64_t increment)
+{
+    AFT_ASSERT(increment > 0);
+
+    return increment * ((value + (increment - 1)) / increment);
+}
+
+static uint64_t round_uint64(uint64_t value, uint64_t increment,
+        AftDecimalFormatRoundingMode rounding_mode)
+{
+    AFT_ASSERT(increment < value);
+
+    switch(rounding_mode)
+    {
+        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_CEILING:
+        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_UP:
+        {
+            return round_up(value, increment);
+        }
+        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_DOWN:
+        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_FLOOR:
+        {
+            return round_down(value, increment);
+        }
+        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_DOWN:
+        {
+            return round_half_down(value, increment);
+        }
+        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_EVEN:
+        {
+            return round_half_even(value, increment);
+        }
+        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_UP:
+        {
+            return round_half_up(value, increment);
+        }
+    }
+}
 
 AftMaybeString aft_ascii_from_uint64(uint64_t value,
         const AftBaseFormat* format)
@@ -133,12 +200,12 @@ AftMaybeString aft_ascii_from_uint64_with_allocator(uint64_t value,
     return result;
 }
 
-bool aft_number_format_default(AftNumberFormat* format)
+bool aft_number_format_default(AftDecimalFormat* format)
 {
     return aft_number_format_default_with_allocator(format, NULL);
 }
 
-bool aft_number_format_default_with_allocator(AftNumberFormat* format,
+bool aft_number_format_default_with_allocator(AftDecimalFormat* format,
         void* allocator)
 {
     bool symbols_done = default_number_symbols(&format->symbols, allocator);
@@ -168,10 +235,11 @@ bool aft_number_format_default_with_allocator(AftNumberFormat* format,
     format->max_integer_digits = 42;
     format->min_fraction_digits = 0;
     format->min_integer_digits = 1;
-    format->rounding_mode = AFT_NUMBER_FORMAT_ROUNDING_MODE_HALF_EVEN;
-    format->style = AFT_NUMBER_FORMAT_STYLE_FIXED_POINT;
+    format->rounding_mode = AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_EVEN;
+    format->style = AFT_DECIMAL_FORMAT_STYLE_FIXED_POINT;
     format->rounding_increment_int = 1;
-    format->base = 10;
+    format->primary_grouping_size = 3;
+    format->secondary_grouping_size = 3;
     format->use_explicit_plus_sign = false;
     format->use_grouping = false;
     format->use_significant_digits = false;
@@ -180,7 +248,7 @@ bool aft_number_format_default_with_allocator(AftNumberFormat* format,
 }
 
 
-void aft_number_format_destroy(AftNumberFormat* format)
+void aft_number_format_destroy(AftDecimalFormat* format)
 {
     destroy_number_symbols(&format->symbols);
 
@@ -189,21 +257,27 @@ void aft_number_format_destroy(AftNumberFormat* format)
 }
 
 AftMaybeString aft_string_from_uint64(uint64_t value,
-        const AftNumberFormat* format)
+        const AftDecimalFormat* format)
 {
     return aft_string_from_uint64_with_allocator(value, format, NULL);
 }
 
 AftMaybeString aft_string_from_uint64_with_allocator(uint64_t value,
-        const AftNumberFormat* format, void* allocator)
+        const AftDecimalFormat* format, void* allocator)
 {
     AftMaybeString result;
     result.valid = true;
     aft_string_initialise_with_allocator(&result.value, allocator);
 
-    if(format->style == AFT_NUMBER_FORMAT_STYLE_PERCENT)
+    if(format->style == AFT_DECIMAL_FORMAT_STYLE_PERCENT)
     {
         value *= format->percent.multiplier;
+    }
+
+    if(format->rounding_increment_int != 1)
+    {
+        value = round_uint64(value, format->rounding_increment_int,
+                format->rounding_mode);
     }
 
     const AftString* pattern = &format->positive_pattern;
