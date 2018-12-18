@@ -62,8 +62,10 @@ typedef struct AftDecimalFormatPercent
 typedef struct AftDecimalFormat
 {
     AftNumberSymbols symbols;
-    AftString negative_pattern;
-    AftString positive_pattern;
+    AftString negative_prefix_pattern;
+    AftString negative_suffix_pattern;
+    AftString positive_prefix_pattern;
+    AftString positive_suffix_pattern;
 
     union
     {

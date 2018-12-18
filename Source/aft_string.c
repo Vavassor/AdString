@@ -485,29 +485,8 @@ bool aft_string_add(AftString* to, const AftString* from, int index)
 
 bool aft_string_append(AftString* to, const AftString* from)
 {
-    AFT_ASSERT(to);
-    AFT_ASSERT(from);
-
-    int to_count = aft_string_get_count(to);
-    int from_count = aft_string_get_count(from);
-    int count = to_count + from_count;
-    bool reserved = aft_string_reserve(to, count);
-
-    if(!reserved)
-    {
-        return false;
-    }
-
-    int prior_count = to_count;
-    aft_string_set_count(to, count);
-    char* to_contents = aft_string_get_contents(to);
-    const char* from_contents = aft_string_get_contents_const(from);
-    copy_memory(&to_contents[prior_count], from_contents, from_count);
-    to_contents[count] = '\0';
-
-    AFT_ASSERT(aft_string_check_uncorrupted(to));
-
-    return true;
+    AftStringRange range = {0, aft_string_get_count(from)};
+    return aft_string_append_range(to, from, &range);
 }
 
 bool aft_string_append_c_string(AftString* to, const char* from)
@@ -529,6 +508,35 @@ bool aft_string_append_c_string(AftString* to, const char* from)
     aft_string_set_count(to, count);
     char* to_contents = aft_string_get_contents(to);
     copy_memory(&to_contents[prior_count], from, from_count);
+    to_contents[count] = '\0';
+
+    AFT_ASSERT(aft_string_check_uncorrupted(to));
+
+    return true;
+}
+
+bool aft_string_append_range(AftString* to, const AftString* from,
+        const AftStringRange* range)
+{
+    AFT_ASSERT(to);
+    AFT_ASSERT(from);
+
+    int to_count = aft_string_get_count(to);
+    int from_count = range->end - range->start;
+    int count = to_count + from_count;
+    bool reserved = aft_string_reserve(to, count);
+
+    if(!reserved)
+    {
+        return false;
+    }
+
+    int prior_count = to_count;
+    aft_string_set_count(to, count);
+    char* to_contents = aft_string_get_contents(to);
+    const char* from_contents = aft_string_get_contents_const(from);
+    copy_memory(&to_contents[prior_count], &from_contents[range->start],
+            from_count);
     to_contents[count] = '\0';
 
     AFT_ASSERT(aft_string_check_uncorrupted(to));
