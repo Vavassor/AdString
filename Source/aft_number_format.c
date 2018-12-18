@@ -162,6 +162,29 @@ static uint64_t round_uint64(uint64_t value, uint64_t increment,
     }
 }
 
+static bool separate_group_at_location(const AftDecimalFormat* format,
+        int index, int length)
+{
+    int from_end = index + 1;
+
+    if(!format->use_grouping || from_end == length)
+    {
+        return false;
+    }
+    else
+    {
+        int secondary_index = from_end - format->primary_grouping_size;
+        if(secondary_index > 0)
+        {
+            return secondary_index % format->secondary_grouping_size == 0;
+        }
+        else
+        {
+            return from_end == format->primary_grouping_size;
+        }
+    }
+}
+
 AftMaybeString aft_ascii_from_uint64(uint64_t value,
         const AftBaseFormat* format)
 {
@@ -280,8 +303,6 @@ AftMaybeString aft_string_from_uint64_with_allocator(uint64_t value,
                 format->rounding_mode);
     }
 
-    const AftString* pattern = &format->positive_pattern;
-
     uint64_t digits[AFT_UINT64_MAX_DECIMAL_DIGITS];
     int digit_index = 0;
     do
@@ -291,8 +312,15 @@ AftMaybeString aft_string_from_uint64_with_allocator(uint64_t value,
         value /= 10;
     } while(value && digit_index < AFT_UINT64_MAX_DECIMAL_DIGITS);
 
+    int digit_total = digit_index;
+
     for(digit_index -= 1; digit_index >= 0; digit_index -= 1)
     {
+        if(separate_group_at_location(format, digit_index, digit_total))
+        {
+            aft_string_append(&result.value, &format->symbols.group_separator);
+        }
+
         aft_string_append(&result.value,
                 &format->symbols.digits[digits[digit_index]]);
     }
