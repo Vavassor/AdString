@@ -17,6 +17,12 @@ static const char* base36_digits_lowercase =
         "0123456789abcdefghijklmnopqrstuvwxyz";
 
 
+static uint64_t abs_int64_to_uint64(int64_t x)
+{
+    uint64_t mask = -((uint64_t) x >> (8 * sizeof(uint64_t) - 1));
+    return ((uint64_t) x + mask) ^ mask;
+}
+
 static bool default_number_symbols(AftNumberSymbols* symbols, void* allocator)
 {
     struct
@@ -185,11 +191,11 @@ static bool separate_group_at_location(const AftDecimalFormat* format,
     }
 }
 
-static void append_pattern(AftString* string, AftString* pattern,
+static void append_pattern(AftString* string, const AftString* pattern,
         const AftDecimalFormat* format)
 {
     AftCodepointIterator it;
-    aft_codepoint_iterator_set_string(&it, pattern);
+    aft_codepoint_iterator_set_string(&it, (AftString*) pattern);
 
     int prior_index = 0;
 
@@ -247,6 +253,73 @@ static void append_pattern(AftString* string, AftString* pattern,
 
         prior_index = index;
     }
+}
+
+static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign,
+        const AftDecimalFormat* format, void* allocator)
+{
+    AftMaybeString result;
+    result.valid = true;
+    aft_string_initialise_with_allocator(&result.value, allocator);
+
+    if(format->style == AFT_DECIMAL_FORMAT_STYLE_PERCENT)
+    {
+        value *= format->percent.multiplier;
+    }
+
+    if(format->rounding_increment_int != 1)
+    {
+        value = round_uint64(value, format->rounding_increment_int,
+                format->rounding_mode);
+    }
+
+    uint64_t digits[AFT_UINT64_MAX_DECIMAL_DIGITS];
+    int digit_index = 0;
+    do
+    {
+        digits[digit_index] = value % 10;
+        digit_index += 1;
+        value /= 10;
+    } while(value && digit_index < AFT_UINT64_MAX_DECIMAL_DIGITS);
+
+    int digit_total = digit_index;
+
+    if(sign)
+    {
+        append_pattern(&result.value, &format->negative_prefix_pattern, format);
+    }
+    else
+    {
+        append_pattern(&result.value, &format->positive_prefix_pattern, format);
+    }
+
+    const AftString* group_separator = &format->symbols.group_separator;
+    if(format->style == AFT_DECIMAL_FORMAT_STYLE_CURRENCY)
+    {
+        group_separator = &format->symbols.currency_group_separator;
+    }
+
+    for(digit_index -= 1; digit_index >= 0; digit_index -= 1)
+    {
+        if(separate_group_at_location(format, digit_index, digit_total))
+        {
+            aft_string_append(&result.value, group_separator);
+        }
+
+        aft_string_append(&result.value,
+                &format->symbols.digits[digits[digit_index]]);
+    }
+
+    if(sign)
+    {
+        append_pattern(&result.value, &format->negative_suffix_pattern, format);
+    }
+    else
+    {
+        append_pattern(&result.value, &format->positive_suffix_pattern, format);
+    }
+
+    return result;
 }
 
 
@@ -350,6 +423,30 @@ void aft_number_format_destroy(AftDecimalFormat* format)
     aft_string_destroy(&format->positive_suffix_pattern);
 }
 
+AftMaybeString aft_string_from_int(int value, const AftDecimalFormat* format)
+{
+    return aft_string_from_int64(value, format);
+}
+
+AftMaybeString aft_string_from_int_with_allocator(int value,
+        const AftDecimalFormat* format, void* allocator)
+{
+    return aft_string_from_int64_with_allocator(value, format, allocator);
+}
+
+AftMaybeString aft_string_from_int64(int64_t value,
+        const AftDecimalFormat* format)
+{
+    return aft_string_from_int64_with_allocator(value, format, NULL);
+}
+
+AftMaybeString aft_string_from_int64_with_allocator(int64_t value,
+        const AftDecimalFormat* format, void* allocator)
+{
+    return string_from_uint64_and_sign(abs_int64_to_uint64(value), value < 0,
+            format, allocator);
+}
+
 AftMaybeString aft_string_from_uint64(uint64_t value,
         const AftDecimalFormat* format)
 {
@@ -359,52 +456,5 @@ AftMaybeString aft_string_from_uint64(uint64_t value,
 AftMaybeString aft_string_from_uint64_with_allocator(uint64_t value,
         const AftDecimalFormat* format, void* allocator)
 {
-    AftMaybeString result;
-    result.valid = true;
-    aft_string_initialise_with_allocator(&result.value, allocator);
-
-    if(format->style == AFT_DECIMAL_FORMAT_STYLE_PERCENT)
-    {
-        value *= format->percent.multiplier;
-    }
-
-    if(format->rounding_increment_int != 1)
-    {
-        value = round_uint64(value, format->rounding_increment_int,
-                format->rounding_mode);
-    }
-
-    uint64_t digits[AFT_UINT64_MAX_DECIMAL_DIGITS];
-    int digit_index = 0;
-    do
-    {
-        digits[digit_index] = value % 10;
-        digit_index += 1;
-        value /= 10;
-    } while(value && digit_index < AFT_UINT64_MAX_DECIMAL_DIGITS);
-
-    int digit_total = digit_index;
-
-    append_pattern(&result.value, &format->positive_prefix_pattern, format);
-
-    const AftString* group_separator = &format->symbols.group_separator;
-    if(format->style == AFT_DECIMAL_FORMAT_STYLE_CURRENCY)
-    {
-        group_separator = &format->symbols.currency_group_separator;
-    }
-
-    for(digit_index -= 1; digit_index >= 0; digit_index -= 1)
-    {
-        if(separate_group_at_location(format, digit_index, digit_total))
-        {
-            aft_string_append(&result.value, group_separator);
-        }
-
-        aft_string_append(&result.value,
-                &format->symbols.digits[digits[digit_index]]);
-    }
-
-    append_pattern(&result.value, &format->positive_suffix_pattern, format);
-
-    return result;
+    return string_from_uint64_and_sign(value, false, format, allocator);
 }

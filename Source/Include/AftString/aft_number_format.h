@@ -116,9 +116,17 @@ bool aft_number_format_default_with_allocator(AftDecimalFormat* format,
         void* allocator);
 void aft_number_format_destroy(AftDecimalFormat* format);
 
+AftMaybeString aft_string_from_int(int value, const AftDecimalFormat* format);
+AftMaybeString aft_string_from_int_with_allocator(int value,
+        const AftDecimalFormat* format, void* allocator);
+AftMaybeString aft_string_from_int64(int64_t value,
+        const AftDecimalFormat* format);
+AftMaybeString aft_string_from_int64_with_allocator(int64_t value,
+        const AftDecimalFormat* format, void* allocator);
 AftMaybeString aft_string_from_uint64(uint64_t value,
         const AftDecimalFormat* format);
 AftMaybeString aft_string_from_uint64_with_allocator(uint64_t value,
         const AftDecimalFormat* format, void* allocator);
+
 
 #endif // AD_NUMBER_FORMAT_H_
