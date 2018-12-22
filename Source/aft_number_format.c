@@ -299,8 +299,56 @@ static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign,
         group_separator = &format->symbols.currency_group_separator;
     }
 
-    for(digit_index -= 1; digit_index >= 0; digit_index -= 1)
+    int digits_shown;
+    if(format->use_significant_digits)
     {
+        digits_shown = format->max_significant_digits;
+    }
+    else
+    {
+        digits_shown = format->max_integer_digits;
+
+        if(digits_shown < digit_total)
+        {
+            digit_index -= digit_total - digits_shown;
+        }
+        else if(digit_total < format->min_integer_digits)
+        {
+            digit_index += format->min_integer_digits - digit_total;
+
+            for(;;)
+            {
+                if(digit_index - 1 < digit_total)
+                {
+                    break;
+                }
+
+                digit_index -= 1;
+
+                if(separate_group_at_location(format, digit_index,
+                        format->min_integer_digits))
+                {
+                    aft_string_append(&result.value, group_separator);
+                }
+
+                aft_string_append(&result.value, &format->symbols.digits[0]);
+            }
+
+            digit_total = format->min_integer_digits;
+        }
+    }
+
+    for(int digit_limiter = 0;
+            digit_limiter < digits_shown;
+            digit_limiter += 1)
+    {
+        digit_index -= 1;
+
+        if(digit_index < 0)
+        {
+            break;
+        }
+
         if(separate_group_at_location(format, digit_index, digit_total))
         {
             aft_string_append(&result.value, group_separator);
@@ -308,6 +356,19 @@ static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign,
 
         aft_string_append(&result.value,
                 &format->symbols.digits[digits[digit_index]]);
+    }
+
+    if(format->use_significant_digits)
+    {
+        for(digit_index -= 1; digit_index >= 0; digit_index -= 1)
+        {
+            if(separate_group_at_location(format, digit_index, digit_total))
+            {
+                aft_string_append(&result.value, group_separator);
+            }
+
+            aft_string_append(&result.value, &format->symbols.digits[0]);
+        }
     }
 
     if(sign)
@@ -361,12 +422,12 @@ AftMaybeString aft_ascii_from_uint64_with_allocator(uint64_t value,
     return result;
 }
 
-bool aft_number_format_default(AftDecimalFormat* format)
+bool aft_decimal_format_default(AftDecimalFormat* format)
 {
-    return aft_number_format_default_with_allocator(format, NULL);
+    return aft_decimal_format_default_with_allocator(format, NULL);
 }
 
-bool aft_number_format_default_with_allocator(AftDecimalFormat* format,
+bool aft_decimal_format_default_with_allocator(AftDecimalFormat* format,
         void* allocator)
 {
     bool symbols_done = default_number_symbols(&format->symbols, allocator);
@@ -413,7 +474,7 @@ bool aft_number_format_default_with_allocator(AftDecimalFormat* format,
 }
 
 
-void aft_number_format_destroy(AftDecimalFormat* format)
+void aft_decimal_format_destroy(AftDecimalFormat* format)
 {
     destroy_number_symbols(&format->symbols);
 
