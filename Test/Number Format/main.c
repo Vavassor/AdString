@@ -48,7 +48,7 @@ static bool test_default_int(Test* test)
 
 static bool test_default_int64(Test* test)
 {
-    const int64_t value = INT64_C(-9223372036854775808);
+    const int64_t value = INT64_C(-9223372036854775807) - 1;
 
     AftDecimalFormat format;
     bool defaulted =
@@ -126,6 +126,7 @@ static bool test_max_significant_digits(Test* test)
     ASSERT(defaulted);
     format.use_significant_digits = true;
     format.max_significant_digits = 4;
+    format.min_significant_digits = 0;
     format.use_grouping = true;
 
     AftMaybeString string =
@@ -133,6 +134,31 @@ static bool test_max_significant_digits(Test* test)
                     &test->allocator);
 
     const char* reference = "123,400,000";
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = string.valid && strings_match(reference, contents);
+
+    aft_string_destroy(&string.value);
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_min_fraction_digits(Test* test)
+{
+    const int value = 1234;
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    ASSERT(defaulted);
+    format.min_fraction_digits = 3;
+
+    AftMaybeString string =
+            aft_string_from_int_with_allocator(value, &format,
+                    &test->allocator);
+
+    const char* reference = "1234.000";
     const char* contents = aft_string_get_contents_const(&string.value);
     bool result = string.valid && strings_match(reference, contents);
 
@@ -159,6 +185,33 @@ static bool test_min_integer_digits(Test* test)
                     &test->allocator);
 
     const char* reference = "00,012,34";
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = string.valid && strings_match(reference, contents);
+
+    aft_string_destroy(&string.value);
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_min_significant_digits(Test* test)
+{
+    const int value = 123456789;
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format, &test->allocator);
+    ASSERT(defaulted);
+    format.use_significant_digits = true;
+    format.max_significant_digits = 14;
+    format.min_significant_digits = 14;
+    format.use_grouping = true;
+
+    AftMaybeString string =
+            aft_string_from_int_with_allocator(value, &format,
+                    &test->allocator);
+
+    const char* reference = "123,456,789.00000";
     const char* contents = aft_string_get_contents_const(&string.value);
     bool result = string.valid && strings_match(reference, contents);
 
@@ -213,7 +266,10 @@ int main(int argc, const char** argv)
     add_test(&suite, test_max_integer_digits, "Test Max Integer Digits");
     add_test(&suite, test_max_significant_digits,
             "Test Max Significant Digits");
+    add_test(&suite, test_min_fraction_digits, "Test Min Fraction Digits");
     add_test(&suite, test_min_integer_digits, "Test Min Integer Digits");
+    add_test(&suite, test_min_significant_digits,
+                "Test Min Significant Digits");
     add_test(&suite, test_round_half_even, "Test Round Half Even");
 
     bool success = run_tests(&suite);

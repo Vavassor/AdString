@@ -255,25 +255,34 @@ static void append_pattern(AftString* string, const AftString* pattern,
     }
 }
 
-static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign,
-        const AftDecimalFormat* format, void* allocator)
+static uint64_t apply_multipliers(uint64_t value,
+        const AftDecimalFormat* format)
 {
-    AftMaybeString result;
-    result.valid = true;
-    aft_string_initialise_with_allocator(&result.value, allocator);
+    uint64_t result = value;
 
     if(format->style == AFT_DECIMAL_FORMAT_STYLE_PERCENT)
     {
-        value *= format->percent.multiplier;
+        result *= format->percent.multiplier;
     }
+
+    return result;
+}
+
+static uint64_t apply_rounding(uint64_t value, const AftDecimalFormat* format)
+{
+    uint64_t result = value;
 
     if(format->rounding_increment_int != 1)
     {
-        value = round_uint64(value, format->rounding_increment_int,
+        result = round_uint64(value, format->rounding_increment_int,
                 format->rounding_mode);
     }
 
-    uint64_t digits[AFT_UINT64_MAX_DECIMAL_DIGITS];
+    return result;
+}
+
+static int digitize(uint64_t value, uint64_t* digits)
+{
     int digit_index = 0;
     do
     {
@@ -282,6 +291,34 @@ static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign,
         value /= 10;
     } while(value && digit_index < AFT_UINT64_MAX_DECIMAL_DIGITS);
 
+    return digit_index;
+}
+
+static void pad_zeros_without_separator(AftString* string,
+        const AftDecimalFormat* format, int count)
+{
+    for(int zero_index = 0;
+            zero_index < count;
+            zero_index += 1)
+    {
+        aft_string_append(string, &format->symbols.digits[0]);
+    }
+}
+
+static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign,
+        const AftDecimalFormat* format, void* allocator)
+{
+    AFT_ASSERT(aft_decimal_format_validate(format));
+
+    AftMaybeString result;
+    result.valid = true;
+    aft_string_initialise_with_allocator(&result.value, allocator);
+
+    value = apply_multipliers(value, format);
+    value = apply_rounding(value, format);
+
+    uint64_t digits[AFT_UINT64_MAX_DECIMAL_DIGITS];
+    int digit_index = digitize(value, digits);
     int digit_total = digit_index;
 
     if(sign)
@@ -369,6 +406,19 @@ static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign,
 
             aft_string_append(&result.value, &format->symbols.digits[0]);
         }
+
+        if(format->min_significant_digits > digit_total)
+        {
+            aft_string_append(&result.value, &format->symbols.radix_separator);
+            pad_zeros_without_separator(&result.value, format,
+                    format->min_significant_digits - digit_total);
+        }
+    }
+    else if(format->min_fraction_digits > 0)
+    {
+        aft_string_append(&result.value, &format->symbols.radix_separator);
+        pad_zeros_without_separator(&result.value, format,
+                format->min_fraction_digits);
     }
 
     if(sign)
@@ -482,6 +532,19 @@ void aft_decimal_format_destroy(AftDecimalFormat* format)
     aft_string_destroy(&format->negative_suffix_pattern);
     aft_string_destroy(&format->positive_prefix_pattern);
     aft_string_destroy(&format->positive_suffix_pattern);
+}
+
+bool aft_decimal_format_validate(const AftDecimalFormat* format)
+{
+    if(format->use_significant_digits)
+    {
+        return format->min_significant_digits <= format->max_significant_digits;
+    }
+    else
+    {
+        return format->min_fraction_digits <= format->max_fraction_digits
+                && format->min_integer_digits <= format->max_integer_digits;
+    }
 }
 
 AftMaybeString aft_string_from_int(int value, const AftDecimalFormat* format)

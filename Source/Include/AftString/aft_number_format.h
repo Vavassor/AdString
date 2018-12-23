@@ -115,6 +115,7 @@ bool aft_decimal_format_default(AftDecimalFormat* format);
 bool aft_decimal_format_default_with_allocator(AftDecimalFormat* format,
         void* allocator);
 void aft_decimal_format_destroy(AftDecimalFormat* format);
+bool aft_decimal_format_validate(const AftDecimalFormat* format);
 
 AftMaybeString aft_string_from_int(int value, const AftDecimalFormat* format);
 AftMaybeString aft_string_from_int_with_allocator(int value,
