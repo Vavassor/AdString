@@ -11,6 +11,18 @@
 #define AFT_UINT64_MAX_DECIMAL_DIGITS 20
 
 
+typedef struct DecimalFormatter
+{
+    uint64_t digits[AFT_UINT64_MAX_DECIMAL_DIGITS];
+    const AftDecimalFormat* format;
+    const AftString* group_separator;
+    AftString* string;
+    int digit_index;
+    int digit_total;
+    int digits_shown;
+} DecimalFormatter;
+
+
 static const char* base36_digits_uppercase =
         "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 static const char* base36_digits_lowercase =
@@ -281,62 +293,28 @@ static uint64_t apply_rounding(uint64_t value, const AftDecimalFormat* format)
     return result;
 }
 
-static int digitize(uint64_t value, uint64_t* digits)
+static void digitize(DecimalFormatter* formatter, uint64_t value)
 {
     int digit_index = 0;
     do
     {
-        digits[digit_index] = value % 10;
+        formatter->digits[digit_index] = value % 10;
         digit_index += 1;
         value /= 10;
     } while(value && digit_index < AFT_UINT64_MAX_DECIMAL_DIGITS);
 
-    return digit_index;
+    formatter->digit_index = digit_index;
+    formatter->digit_total = digit_index;
 }
 
-static void pad_zeros_without_separator(AftString* string,
-        const AftDecimalFormat* format, int count)
+static void pad_leading_zeros_and_set_digit_limits(DecimalFormatter* formatter)
 {
-    for(int zero_index = 0;
-            zero_index < count;
-            zero_index += 1)
-    {
-        aft_string_append(string, &format->symbols.digits[0]);
-    }
-}
-
-static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign,
-        const AftDecimalFormat* format, void* allocator)
-{
-    AFT_ASSERT(aft_decimal_format_validate(format));
-
-    AftMaybeString result;
-    result.valid = true;
-    aft_string_initialise_with_allocator(&result.value, allocator);
-
-    value = apply_multipliers(value, format);
-    value = apply_rounding(value, format);
-
-    uint64_t digits[AFT_UINT64_MAX_DECIMAL_DIGITS];
-    int digit_index = digitize(value, digits);
-    int digit_total = digit_index;
-
-    if(sign)
-    {
-        append_pattern(&result.value, &format->negative_prefix_pattern, format);
-    }
-    else
-    {
-        append_pattern(&result.value, &format->positive_prefix_pattern, format);
-    }
-
-    const AftString* group_separator = &format->symbols.group_separator;
-    if(format->style == AFT_DECIMAL_FORMAT_STYLE_CURRENCY)
-    {
-        group_separator = &format->symbols.currency_group_separator;
-    }
+    int digit_index = formatter->digit_index;
+    int digit_total = formatter->digit_total;
+    const AftDecimalFormat* format = formatter->format;
 
     int digits_shown;
+
     if(format->use_significant_digits)
     {
         digits_shown = format->max_significant_digits;
@@ -365,18 +343,29 @@ static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign,
                 if(separate_group_at_location(format, digit_index,
                         format->min_integer_digits))
                 {
-                    aft_string_append(&result.value, group_separator);
+                    aft_string_append(formatter->string,
+                            formatter->group_separator);
                 }
 
-                aft_string_append(&result.value, &format->symbols.digits[0]);
+                aft_string_append(formatter->string,
+                        &format->symbols.digits[0]);
             }
 
             digit_total = format->min_integer_digits;
         }
     }
 
+    formatter->digit_index = digit_index;
+    formatter->digit_total = digit_total;
+    formatter->digits_shown = digits_shown;
+}
+
+static void format_significant_integer_digits(DecimalFormatter* formatter)
+{
+    int digit_index = formatter->digit_index;
+
     for(int digit_limiter = 0;
-            digit_limiter < digits_shown;
+            digit_limiter < formatter->digits_shown;
             digit_limiter += 1)
     {
         digit_index -= 1;
@@ -386,40 +375,106 @@ static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign,
             break;
         }
 
-        if(separate_group_at_location(format, digit_index, digit_total))
+        if(separate_group_at_location(formatter->format, digit_index,
+                formatter->digit_total))
         {
-            aft_string_append(&result.value, group_separator);
+            aft_string_append(formatter->string, formatter->group_separator);
         }
 
-        aft_string_append(&result.value,
-                &format->symbols.digits[digits[digit_index]]);
+        int digit = formatter->digits[digit_index];
+        aft_string_append(formatter->string,
+                &formatter->format->symbols.digits[digit]);
     }
+
+    formatter->digit_index = digit_index;
+}
+
+static void pad_zeros_without_separator(AftString* string,
+        const AftDecimalFormat* format, int count)
+{
+    for(int zero_index = 0;
+            zero_index < count;
+            zero_index += 1)
+    {
+        aft_string_append(string, &format->symbols.digits[0]);
+    }
+}
+
+static void format_remaining_integer_digits_and_fraction_digits(
+        DecimalFormatter* formatter)
+{
+    const AftDecimalFormat* format = formatter->format;
+    int digit_index = formatter->digit_index;
 
     if(format->use_significant_digits)
     {
         for(digit_index -= 1; digit_index >= 0; digit_index -= 1)
         {
-            if(separate_group_at_location(format, digit_index, digit_total))
+            if(separate_group_at_location(format, digit_index,
+                    formatter->digit_total))
             {
-                aft_string_append(&result.value, group_separator);
+                aft_string_append(formatter->string,
+                        formatter->group_separator);
             }
 
-            aft_string_append(&result.value, &format->symbols.digits[0]);
+            aft_string_append(formatter->string, &format->symbols.digits[0]);
         }
 
-        if(format->min_significant_digits > digit_total)
+        if(format->min_significant_digits > formatter->digit_total)
         {
-            aft_string_append(&result.value, &format->symbols.radix_separator);
-            pad_zeros_without_separator(&result.value, format,
-                    format->min_significant_digits - digit_total);
+            aft_string_append(formatter->string,
+                    &format->symbols.radix_separator);
+            pad_zeros_without_separator(formatter->string, format,
+                    format->min_significant_digits - formatter->digit_total);
         }
     }
     else if(format->min_fraction_digits > 0)
     {
-        aft_string_append(&result.value, &format->symbols.radix_separator);
-        pad_zeros_without_separator(&result.value, format,
+        aft_string_append(formatter->string, &format->symbols.radix_separator);
+        pad_zeros_without_separator(formatter->string, format,
                 format->min_fraction_digits);
     }
+
+    formatter->digit_index = digit_index;
+}
+
+static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign,
+        const AftDecimalFormat* format, void* allocator)
+{
+    AFT_ASSERT(aft_decimal_format_validate(format));
+
+    AftMaybeString result;
+    result.valid = true;
+    aft_string_initialise_with_allocator(&result.value, allocator);
+
+    value = apply_multipliers(value, format);
+    value = apply_rounding(value, format);
+
+    DecimalFormatter formatter =
+    {
+        .format = format,
+        .string = &result.value,
+    };
+
+    formatter.group_separator = &format->symbols.group_separator;
+    if(format->style == AFT_DECIMAL_FORMAT_STYLE_CURRENCY)
+    {
+        formatter.group_separator = &format->symbols.currency_group_separator;
+    }
+
+    if(sign)
+    {
+        append_pattern(&result.value, &format->negative_prefix_pattern, format);
+    }
+    else
+    {
+        append_pattern(&result.value, &format->positive_prefix_pattern, format);
+    }
+
+    digitize(&formatter, value);
+    pad_leading_zeros_and_set_digit_limits(&formatter);
+    format_significant_integer_digits(&formatter);
+    format_remaining_integer_digits_and_fraction_digits(&formatter);
 
     if(sign)
     {
