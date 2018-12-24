@@ -148,22 +148,42 @@ static uint64_t round_up(uint64_t value, uint64_t increment)
     return increment * ((value + (increment - 1)) / increment);
 }
 
-static uint64_t round_uint64(uint64_t value, uint64_t increment,
-        AftDecimalFormatRoundingMode rounding_mode)
+static uint64_t round_uint64_and_sign(uint64_t value, uint64_t increment,
+        bool sign, AftDecimalFormatRoundingMode rounding_mode)
 {
-    AFT_ASSERT(increment < value);
+    AFT_ASSERT(increment < value || value == 0);
 
     switch(rounding_mode)
     {
         case AFT_DECIMAL_FORMAT_ROUNDING_MODE_CEILING:
+        {
+            if(sign)
+            {
+                return round_down(value, increment);
+            }
+            else
+            {
+                return round_up(value, increment);
+            }
+        }
         case AFT_DECIMAL_FORMAT_ROUNDING_MODE_UP:
         {
             return round_up(value, increment);
         }
         case AFT_DECIMAL_FORMAT_ROUNDING_MODE_DOWN:
-        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_FLOOR:
         {
             return round_down(value, increment);
+        }
+        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_FLOOR:
+        {
+            if(sign)
+            {
+                return round_up(value, increment);
+            }
+            else
+            {
+                return round_down(value, increment);
+            }
         }
         case AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_DOWN:
         {
@@ -267,8 +287,7 @@ static void append_pattern(AftString* string, const AftString* pattern,
     }
 }
 
-static uint64_t apply_multipliers(uint64_t value,
-        const AftDecimalFormat* format)
+static uint64_t apply_multiplier(uint64_t value, const AftDecimalFormat* format)
 {
     uint64_t result = value;
 
@@ -280,14 +299,15 @@ static uint64_t apply_multipliers(uint64_t value,
     return result;
 }
 
-static uint64_t apply_rounding(uint64_t value, const AftDecimalFormat* format)
+static uint64_t apply_rounding(uint64_t value, bool sign,
+        const AftDecimalFormat* format)
 {
     uint64_t result = value;
 
     if(format->rounding_increment_int != 1)
     {
-        result = round_uint64(value, format->rounding_increment_int,
-                format->rounding_mode);
+        result = round_uint64_and_sign(value, format->rounding_increment_int,
+                sign, format->rounding_mode);
     }
 
     return result;
@@ -447,8 +467,8 @@ static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign,
     result.valid = true;
     aft_string_initialise_with_allocator(&result.value, allocator);
 
-    value = apply_multipliers(value, format);
-    value = apply_rounding(value, format);
+    value = apply_multiplier(value, format);
+    value = apply_rounding(value, sign, format);
 
     DecimalFormatter formatter =
     {

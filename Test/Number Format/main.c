@@ -221,25 +221,253 @@ static bool test_min_significant_digits(Test* test)
     return result;
 }
 
-static bool test_round_half_even(Test* test)
+static bool test_round_ceiling(Test* test)
 {
-    const uint64_t values[4] = {20, 24, 28, 32};
-    const char* references[4] = {"16", "24", "32", "32"};
-    const int increments[4] = {8, 8, 8, 8};
+    const int values[11] = {20, 22, 24, 26, 28, 0, -20, -22, -24, -26, -28};
+    const char* references[11] =
+            {"24", "24", "24", "32", "32", "0", "-16", "-16", "-24", "-24",
+                    "-24"};
+    const int increments[11] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
 
     AftDecimalFormat format;
     bool defaulted =
-            aft_decimal_format_default_with_allocator(&format, &test->allocator);
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
     ASSERT(defaulted);
+    format.rounding_mode = AFT_DECIMAL_FORMAT_ROUNDING_MODE_CEILING;
 
     bool result = true;
 
-    for(int case_index = 0; case_index < 4; case_index += 1)
+    for(int case_index = 0; case_index < 11; case_index += 1)
     {
         format.rounding_increment_int = increments[case_index];
 
         AftMaybeString string =
-                aft_string_from_uint64_with_allocator(values[case_index],
+                aft_string_from_int_with_allocator(values[case_index],
+                        &format, &test->allocator);
+
+        const char* contents = aft_string_get_contents_const(&string.value);
+        result = result
+                && string.valid
+                && strings_match(references[case_index], contents);
+
+        aft_string_destroy(&string.value);
+    }
+
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_round_down(Test* test)
+{
+    const int values[11] = {20, 22, 24, 26, 28, 0, -20, -22, -24, -26, -28};
+    const char* references[11] =
+            {"16", "16", "24", "24", "24", "0", "-16", "-16", "-24", "-24",
+                    "-24"};
+    const int increments[11] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    ASSERT(defaulted);
+    format.rounding_mode = AFT_DECIMAL_FORMAT_ROUNDING_MODE_DOWN;
+
+    bool result = true;
+
+    for(int case_index = 0; case_index < 11; case_index += 1)
+    {
+        format.rounding_increment_int = increments[case_index];
+
+        AftMaybeString string =
+                aft_string_from_int_with_allocator(values[case_index],
+                        &format, &test->allocator);
+
+        const char* contents = aft_string_get_contents_const(&string.value);
+        result = result
+                && string.valid
+                && strings_match(references[case_index], contents);
+
+        aft_string_destroy(&string.value);
+    }
+
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_round_floor(Test* test)
+{
+    const int values[11] = {20, 22, 24, 26, 28, 0, -20, -22, -24, -26, -28};
+    const char* references[11] =
+            {"16", "16", "24", "24", "24", "0", "-24", "-24", "-24", "-32",
+                    "-32"};
+    const int increments[11] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    ASSERT(defaulted);
+    format.rounding_mode = AFT_DECIMAL_FORMAT_ROUNDING_MODE_FLOOR;
+
+    bool result = true;
+
+    for(int case_index = 0; case_index < 11; case_index += 1)
+    {
+        format.rounding_increment_int = increments[case_index];
+
+        AftMaybeString string =
+                aft_string_from_int_with_allocator(values[case_index],
+                        &format, &test->allocator);
+
+        const char* contents = aft_string_get_contents_const(&string.value);
+        result = result
+                && string.valid
+                && strings_match(references[case_index], contents);
+
+        aft_string_destroy(&string.value);
+    }
+
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_round_half_down(Test* test)
+{
+    const int values[11] = {20, 22, 24, 26, 28, 0, -20, -22, -24, -26, -28};
+    const char* references[11] =
+            {"16", "24", "24", "24", "24", "0","-16", "-24", "-24", "-24",
+                    "-24"};
+    const int increments[11] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    ASSERT(defaulted);
+    format.rounding_mode = AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_DOWN;
+
+    bool result = true;
+
+    for(int case_index = 0; case_index < 11; case_index += 1)
+    {
+        format.rounding_increment_int = increments[case_index];
+
+        AftMaybeString string =
+                aft_string_from_int_with_allocator(values[case_index],
+                        &format, &test->allocator);
+
+        const char* contents = aft_string_get_contents_const(&string.value);
+        result = result
+                && string.valid
+                && strings_match(references[case_index], contents);
+
+        aft_string_destroy(&string.value);
+    }
+
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_round_half_even(Test* test)
+{
+    const int values[9] = {20, 24, 28, 32, 0, -20, -24, -28, -32};
+    const char* references[9] =
+            {"16", "24", "32", "32", "0", "-16", "-24", "-32", "-32"};
+    const int increments[9] = {8, 8, 8, 8, 8, 8, 8, 8, 8};
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    ASSERT(defaulted);
+
+    bool result = true;
+
+    for(int case_index = 0; case_index < 9; case_index += 1)
+    {
+        format.rounding_increment_int = increments[case_index];
+
+        AftMaybeString string =
+                aft_string_from_int_with_allocator(values[case_index],
+                        &format, &test->allocator);
+
+        const char* contents = aft_string_get_contents_const(&string.value);
+        result = result
+                && string.valid
+                && strings_match(references[case_index], contents);
+
+        aft_string_destroy(&string.value);
+    }
+
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_round_half_up(Test* test)
+{
+    const int values[7] = {20, 24, 28, 0, -20, -24, -28};
+    const char* references[7] = {"24", "24", "32", "0", "-24", "-24", "-32"};
+    const int increments[7] = {8, 8, 8, 8, 8, 8, 8};
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    ASSERT(defaulted);
+    format.rounding_mode = AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_UP;
+
+    bool result = true;
+
+    for(int case_index = 0; case_index < 7; case_index += 1)
+    {
+        format.rounding_increment_int = increments[case_index];
+
+        AftMaybeString string =
+                aft_string_from_int_with_allocator(values[case_index],
+                        &format, &test->allocator);
+
+        const char* contents = aft_string_get_contents_const(&string.value);
+        result = result
+                && string.valid
+                && strings_match(references[case_index], contents);
+
+        aft_string_destroy(&string.value);
+    }
+
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_round_up(Test* test)
+{
+    const int values[11] = {20, 22, 24, 26, 28, 0, -20, -22, -24, -26, -28};
+    const char* references[11] =
+            {"24", "24", "24", "32", "32", "0", "-24", "-24", "-24", "-32",
+                    "-32"};
+    const int increments[11] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    ASSERT(defaulted);
+    format.rounding_mode = AFT_DECIMAL_FORMAT_ROUNDING_MODE_UP;
+
+    bool result = true;
+
+    for(int case_index = 0; case_index < 11; case_index += 1)
+    {
+        format.rounding_increment_int = increments[case_index];
+
+        AftMaybeString string =
+                aft_string_from_int_with_allocator(values[case_index],
                         &format, &test->allocator);
 
         const char* contents = aft_string_get_contents_const(&string.value);
@@ -270,7 +498,13 @@ int main(int argc, const char** argv)
     add_test(&suite, test_min_integer_digits, "Test Min Integer Digits");
     add_test(&suite, test_min_significant_digits,
                 "Test Min Significant Digits");
+    add_test(&suite, test_round_ceiling, "Test Round Down");
+    add_test(&suite, test_round_down, "Test Round Down");
+    add_test(&suite, test_round_floor, "Test Round Floor");
+    add_test(&suite, test_round_half_down, "Test Round Half Down");
     add_test(&suite, test_round_half_even, "Test Round Half Even");
+    add_test(&suite, test_round_half_up, "Test Round Half Up");
+    add_test(&suite, test_round_up, "Test Round Up");
 
     bool success = run_tests(&suite);
     return !success;
