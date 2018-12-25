@@ -6,6 +6,7 @@ if(NOT TARGET AftString)
     find_package(AftString CONFIG REQUIRED)
 endif()
 
+
 add_executable(TestBasic "")
 
 target_link_libraries(
@@ -25,6 +26,28 @@ target_sources(
 add_test(
     NAME Basic
     COMMAND TestBasic
+)
+
+
+add_executable(TestBigInt "")
+
+target_link_libraries(
+    TestBigInt
+    PRIVATE
+    AftString
+)
+
+target_sources(
+    TestBigInt
+    PRIVATE
+    "Big Int/main.c"
+    Utility/random.c
+    Utility/test.c
+)
+
+add_test(
+    NAME BigInt
+    COMMAND TestBigInt
 )
 
 

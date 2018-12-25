@@ -24,6 +24,7 @@ target_sources(
     PRIVATE
     aft_number_format.c
     aft_string.c
+    big_int.c
 )
 
 install(
