@@ -1,5 +1,7 @@
 #include <AftString/aft_string.h>
 
+#include "floating_point_format.h"
+
 #include <assert.h>
 #include <stddef.h>
 
@@ -313,6 +315,19 @@ static uint64_t apply_rounding(uint64_t value, bool sign,
     return result;
 }
 
+static void apply_prefix(AftString* string, const AftDecimalFormat* format,
+        bool sign)
+{
+    if(sign)
+    {
+        append_pattern(string, &format->negative_prefix_pattern, format);
+    }
+    else
+    {
+        append_pattern(string, &format->positive_prefix_pattern, format);
+    }
+}
+
 static void digitize(DecimalFormatter* formatter, uint64_t value)
 {
     int digit_index = 0;
@@ -458,6 +473,19 @@ static void format_remaining_integer_digits_and_fraction_digits(
     formatter->digit_index = digit_index;
 }
 
+static void apply_suffix(AftString* string, const AftDecimalFormat* format,
+        bool sign)
+{
+    if(sign)
+    {
+        append_pattern(string, &format->negative_suffix_pattern, format);
+    }
+    else
+    {
+        append_pattern(string, &format->positive_suffix_pattern, format);
+    }
+}
+
 static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign,
         const AftDecimalFormat* format, void* allocator)
 {
@@ -482,30 +510,53 @@ static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign,
         formatter.group_separator = &format->symbols.currency_group_separator;
     }
 
-    if(sign)
-    {
-        append_pattern(&result.value, &format->negative_prefix_pattern, format);
-    }
-    else
-    {
-        append_pattern(&result.value, &format->positive_prefix_pattern, format);
-    }
-
+    apply_prefix(formatter.string, formatter.format, sign);
     digitize(&formatter, value);
     pad_leading_zeros_and_set_digit_limits(&formatter);
     format_significant_integer_digits(&formatter);
     format_remaining_integer_digits_and_fraction_digits(&formatter);
-
-    if(sign)
-    {
-        append_pattern(&result.value, &format->negative_suffix_pattern, format);
-    }
-    else
-    {
-        append_pattern(&result.value, &format->positive_suffix_pattern, format);
-    }
+    apply_suffix(formatter.string, formatter.format, sign);
 
     return result;
+}
+
+static void format_float_result(AftMaybeString* result,
+        const FloatResult* digits, const AftDecimalFormat* format)
+{
+    switch(digits->type)
+    {
+        case FLOAT_RESULT_TYPE_INFINITY:
+        {
+            apply_prefix(&result->value, format, digits->sign);
+            aft_string_append(&result->value, &format->symbols.infinity_sign);
+            apply_suffix(&result->value, format, digits->sign);
+            break;
+        }
+        case FLOAT_RESULT_TYPE_NAN:
+        {
+            aft_string_assign(&result->value, &format->symbols.nan_sign);
+            break;
+        }
+        case FLOAT_RESULT_TYPE_NORMAL:
+        {
+            switch(format->style)
+            {
+                case AFT_DECIMAL_FORMAT_STYLE_CURRENCY:
+                case AFT_DECIMAL_FORMAT_STYLE_FIXED_POINT:
+                case AFT_DECIMAL_FORMAT_STYLE_PERCENT:
+                {
+                    AFT_ASSERT(false); // Implementation not complete!
+                    break;
+                }
+                case AFT_DECIMAL_FORMAT_STYLE_SCIENTIFIC:
+                {
+                    AFT_ASSERT(false); // Implementation not complete!
+                    break;
+                }
+            }
+            break;
+        }
+    }
 }
 
 
@@ -620,6 +671,48 @@ bool aft_decimal_format_validate(const AftDecimalFormat* format)
         return format->min_fraction_digits <= format->max_fraction_digits
                 && format->min_integer_digits <= format->max_integer_digits;
     }
+}
+
+AftMaybeString aft_string_from_double(double value,
+        const AftDecimalFormat* format)
+{
+    return aft_string_from_double_with_allocator(value, format, NULL);
+}
+
+AftMaybeString aft_string_from_double_with_allocator(double value,
+        const AftDecimalFormat* format, void* allocator)
+{
+    AftMaybeString result;
+    result.valid = true;
+    aft_string_initialise_with_allocator(&result.value, allocator);
+
+    FloatFormat float_format;
+    FloatResult digits = format_double(value, &float_format);
+
+    format_float_result(&result, &digits, format);
+
+    return result;
+}
+
+AftMaybeString aft_string_from_float(float value,
+        const AftDecimalFormat* format)
+{
+    return aft_string_from_double_with_allocator(value, format, NULL);
+}
+
+AftMaybeString aft_string_from_float_with_allocator(float value,
+        const AftDecimalFormat* format, void* allocator)
+{
+    AftMaybeString result;
+    result.valid = true;
+    aft_string_initialise_with_allocator(&result.value, allocator);
+
+    FloatFormat float_format;
+    FloatResult digits = format_float(value, &float_format);
+
+    format_float_result(&result, &digits, format);
+
+    return result;
 }
 
 AftMaybeString aft_string_from_int(int value, const AftDecimalFormat* format)

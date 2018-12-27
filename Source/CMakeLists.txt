@@ -25,6 +25,7 @@ target_sources(
     aft_number_format.c
     aft_string.c
     big_int.c
+    floating_point_format.c
 )
 
 install(

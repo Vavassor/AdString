@@ -1,12 +1,15 @@
 #include "../Utility/test.h"
 
+#include <math.h>
+
 static bool test_default(Test* test)
 {
     const uint64_t value = UINT64_C(0xffffffffffffffff);
 
     AftDecimalFormat format;
     bool defaulted =
-            aft_decimal_format_default_with_allocator(&format, &test->allocator);
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
     ASSERT(defaulted);
 
     AftMaybeString string =
@@ -14,6 +17,102 @@ static bool test_default(Test* test)
                     &test->allocator);
 
     const char* reference = "18446744073709551615";
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = string.valid && strings_match(reference, contents);
+
+    aft_string_destroy(&string.value);
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_default_double_infinity(Test* test)
+{
+    const double value = -HUGE_VAL;
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    ASSERT(defaulted);
+
+    AftMaybeString string =
+            aft_string_from_double_with_allocator(value, &format,
+                    &test->allocator);
+
+    const char* reference = u8"-∞";
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = string.valid && strings_match(reference, contents);
+
+    aft_string_destroy(&string.value);
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_default_double_nan(Test* test)
+{
+    const double value = NAN;
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    ASSERT(defaulted);
+
+    AftMaybeString string =
+            aft_string_from_double_with_allocator(value, &format,
+                    &test->allocator);
+
+    const char* reference = "NaN";
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = string.valid && strings_match(reference, contents);
+
+    aft_string_destroy(&string.value);
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_default_float_infinity(Test* test)
+{
+    const float value = -HUGE_VALF;
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    ASSERT(defaulted);
+
+    AftMaybeString string =
+            aft_string_from_float_with_allocator(value, &format,
+                    &test->allocator);
+
+    const char* reference = u8"-∞";
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = string.valid && strings_match(reference, contents);
+
+    aft_string_destroy(&string.value);
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_default_float_nan(Test* test)
+{
+    const float value = NAN;
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    ASSERT(defaulted);
+
+    AftMaybeString string =
+            aft_string_from_float_with_allocator(value, &format,
+                    &test->allocator);
+
+    const char* reference = "NaN";
     const char* contents = aft_string_get_contents_const(&string.value);
     bool result = string.valid && strings_match(reference, contents);
 
@@ -488,6 +587,12 @@ int main(int argc, const char** argv)
     Suite suite = {0};
 
     add_test(&suite, test_default, "Test Default");
+    add_test(&suite, test_default_double_infinity,
+            "Test Default double Infinity");
+    add_test(&suite, test_default_double_nan, "Test Default double NaN");
+    add_test(&suite, test_default_float_infinity,
+                "Test Default float Infinity");
+    add_test(&suite, test_default_float_nan, "Test Default float NaN");
     add_test(&suite, test_default_int, "Test Default int");
     add_test(&suite, test_default_int64, "Test Default int64_t");
     add_test(&suite, test_hexadecimal, "Test Hexadecimal");
