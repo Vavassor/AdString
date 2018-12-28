@@ -34,18 +34,18 @@ typedef union Ieee754Binary64OrDouble
     };
 } Ieee754Binary64OrDouble;
 
-typedef struct UnpackedFloat
+typedef struct FloatParts
 {
     uint64_t mantissa;
     uint32_t mantissa_high_bit;
     int32_t exponent;
     bool sign;
-} UnpackedFloat;
+} FloatParts;
 
 
-static UnpackedFloat unpack_binary32(const Ieee754Binary32OrFloat* binary32)
+static FloatParts unpack_binary32(const Ieee754Binary32OrFloat* binary32)
 {
-    UnpackedFloat result =
+    FloatParts result =
     {
         .mantissa = UINT64_C(0x800000) | binary32->fraction,
         .mantissa_high_bit = UINT32_C(23),
@@ -56,9 +56,9 @@ static UnpackedFloat unpack_binary32(const Ieee754Binary32OrFloat* binary32)
     return result;
 }
 
-static UnpackedFloat unpack_binary64(const Ieee754Binary64OrDouble* binary64)
+static FloatParts unpack_binary64(const Ieee754Binary64OrDouble* binary64)
 {
-    UnpackedFloat result =
+    FloatParts result =
     {
         .mantissa = UINT64_C(0x10000000000000) | binary64->fraction,
         .mantissa_high_bit = UINT32_C(52),
@@ -69,7 +69,7 @@ static UnpackedFloat unpack_binary64(const Ieee754Binary64OrDouble* binary64)
     return result;
 }
 
-static FloatResult handle_nan_or_infinity(const UnpackedFloat* value)
+static FloatResult handle_nan_or_infinity(const FloatParts* value)
 {
     FloatResult result;
 
@@ -86,39 +86,51 @@ static FloatResult handle_nan_or_infinity(const UnpackedFloat* value)
     return result;
 }
 
-static FloatResult dragon4(const UnpackedFloat* value,
+static FloatResult dragon4(const FloatParts* parts,
         const FloatFormat* format)
 {
+    FloatResult result;
 
+    result.digits[0] = 7;
+    result.digits[1] = 8;
+    result.digits[2] = 9;
+    result.digits[3] = 0;
+    result.digits[4] = 4;
+    result.digits_count = 5;
+    result.exponent = -12;
+    result.sign = false;
+    result.type = FLOAT_RESULT_TYPE_NORMAL;
+
+    return result;
 }
 
 
 FloatResult format_double(double value, const FloatFormat* format)
 {
     Ieee754Binary64OrDouble binary64 = {.value = value};
-    UnpackedFloat unpacked = unpack_binary64(&binary64);
+    FloatParts parts = unpack_binary64(&binary64);
 
-    if(unpacked.exponent == INT32_C(1023))
+    if(parts.exponent == INT32_C(1023))
     {
-        return handle_nan_or_infinity(&unpacked);
+        return handle_nan_or_infinity(&parts);
     }
     else
     {
-        return dragon4(&unpacked, format);
+        return dragon4(&parts, format);
     }
 }
 
 FloatResult format_float(float value, const FloatFormat* format)
 {
     Ieee754Binary32OrFloat binary32 = {.value = value};
-    UnpackedFloat unpacked = unpack_binary32(&binary32);
+    FloatParts parts = unpack_binary32(&binary32);
 
-    if(unpacked.exponent == INT32_C(127))
+    if(parts.exponent == INT32_C(127))
     {
-        return handle_nan_or_infinity(&unpacked);
+        return handle_nan_or_infinity(&parts);
     }
     else
     {
-        return dragon4(&unpacked, format);
+        return dragon4(&parts, format);
     }
 }

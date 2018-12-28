@@ -539,21 +539,120 @@ static void format_float_result(AftMaybeString* result,
         }
         case FLOAT_RESULT_TYPE_NORMAL:
         {
+            apply_prefix(&result->value, format, digits->sign);
+
             switch(format->style)
             {
                 case AFT_DECIMAL_FORMAT_STYLE_CURRENCY:
                 case AFT_DECIMAL_FORMAT_STYLE_FIXED_POINT:
                 case AFT_DECIMAL_FORMAT_STYLE_PERCENT:
                 {
-                    AFT_ASSERT(false); // Implementation not complete!
+                    if(digits->exponent <= 0)
+                    {
+                        aft_string_append(&result->value,
+                                &format->symbols.digits[0]);
+                        aft_string_append(&result->value,
+                                &format->symbols.radix_separator);
+                        pad_zeros_without_separator(&result->value, format,
+                                -digits->exponent);
+
+                        for(int digit_index = 0;
+                                digit_index < digits->digits_count;
+                                digit_index += 1)
+                        {
+                            int digit = digits->digits[digit_index];
+                            aft_string_append(&result->value,
+                                    &format->symbols.digits[digit]);
+                        }
+                    }
+                    else if(digits->exponent < digits->digits_count)
+                    {
+                        for(int digit_index = 0;
+                                digit_index < digits->exponent;
+                                digit_index += 1)
+                        {
+                            int digit = digits->digits[digit_index];
+                            aft_string_append(&result->value,
+                                    &format->symbols.digits[digit]);
+                        }
+
+                        aft_string_append(&result->value,
+                                &format->symbols.radix_separator);
+
+                        for(int digit_index = digits->exponent;
+                                digit_index < digits->digits_count;
+                                digit_index += 1)
+                        {
+                            int digit = digits->digits[digit_index];
+                            aft_string_append(&result->value,
+                                    &format->symbols.digits[digit]);
+                        }
+                    }
+                    else
+                    {
+                        for(int digit_index = 0;
+                                digit_index < digits->digits_count;
+                                digit_index += 1)
+                        {
+                            int digit = digits->digits[digit_index];
+                            aft_string_append(&result->value,
+                                    &format->symbols.digits[digit]);
+                        }
+
+                        pad_zeros_without_separator(&result->value, format,
+                                digits->exponent - digits->digits_count);
+                    }
                     break;
                 }
                 case AFT_DECIMAL_FORMAT_STYLE_SCIENTIFIC:
                 {
-                    AFT_ASSERT(false); // Implementation not complete!
+                    aft_string_append(&result->value,
+                            &format->symbols.digits[digits->digits[0]]);
+                    aft_string_append(&result->value,
+                            &format->symbols.radix_separator);
+
+                    for(int digit_index = 1;
+                            digit_index < digits->digits_count;
+                            digit_index += 1)
+                    {
+                        int digit = digits->digits[digit_index];
+                        aft_string_append(&result->value,
+                                &format->symbols.digits[digit]);
+                    }
+
+                    aft_string_append(&result->value,
+                            &format->symbols.exponential_sign);
+
+                    int exponent = digits->exponent;
+                    if(exponent < 0)
+                    {
+                        aft_string_append(&result->value,
+                                &format->symbols.minus_sign);
+                        exponent = -exponent;
+                    }
+
+                    int exponent_digits[3];
+                    int exponent_digit_index = 0;
+                    do
+                    {
+                        exponent_digits[exponent_digit_index] = exponent % 10;
+                        exponent_digit_index += 1;
+                        exponent /= 10;
+                    } while(exponent);
+
+                    for(exponent_digit_index -= 1;
+                            exponent_digit_index >= 0;
+                            exponent_digit_index -= 1)
+                    {
+                        int digit = exponent_digits[exponent_digit_index];
+                        aft_string_append(&result->value,
+                                &format->symbols.digits[digit]);
+                    }
                     break;
                 }
             }
+
+            apply_suffix(&result->value, format, digits->sign);
             break;
         }
     }
