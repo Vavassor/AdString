@@ -19,6 +19,12 @@ target_include_directories(
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+target_link_libraries(
+    AftString
+    PRIVATE
+    m
+)
+
 target_sources(
     AftString
     PRIVATE

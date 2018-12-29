@@ -481,6 +481,25 @@ void big_int_set_uint32(BigInt* a, uint32_t value)
     }
 }
 
+void big_int_set_uint64(BigInt* a, uint64_t value)
+{
+    if(value > UINT64_C(0xffffffff))
+    {
+        a->blocks[0] = value & 0xffffffff;
+        a->blocks[1] = (value >> 32) & 0xffffffff;
+        a->blocks_count = 2;
+    }
+    else if(value != UINT64_C(0))
+    {
+        a->blocks[0] = value & 0xffffffff;
+        a->blocks_count = 1;
+    }
+    else
+    {
+        a->blocks_count = 0;
+    }
+}
+
 void big_int_shift_left(BigInt* a, uint32_t shift)
 {
     AFT_ASSERT(shift != 0);

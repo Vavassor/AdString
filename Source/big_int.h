@@ -25,6 +25,7 @@ BigInt big_int_multiply_uint32(const BigInt* a, uint32_t b);
 BigInt big_int_pow10(uint32_t exponent);
 BigInt big_int_pow2(uint32_t exponent);
 void big_int_set_uint32(BigInt* a, uint32_t value);
+void big_int_set_uint64(BigInt* a, uint64_t value);
 void big_int_shift_left(BigInt* a, uint32_t shift);
 
 #endif // BIG_INT_H_

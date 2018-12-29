@@ -11,6 +11,13 @@ typedef enum FloatResultType
     FLOAT_RESULT_TYPE_NAN,
 } FloatResultType;
 
+typedef enum CutoffMode
+{
+    CUTOFF_MODE_NONE,
+    CUTOFF_MODE_SIGNIFICANT_DIGITS,
+    CUTOFF_MODE_FRACTION_DIGITS,
+} CutoffMode;
+
 
 typedef struct FloatResult
 {
@@ -23,7 +30,18 @@ typedef struct FloatResult
 
 typedef struct FloatFormat
 {
-    int placeholder;
+    union
+    {
+        struct
+        {
+            int max_fraction_digits;
+        };
+        struct
+        {
+            int max_significant_digits;
+        };
+    };
+    CutoffMode cutoff_mode;
 } FloatFormat;
 
 

@@ -37,6 +37,16 @@ static uint64_t abs_int64_to_uint64(int64_t x)
     return ((uint64_t) x + mask) ^ mask;
 }
 
+static int count_digits(int value)
+{
+    int digits = 0;
+    for(; value; digits += 1)
+    {
+        value /= 10;
+    }
+    return digits;
+}
+
 static bool default_number_symbols(AftNumberSymbols* symbols, void* allocator)
 {
     struct
@@ -608,45 +618,50 @@ static void format_float_result(AftMaybeString* result,
                 {
                     aft_string_append(&result->value,
                             &format->symbols.digits[digits->digits[0]]);
-                    aft_string_append(&result->value,
-                            &format->symbols.radix_separator);
 
-                    for(int digit_index = 1;
-                            digit_index < digits->digits_count;
-                            digit_index += 1)
-                    {
-                        int digit = digits->digits[digit_index];
-                        aft_string_append(&result->value,
-                                &format->symbols.digits[digit]);
-                    }
-
-                    aft_string_append(&result->value,
-                            &format->symbols.exponential_sign);
-
-                    int exponent = digits->exponent;
-                    if(exponent < 0)
+                    if(digits->digits_count > 1)
                     {
                         aft_string_append(&result->value,
-                                &format->symbols.minus_sign);
-                        exponent = -exponent;
-                    }
+                                &format->symbols.radix_separator);
 
-                    int exponent_digits[3];
-                    int exponent_digit_index = 0;
-                    do
-                    {
-                        exponent_digits[exponent_digit_index] = exponent % 10;
-                        exponent_digit_index += 1;
-                        exponent /= 10;
-                    } while(exponent);
+                        for(int digit_index = 1;
+                                digit_index < digits->digits_count;
+                                digit_index += 1)
+                        {
+                            int digit = digits->digits[digit_index];
+                            aft_string_append(&result->value,
+                                    &format->symbols.digits[digit]);
+                        }
 
-                    for(exponent_digit_index -= 1;
-                            exponent_digit_index >= 0;
-                            exponent_digit_index -= 1)
-                    {
-                        int digit = exponent_digits[exponent_digit_index];
                         aft_string_append(&result->value,
-                                &format->symbols.digits[digit]);
+                                &format->symbols.exponential_sign);
+
+                        int exponent = digits->exponent;
+                        if(exponent < 0)
+                        {
+                            aft_string_append(&result->value,
+                                    &format->symbols.minus_sign);
+                            exponent = -exponent;
+                        }
+
+                        AFT_ASSERT(count_digits(exponent) <= 3);
+                        int exponent_digits[3];
+                        int exponent_digit_index = 0;
+                        do
+                        {
+                            exponent_digits[exponent_digit_index] = exponent % 10;
+                            exponent_digit_index += 1;
+                            exponent /= 10;
+                        } while(exponent);
+
+                        for(exponent_digit_index -= 1;
+                                exponent_digit_index >= 0;
+                                exponent_digit_index -= 1)
+                        {
+                            int digit = exponent_digits[exponent_digit_index];
+                            aft_string_append(&result->value,
+                                    &format->symbols.digits[digit]);
+                        }
                     }
                     break;
                 }
@@ -786,6 +801,16 @@ AftMaybeString aft_string_from_double_with_allocator(double value,
     aft_string_initialise_with_allocator(&result.value, allocator);
 
     FloatFormat float_format;
+    if(format->use_significant_digits)
+    {
+        float_format.cutoff_mode = CUTOFF_MODE_SIGNIFICANT_DIGITS;
+        float_format.max_significant_digits = format->max_significant_digits;
+    }
+    else
+    {
+        float_format.cutoff_mode = CUTOFF_MODE_FRACTION_DIGITS;
+        float_format.max_fraction_digits = format->max_fraction_digits;
+    }
     FloatResult digits = format_double(value, &float_format);
 
     format_float_result(&result, &digits, format);
@@ -807,6 +832,16 @@ AftMaybeString aft_string_from_float_with_allocator(float value,
     aft_string_initialise_with_allocator(&result.value, allocator);
 
     FloatFormat float_format;
+    if(format->use_significant_digits)
+    {
+        float_format.cutoff_mode = CUTOFF_MODE_SIGNIFICANT_DIGITS;
+        float_format.max_significant_digits = format->max_significant_digits;
+    }
+    else
+    {
+        float_format.cutoff_mode = CUTOFF_MODE_FRACTION_DIGITS;
+        float_format.max_fraction_digits = format->max_fraction_digits;
+    }
     FloatResult digits = format_float(value, &float_format);
 
     format_float_result(&result, &digits, format);

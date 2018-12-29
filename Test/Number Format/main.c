@@ -249,6 +249,7 @@ static bool test_default_scientific_double(Test* test)
             aft_decimal_format_default_with_allocator(&format,
                     &test->allocator);
     format.style = AFT_DECIMAL_FORMAT_STYLE_SCIENTIFIC;
+    format.max_fraction_digits = 4;
     ASSERT(defaulted);
 
     AftMaybeString string =
@@ -274,13 +275,14 @@ static bool test_default_scientific_double_small(Test* test)
             aft_decimal_format_default_with_allocator(&format,
                     &test->allocator);
     format.style = AFT_DECIMAL_FORMAT_STYLE_SCIENTIFIC;
+    format.max_fraction_digits = 4;
     ASSERT(defaulted);
 
     AftMaybeString string =
             aft_string_from_double_with_allocator(value, &format,
                     &test->allocator);
 
-    const char* reference = "7.8904E-12";
+    const char* reference = "7.8904E-13";
     const char* contents = aft_string_get_contents_const(&string.value);
     bool result = string.valid && strings_match(reference, contents);
 
