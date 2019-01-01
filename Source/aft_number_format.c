@@ -636,7 +636,7 @@ static void format_float_result(AftMaybeString* result,
                         aft_string_append(&result->value,
                                 &format->symbols.exponential_sign);
 
-                        int exponent = digits->exponent;
+                        int exponent = digits->exponent - 1;
                         if(exponent < 0)
                         {
                             aft_string_append(&result->value,
@@ -649,7 +649,8 @@ static void format_float_result(AftMaybeString* result,
                         int exponent_digit_index = 0;
                         do
                         {
-                            exponent_digits[exponent_digit_index] = exponent % 10;
+                            exponent_digits[exponent_digit_index] =
+                                    exponent % 10;
                             exponent_digit_index += 1;
                             exponent /= 10;
                         } while(exponent);
@@ -808,8 +809,17 @@ AftMaybeString aft_string_from_double_with_allocator(double value,
     }
     else
     {
-        float_format.cutoff_mode = CUTOFF_MODE_FRACTION_DIGITS;
-        float_format.max_fraction_digits = format->max_fraction_digits;
+        if(format->style == AFT_DECIMAL_FORMAT_STYLE_SCIENTIFIC)
+        {
+            float_format.cutoff_mode = CUTOFF_MODE_SIGNIFICANT_DIGITS;
+            float_format.max_significant_digits =
+                    format->max_fraction_digits + 1;
+        }
+        else
+        {
+            float_format.cutoff_mode = CUTOFF_MODE_FRACTION_DIGITS;
+            float_format.max_fraction_digits = format->max_fraction_digits;
+        }
     }
     FloatResult digits = format_double(value, &float_format);
 
@@ -839,8 +849,17 @@ AftMaybeString aft_string_from_float_with_allocator(float value,
     }
     else
     {
-        float_format.cutoff_mode = CUTOFF_MODE_FRACTION_DIGITS;
-        float_format.max_fraction_digits = format->max_fraction_digits;
+        if(format->style == AFT_DECIMAL_FORMAT_STYLE_SCIENTIFIC)
+        {
+            float_format.cutoff_mode = CUTOFF_MODE_SIGNIFICANT_DIGITS;
+            float_format.max_significant_digits =
+                    format->max_fraction_digits + 1;
+        }
+        else
+        {
+            float_format.cutoff_mode = CUTOFF_MODE_FRACTION_DIGITS;
+            float_format.max_fraction_digits = format->max_fraction_digits;
+        }
     }
     FloatResult digits = format_float(value, &float_format);
 

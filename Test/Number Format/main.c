@@ -130,6 +130,7 @@ static bool test_default_double_small(Test* test)
     bool defaulted =
             aft_decimal_format_default_with_allocator(&format,
                     &test->allocator);
+    format.max_fraction_digits = 17;
     ASSERT(defaulted);
 
     AftMaybeString string =

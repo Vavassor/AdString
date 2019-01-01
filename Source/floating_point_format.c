@@ -204,9 +204,10 @@ static FloatResult dragon4(const FloatParts* parts,
     }
 
     const double log10_2 = 0.30102999566398119521373889472449;
-    int32_t digitExponent = (int32_t) (ceil((double) ((int64_t) parts->mantissa_high_bit + exponent) * log10_2 - 0.69));
+    int32_t digitExponent = (int32_t) ceil(log10_2 * parts->exponent - 0.69);
 
-    if(format->cutoff_mode == CUTOFF_MODE_FRACTION_DIGITS && digitExponent <= -(int32_t) format->max_fraction_digits)
+    if(format->cutoff_mode == CUTOFF_MODE_FRACTION_DIGITS
+            && digitExponent <= -(int32_t) format->max_fraction_digits)
     {
         digitExponent = -(int32_t) format->max_fraction_digits + 1;
     }
@@ -241,34 +242,24 @@ static FloatResult dragon4(const FloatParts* parts,
         }
     }
 
-    int32_t cutoffExponent = digitExponent - 32;
+    int32_t cutoffExponent;
+
     switch(format->cutoff_mode)
     {
         case CUTOFF_MODE_FRACTION_DIGITS:
         {
-            int32_t desiredCutoffExponent = -(int32_t) format->max_fraction_digits;
-            if(desiredCutoffExponent > cutoffExponent)
-            {
-                cutoffExponent = desiredCutoffExponent;
-            }
-            break;
-        }
-        case CUTOFF_MODE_NONE:
-        {
+            cutoffExponent = -(int32_t) format->max_fraction_digits;
             break;
         }
         case CUTOFF_MODE_SIGNIFICANT_DIGITS:
         {
-            int32_t desiredCutoffExponent = digitExponent - (int32_t) format->max_significant_digits;
-            if(desiredCutoffExponent > cutoffExponent)
-            {
-                cutoffExponent = desiredCutoffExponent;
-            }
+            cutoffExponent =
+                    digitExponent - (int32_t) format->max_significant_digits;
             break;
         }
     }
 
-    result.exponent = digitExponent - 1;
+    result.exponent = digitExponent;
 
     AFT_ASSERT(scale.blocks_count > 0);
     uint32_t hiBlock = scale.blocks[scale.blocks_count - 1];
@@ -287,61 +278,26 @@ static FloatResult dragon4(const FloatParts* parts,
         }
     }
 
-    bool low;
-    bool high;
     uint32_t outputDigit;
+    bool low = false;
+    bool high = false;
 
-    if(format->cutoff_mode == CUTOFF_MODE_NONE)
+    for(;;)
     {
-        for(;;)
+        digitExponent -= 1;
+
+        outputDigit = big_int_divide_max_quotient_9(&scaledValue, &scale);
+        AFT_ASSERT(outputDigit < 10);
+
+        if(big_int_is_zero(&scaledValue) || digitExponent == cutoffExponent)
         {
-            digitExponent -= 1;
-
-            outputDigit = big_int_divide_max_quotient_9(&scaledValue, &scale);
-            AFT_ASSERT(outputDigit < 10);
-
-            BigInt scaledValueHigh = big_int_add(&scaledValue, pScaledMarginHigh);
-
-            low = big_int_compare(&scaledValue, &scaledMarginLow) < 0;
-            high = big_int_compare(&scaledValueHigh, &scale) > 0;
-            if(low | high | (digitExponent == cutoffExponent))
-            {
-                break;
-            }
-
-            result.digits[result.digits_count] = outputDigit;
-            result.digits_count += 1;
-
-            big_int_decuple(&scaledValue);
-            big_int_decuple(&scaledMarginLow);
-            if(pScaledMarginHigh != &scaledMarginLow)
-            {
-                *pScaledMarginHigh = big_int_multiply_by_2(&scaledMarginLow);
-            }
+            break;
         }
-    }
-    else
-    {
-        low = false;
-        high = false;
 
-        for(;;)
-        {
-            digitExponent -= 1;
+        result.digits[result.digits_count] = outputDigit;
+        result.digits_count += 1;
 
-            outputDigit = big_int_divide_max_quotient_9(&scaledValue, &scale);
-            AFT_ASSERT(outputDigit < 10);
-
-            if(big_int_is_zero(&scaledValue) || digitExponent == cutoffExponent)
-            {
-                break;
-            }
-
-            result.digits[result.digits_count] = outputDigit;
-            result.digits_count += 1;
-
-            big_int_decuple(&scaledValue);
-        }
+        big_int_decuple(&scaledValue);
     }
 
     bool roundDown = low;

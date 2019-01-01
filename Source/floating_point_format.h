@@ -13,7 +13,6 @@ typedef enum FloatResultType
 
 typedef enum CutoffMode
 {
-    CUTOFF_MODE_NONE,
     CUTOFF_MODE_SIGNIFICANT_DIGITS,
     CUTOFF_MODE_FRACTION_DIGITS,
 } CutoffMode;
