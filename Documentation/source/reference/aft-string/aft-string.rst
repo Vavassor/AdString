@@ -85,6 +85,7 @@ String
     functions/aft-string-add
     functions/aft-string-append
     functions/aft-string-append-c-string
+    functions/aft-string-append-char
     functions/aft-string-assign
     functions/aft-string-copy
     functions/aft-string-destroy
