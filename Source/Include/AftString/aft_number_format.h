@@ -114,6 +114,9 @@ AftMaybeString aft_ascii_from_uint64_with_allocator(uint64_t value,
 bool aft_decimal_format_default(AftDecimalFormat* format);
 bool aft_decimal_format_default_with_allocator(AftDecimalFormat* format,
         void* allocator);
+bool aft_decimal_format_default_scientific(AftDecimalFormat* format);
+bool aft_decimal_format_default_scientific_with_allocator(
+        AftDecimalFormat* format, void* allocator);
 void aft_decimal_format_destroy(AftDecimalFormat* format);
 bool aft_decimal_format_validate(const AftDecimalFormat* format);
 

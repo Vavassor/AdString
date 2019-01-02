@@ -561,18 +561,22 @@ static void format_float_result(AftMaybeString* result,
                     {
                         aft_string_append(&result->value,
                                 &format->symbols.digits[0]);
-                        aft_string_append(&result->value,
-                                &format->symbols.radix_separator);
-                        pad_zeros_without_separator(&result->value, format,
-                                -digits->exponent);
 
-                        for(int digit_index = 0;
-                                digit_index < digits->digits_count;
-                                digit_index += 1)
+                        if(digits->digits_count > 1)
                         {
-                            int digit = digits->digits[digit_index];
                             aft_string_append(&result->value,
-                                    &format->symbols.digits[digit]);
+                                    &format->symbols.radix_separator);
+                            pad_zeros_without_separator(&result->value, format,
+                                    -digits->exponent);
+
+                            for(int digit_index = 0;
+                                    digit_index < digits->digits_count;
+                                    digit_index += 1)
+                            {
+                                int digit = digits->digits[digit_index];
+                                aft_string_append(&result->value,
+                                        &format->symbols.digits[digit]);
+                            }
                         }
                     }
                     else if(digits->exponent < digits->digits_count)
@@ -642,6 +646,11 @@ static void format_float_result(AftMaybeString* result,
                             aft_string_append(&result->value,
                                     &format->symbols.minus_sign);
                             exponent = -exponent;
+                        }
+                        else if(format->use_explicit_plus_sign)
+                        {
+                            aft_string_append(&result->value,
+                                    &format->symbols.plus_sign);
                         }
 
                         AFT_ASSERT(count_digits(exponent) <= 3);
@@ -764,6 +773,57 @@ bool aft_decimal_format_default_with_allocator(AftDecimalFormat* format,
     return true;
 }
 
+bool aft_decimal_format_default_scientific(AftDecimalFormat* format)
+{
+    return aft_decimal_format_default_scientific_with_allocator(format, NULL);
+}
+
+bool aft_decimal_format_default_scientific_with_allocator(
+        AftDecimalFormat* format, void* allocator)
+{
+    bool symbols_done = default_number_symbols(&format->symbols, allocator);
+    if(!symbols_done)
+    {
+        return false;
+    }
+
+    AftMaybeString positive_pattern =
+            aft_string_from_c_string_with_allocator("+", allocator);
+    if(!positive_pattern.valid)
+    {
+        return false;
+    }
+    format->positive_prefix_pattern = positive_pattern.value;
+
+    AftMaybeString negative_pattern =
+            aft_string_from_c_string_with_allocator("-", allocator);
+    if(!negative_pattern.valid)
+    {
+        return false;
+    }
+    format->negative_prefix_pattern = negative_pattern.value;
+
+    aft_string_initialise_with_allocator(&format->negative_suffix_pattern,
+            allocator);
+    aft_string_initialise_with_allocator(&format->positive_suffix_pattern,
+            allocator);
+
+    format->max_fraction_digits = 3;
+    format->max_integer_digits = 42;
+    format->min_fraction_digits = 0;
+    format->min_integer_digits = 1;
+    format->rounding_mode = AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_EVEN;
+    format->style = AFT_DECIMAL_FORMAT_STYLE_SCIENTIFIC;
+    format->rounding_increment_int = 1;
+    format->primary_grouping_size = 3;
+    format->secondary_grouping_size = 3;
+    format->use_explicit_plus_sign = false;
+    format->use_grouping = false;
+    format->use_significant_digits = false;
+
+    return true;
+}
+
 
 void aft_decimal_format_destroy(AftDecimalFormat* format)
 {
@@ -806,6 +866,7 @@ AftMaybeString aft_string_from_double_with_allocator(double value,
     {
         float_format.cutoff_mode = CUTOFF_MODE_SIGNIFICANT_DIGITS;
         float_format.max_significant_digits = format->max_significant_digits;
+        float_format.min_significant_digits = format->min_significant_digits;
     }
     else
     {
@@ -814,11 +875,14 @@ AftMaybeString aft_string_from_double_with_allocator(double value,
             float_format.cutoff_mode = CUTOFF_MODE_SIGNIFICANT_DIGITS;
             float_format.max_significant_digits =
                     format->max_fraction_digits + 1;
+            float_format.min_significant_digits =
+                    format->min_fraction_digits + 1;
         }
         else
         {
             float_format.cutoff_mode = CUTOFF_MODE_FRACTION_DIGITS;
             float_format.max_fraction_digits = format->max_fraction_digits;
+            float_format.min_fraction_digits = format->min_fraction_digits;
         }
     }
     FloatResult digits = format_double(value, &float_format);
@@ -846,6 +910,7 @@ AftMaybeString aft_string_from_float_with_allocator(float value,
     {
         float_format.cutoff_mode = CUTOFF_MODE_SIGNIFICANT_DIGITS;
         float_format.max_significant_digits = format->max_significant_digits;
+        float_format.min_significant_digits = format->min_significant_digits;
     }
     else
     {
@@ -854,11 +919,14 @@ AftMaybeString aft_string_from_float_with_allocator(float value,
             float_format.cutoff_mode = CUTOFF_MODE_SIGNIFICANT_DIGITS;
             float_format.max_significant_digits =
                     format->max_fraction_digits + 1;
+            float_format.min_significant_digits =
+                    format->min_fraction_digits + 1;
         }
         else
         {
             float_format.cutoff_mode = CUTOFF_MODE_FRACTION_DIGITS;
             float_format.max_fraction_digits = format->max_fraction_digits;
+            float_format.min_fraction_digits = format->min_fraction_digits;
         }
     }
     FloatResult digits = format_float(value, &float_format);

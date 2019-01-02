@@ -33,10 +33,12 @@ typedef struct FloatFormat
     {
         struct
         {
+            int min_fraction_digits;
             int max_fraction_digits;
         };
         struct
         {
+            int min_significant_digits;
             int max_significant_digits;
         };
     };

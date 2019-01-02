@@ -130,14 +130,13 @@ static bool test_default_double_small(Test* test)
     bool defaulted =
             aft_decimal_format_default_with_allocator(&format,
                     &test->allocator);
-    format.max_fraction_digits = 17;
     ASSERT(defaulted);
 
     AftMaybeString string =
             aft_string_from_double_with_allocator(value, &format,
                     &test->allocator);
 
-    const char* reference = "0.00000000000078904";
+    const char* reference = "0";
     const char* contents = aft_string_get_contents_const(&string.value);
     bool result = string.valid && strings_match(reference, contents);
 
@@ -247,17 +246,15 @@ static bool test_default_scientific_double(Test* test)
 
     AftDecimalFormat format;
     bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
+            aft_decimal_format_default_scientific_with_allocator(&format,
                     &test->allocator);
-    format.style = AFT_DECIMAL_FORMAT_STYLE_SCIENTIFIC;
-    format.max_fraction_digits = 4;
     ASSERT(defaulted);
 
     AftMaybeString string =
             aft_string_from_double_with_allocator(value, &format,
                     &test->allocator);
 
-    const char* reference = "7.8904E2";
+    const char* reference = "7.89E2";
     const char* contents = aft_string_get_contents_const(&string.value);
     bool result = string.valid && strings_match(reference, contents);
 
@@ -273,17 +270,15 @@ static bool test_default_scientific_double_small(Test* test)
 
     AftDecimalFormat format;
     bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
+            aft_decimal_format_default_scientific_with_allocator(&format,
                     &test->allocator);
-    format.style = AFT_DECIMAL_FORMAT_STYLE_SCIENTIFIC;
-    format.max_fraction_digits = 4;
     ASSERT(defaulted);
 
     AftMaybeString string =
             aft_string_from_double_with_allocator(value, &format,
                     &test->allocator);
 
-    const char* reference = "7.8904E-13";
+    const char* reference = "7.89E-13";
     const char* contents = aft_string_get_contents_const(&string.value);
     bool result = string.valid && strings_match(reference, contents);
 
@@ -311,6 +306,31 @@ static bool test_hexadecimal(Test* test)
     bool result = string.valid && strings_match(reference, contents);
 
     aft_string_destroy(&string.value);
+
+    return result;
+}
+
+static bool test_max_fraction_digits_double(Test* test)
+{
+    const double value = 0.00000000000078904;
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    format.max_fraction_digits = 17;
+    ASSERT(defaulted);
+
+    AftMaybeString string =
+            aft_string_from_double_with_allocator(value, &format,
+                    &test->allocator);
+
+    const char* reference = "0.00000000000078904";
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = string.valid && strings_match(reference, contents);
+
+    aft_string_destroy(&string.value);
+    aft_decimal_format_destroy(&format);
 
     return result;
 }
@@ -728,6 +748,8 @@ int main(int argc, const char** argv)
     add_test(&suite, test_default_scientific_double_small,
                 "Test Default Scientific double Small");
     add_test(&suite, test_hexadecimal, "Test Hexadecimal");
+    add_test(&suite, test_max_fraction_digits_double,
+                "Test Max Fraction Digits double");
     add_test(&suite, test_max_integer_digits, "Test Max Integer Digits");
     add_test(&suite, test_max_significant_digits,
             "Test Max Significant Digits");

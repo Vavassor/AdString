@@ -98,8 +98,10 @@ static FloatParts unpack_binary32(const Ieee754Binary32OrFloat* binary32)
         .mantissa = UINT64_C(0x800000) | binary32->fraction,
         .mantissa_high_bit = UINT32_C(23),
         .exponent = (int32_t) binary32->exponent - INT32_C(128),
-        .factored_exponent = (int32_t) binary32->exponent - INT32_C(127) - INT32_C(23),
-        .has_unequal_margins = binary32->exponent != 1 && binary32->fraction == 0,
+        .factored_exponent =
+                (int32_t) binary32->exponent - INT32_C(127) - INT32_C(23),
+        .has_unequal_margins =
+                binary32->exponent != 1 && binary32->fraction == 0,
         .sign = binary32->sign,
     };
 
@@ -113,8 +115,10 @@ static FloatParts unpack_binary64(const Ieee754Binary64OrDouble* binary64)
         .mantissa = UINT64_C(0x10000000000000) | binary64->fraction,
         .mantissa_high_bit = UINT32_C(52),
         .exponent = (int32_t) binary64->exponent - INT32_C(1024),
-        .factored_exponent = (int32_t) binary64->exponent - INT32_C(1023) - INT32_C(52),
-        .has_unequal_margins = binary64->exponent != 1 && binary64->fraction == 0,
+        .factored_exponent =
+                (int32_t) binary64->exponent - INT32_C(1023) - INT32_C(52),
+        .has_unequal_margins =
+                binary64->exponent != 1 && binary64->fraction == 0,
         .sign = binary64->sign,
     };
 
@@ -158,170 +162,174 @@ static FloatResult dragon4(const FloatParts* parts,
     int32_t exponent = parts->factored_exponent;
 
     BigInt scale;
-    BigInt scaledValue;
-    BigInt scaledMarginLow;
-
-    BigInt* pScaledMarginHigh;
-    BigInt optionalMarginHigh;
+    BigInt scaled_value;
+    BigInt scaled_margin_low;
+    BigInt* scaled_margin_high;
+    BigInt optional_margin_high;
 
     if(parts->has_unequal_margins)
     {
         if(exponent > 0)
         {
-            big_int_set_uint64(&scaledValue, 4 * parts->mantissa);
-            big_int_shift_left(&scaledValue, exponent);
+            big_int_set_uint64(&scaled_value, 4 * parts->mantissa);
+            big_int_shift_left(&scaled_value, exponent);
             big_int_set_uint32(&scale, 4);
-            scaledMarginLow = big_int_pow2(exponent);
-            optionalMarginHigh = big_int_pow2(exponent + 1);
+            scaled_margin_low = big_int_pow2(exponent);
+            optional_margin_high = big_int_pow2(exponent + 1);
         }
         else
         {
-            big_int_set_uint64(&scaledValue, 4 * parts->mantissa);
+            big_int_set_uint64(&scaled_value, 4 * parts->mantissa);
             scale = big_int_pow2(-exponent + 2);
-            big_int_set_uint32(&scaledMarginLow, 1);
-            big_int_set_uint32(&optionalMarginHigh, 2);
+            big_int_set_uint32(&scaled_margin_low, 1);
+            big_int_set_uint32(&optional_margin_high, 2);
         }
 
-        pScaledMarginHigh = &optionalMarginHigh;
+        scaled_margin_high = &optional_margin_high;
     }
     else
     {
         if(exponent > 0)
         {
-            big_int_set_uint64(&scaledValue, 2 * parts->mantissa);
-            big_int_shift_left(&scaledValue, exponent);
+            big_int_set_uint64(&scaled_value, 2 * parts->mantissa);
+            big_int_shift_left(&scaled_value, exponent);
             big_int_set_uint32(&scale, 2);
-            scaledMarginLow = big_int_pow2(exponent);
+            scaled_margin_low = big_int_pow2(exponent);
         }
         else
         {
-            big_int_set_uint64(&scaledValue, 2 * parts->mantissa);
+            big_int_set_uint64(&scaled_value, 2 * parts->mantissa);
             scale = big_int_pow2(-exponent + 1);
-            big_int_set_uint32(&scaledMarginLow, 1);
+            big_int_set_uint32(&scaled_margin_low, 1);
         }
 
-        pScaledMarginHigh = &scaledMarginLow;
+        scaled_margin_high = &scaled_margin_low;
     }
 
     const double log10_2 = 0.30102999566398119521373889472449;
-    int32_t digitExponent = (int32_t) ceil(log10_2 * parts->exponent - 0.69);
+    int32_t estimated_exponent =
+            (int32_t) ceil(log10_2 * parts->exponent - 0.69);
 
     if(format->cutoff_mode == CUTOFF_MODE_FRACTION_DIGITS
-            && digitExponent <= -(int32_t) format->max_fraction_digits)
+            && estimated_exponent <= -(int32_t) format->max_fraction_digits)
     {
-        digitExponent = -(int32_t) format->max_fraction_digits + 1;
+        estimated_exponent = -(int32_t) format->max_fraction_digits + 1;
     }
 
-    if(digitExponent > 0)
+    if(estimated_exponent > 0)
     {
-        scale = big_int_multiply_by_pow10(&scale, digitExponent);
+        scale = big_int_multiply_by_pow10(&scale, estimated_exponent);
     }
-    else if(digitExponent < 0)
+    else if(estimated_exponent < 0)
     {
-        BigInt pow10 = big_int_pow10(-digitExponent);
-        scaledValue = big_int_multiply(&scaledValue, &pow10);
-        scaledMarginLow = big_int_multiply(&scaledMarginLow, &pow10);
+        BigInt pow10 = big_int_pow10(-estimated_exponent);
+        scaled_value = big_int_multiply(&scaled_value, &pow10);
+        scaled_margin_low = big_int_multiply(&scaled_margin_low, &pow10);
 
-        if(pScaledMarginHigh != &scaledMarginLow)
+        if(scaled_margin_high != &scaled_margin_low)
         {
-            *pScaledMarginHigh = big_int_multiply_by_2(&scaledMarginLow);
+            *scaled_margin_high = big_int_multiply_by_2(&scaled_margin_low);
         }
     }
 
-    if(big_int_compare(&scaledValue, &scale) >= 0)
+    if(big_int_compare(&scaled_value, &scale) >= 0)
     {
-        digitExponent += 1;
+        estimated_exponent += 1;
     }
     else
     {
-        big_int_decuple(&scaledValue);
-        big_int_decuple(&scaledMarginLow);
-        if(pScaledMarginHigh != &scaledMarginLow)
+        big_int_decuple(&scaled_value);
+        big_int_decuple(&scaled_margin_low);
+
+        if(scaled_margin_high != &scaled_margin_low)
         {
-            *pScaledMarginHigh = big_int_multiply_by_2(&scaledMarginLow);
+            *scaled_margin_high = big_int_multiply_by_2(&scaled_margin_low);
         }
     }
 
-    int32_t cutoffExponent;
+    int32_t digit_exponent = estimated_exponent;
+    int32_t cutoff_exponent;
 
     switch(format->cutoff_mode)
     {
         case CUTOFF_MODE_FRACTION_DIGITS:
         {
-            cutoffExponent = -(int32_t) format->max_fraction_digits;
+            cutoff_exponent = -(int32_t) format->max_fraction_digits;
             break;
         }
         case CUTOFF_MODE_SIGNIFICANT_DIGITS:
         {
-            cutoffExponent =
-                    digitExponent - (int32_t) format->max_significant_digits;
+            cutoff_exponent =
+                    digit_exponent - (int32_t) format->max_significant_digits;
             break;
         }
     }
 
-    result.exponent = digitExponent;
+    result.exponent = digit_exponent;
 
     AFT_ASSERT(scale.blocks_count > 0);
-    uint32_t hiBlock = scale.blocks[scale.blocks_count - 1];
-    if(hiBlock < 8 || hiBlock > 429496729)
+    uint32_t high_block = scale.blocks[scale.blocks_count - 1];
+
+    if(high_block < 8 || high_block > 429496729)
     {
-        uint32_t hiBlockLog2 = log2_uint32(hiBlock);
-        AFT_ASSERT(hiBlockLog2 < 3 || hiBlockLog2 > 27);
-        uint32_t shift = (32 + 27 - hiBlockLog2) % 32;
+        uint32_t high_block_log2 = log2_uint32(high_block);
+        AFT_ASSERT(high_block_log2 < 3 || high_block_log2 > 27);
+        uint32_t shift = (32 + 27 - high_block_log2) % 32;
 
         big_int_shift_left(&scale, shift);
-        big_int_shift_left(&scaledValue, shift);
-        big_int_shift_left(&scaledMarginLow, shift);
-        if(pScaledMarginHigh != &scaledMarginLow)
+        big_int_shift_left(&scaled_value, shift);
+        big_int_shift_left(&scaled_margin_low, shift);
+
+        if(scaled_margin_high != &scaled_margin_low)
         {
-            *pScaledMarginHigh = big_int_multiply_by_2(&scaledMarginLow);
+            *scaled_margin_high = big_int_multiply_by_2(&scaled_margin_low);
         }
     }
 
-    uint32_t outputDigit;
+    uint32_t output_digit;
     bool low = false;
     bool high = false;
 
     for(;;)
     {
-        digitExponent -= 1;
+        digit_exponent -= 1;
 
-        outputDigit = big_int_divide_max_quotient_9(&scaledValue, &scale);
-        AFT_ASSERT(outputDigit < 10);
+        output_digit = big_int_divide_max_quotient_9(&scaled_value, &scale);
+        AFT_ASSERT(output_digit < 10);
 
-        if(big_int_is_zero(&scaledValue) || digitExponent == cutoffExponent)
+        if(big_int_is_zero(&scaled_value) || digit_exponent == cutoff_exponent)
         {
             break;
         }
 
-        result.digits[result.digits_count] = outputDigit;
+        result.digits[result.digits_count] = output_digit;
         result.digits_count += 1;
 
-        big_int_decuple(&scaledValue);
+        big_int_decuple(&scaled_value);
     }
 
-    bool roundDown = low;
+    bool round_down = low;
 
     if(low == high)
     {
-        big_int_double(&scaledValue);
-        int32_t compare = big_int_compare(&scaledValue, &scale);
-        roundDown = compare < 0;
+        big_int_double(&scaled_value);
+        int32_t compare = big_int_compare(&scaled_value, &scale);
+        round_down = compare < 0;
 
         if(compare == 0)
         {
-            roundDown = (outputDigit & 1) == 0;
+            round_down = (output_digit & 1) == 0;
         }
     }
 
-    if(roundDown)
+    if(round_down)
     {
-        result.digits[result.digits_count] = outputDigit;
+        result.digits[result.digits_count] = output_digit;
         result.digits_count += 1;
     }
     else
     {
-        if(outputDigit == 9)
+        if(output_digit == 9)
         {
             for(;;)
             {
@@ -345,9 +353,39 @@ static FloatResult dragon4(const FloatParts* parts,
         }
         else
         {
-            result.digits[result.digits_count] = outputDigit + 1;
+            result.digits[result.digits_count] = output_digit + 1;
             result.digits_count += 1;
         }
+    }
+
+    int min_digits;
+    switch(format->cutoff_mode)
+    {
+        case CUTOFF_MODE_FRACTION_DIGITS:
+        {
+            int integer_digits = result.digits_count - result.exponent;
+            min_digits = integer_digits + format->min_fraction_digits;
+            break;
+        }
+        case CUTOFF_MODE_SIGNIFICANT_DIGITS:
+        {
+            min_digits = format->min_significant_digits;
+            break;
+        }
+    }
+
+    for(int digit_index = result.digits_count - 1;
+            digit_index > min_digits;
+            digit_index -= 1)
+    {
+        int digit = result.digits[digit_index];
+
+        if(digit != 0)
+        {
+            break;
+        }
+
+        result.digits_count -= 1;
     }
 
     return result;
