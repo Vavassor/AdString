@@ -530,8 +530,7 @@ static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign,
     return result;
 }
 
-static void format_float_result(AftMaybeString* result,
-        const FloatResult* digits, const AftDecimalFormat* format)
+static void format_float_result(AftMaybeString* result, const FloatResult* digits, const AftDecimalFormat* format)
 {
     switch(digits->type)
     {
@@ -551,15 +550,13 @@ static void format_float_result(AftMaybeString* result,
         {
             apply_prefix(&result->value, format, digits->sign);
 
-            const char* digits_contents =
-                    aft_string_get_contents_const(&digits->digits);
+            const char* digits_contents = aft_string_get_contents_const(&digits->digits);
             int digits_count = aft_string_get_count(&digits->digits);
 
             const AftString* group_separator = &format->symbols.group_separator;
             if(format->style == AFT_DECIMAL_FORMAT_STYLE_CURRENCY)
             {
-                const AftString* group_separator =
-                        &format->symbols.currency_group_separator;
+                const AftString* group_separator = &format->symbols.currency_group_separator;
             }
 
             switch(format->style)
@@ -570,49 +567,36 @@ static void format_float_result(AftMaybeString* result,
                 {
                     if(digits->exponent <= 0)
                     {
-                        aft_string_append(&result->value,
-                                &format->symbols.digits[0]);
+                        aft_string_append(&result->value, &format->symbols.digits[0]);
 
                         if(digits_count > 1)
                         {
-                            aft_string_append(&result->value,
-                                    &format->symbols.radix_separator);
-                            pad_zeros_without_separator(&result->value, format,
-                                    -digits->exponent);
+                            aft_string_append(&result->value, &format->symbols.radix_separator);
+                            pad_zeros_without_separator(&result->value, format, -digits->exponent);
 
                             for(int digit_index = 0;
                                     digit_index < digits_count;
                                     digit_index += 1)
                             {
                                 int digit = digits_contents[digit_index];
-                                aft_string_append(&result->value,
-                                        &format->symbols.digits[digit]);
+                                aft_string_append(&result->value, &format->symbols.digits[digit]);
                             }
 
                             if(format->use_significant_digits)
                             {
-                                if(digits_count
-                                        < format->min_significant_digits)
+                                if(digits_count < format->min_significant_digits)
                                 {
-                                    int zeros =
-                                            format->min_significant_digits
-                                                    - digits_count;
-                                    pad_zeros_without_separator(&result->value,
-                                            format, zeros);
+                                    int zeros = format->min_significant_digits - digits_count;
+                                    pad_zeros_without_separator(&result->value, format, zeros);
                                 }
                             }
                             else
                             {
-                                int fraction_digits =
-                                        digits_count - digits->exponent;
-                                if(fraction_digits
-                                        < format->min_fraction_digits)
+                                int fraction_digits = digits_count - digits->exponent;
+                                if(fraction_digits < format->min_fraction_digits)
                                 {
-                                    int zeros =
-                                            format->min_fraction_digits
-                                                    - fraction_digits;
-                                    pad_zeros_without_separator(&result->value,
-                                            format, zeros);
+                                    int zeros = format->min_fraction_digits - fraction_digits;
+                                    pad_zeros_without_separator(&result->value, format, zeros);
                                 }
                             }
                         }
@@ -621,86 +605,72 @@ static void format_float_result(AftMaybeString* result,
                     {
                         int integer_digits = digits->exponent;
                         int integers_so_far = 0;
+                        int start_digit = 0;
 
                         if(integer_digits < format->min_integer_digits)
                         {
                             integer_digits = format->min_integer_digits;
-
                             int zeros = integer_digits - digits->exponent;
 
                             for(int digit_index = 0;
                                     digit_index < zeros;
                                     digit_index += 1)
                             {
-                                if(separate_group_at_location(format,
-                                        integer_digits - digit_index - 1,
-                                        integer_digits))
+                                if(separate_group_at_location(format, integer_digits - digit_index - 1, integer_digits))
                                 {
-                                    aft_string_append(&result->value,
-                                            group_separator);
+                                    aft_string_append(&result->value, group_separator);
                                 }
 
-                                aft_string_append(&result->value,
-                                        &format->symbols.digits[0]);
+                                aft_string_append(&result->value, &format->symbols.digits[0]);
                             }
 
                             integers_so_far += zeros;
                         }
+                        else if(digits->exponent > format->max_integer_digits)
+                        {
+                            start_digit = digits->exponent - format->max_integer_digits;
+                        }
 
-                        for(int digit_index = 0;
+                        for(int digit_index = start_digit;
                                 digit_index < digits->exponent;
                                 digit_index += 1)
                         {
                             int location = digit_index + integers_so_far;
 
-                            if(separate_group_at_location(format,
-                                    integer_digits - location - 1,
-                                    integer_digits))
+                            if(separate_group_at_location(format, integer_digits - location - 1, integer_digits))
                             {
-                                aft_string_append(&result->value,
-                                        group_separator);
+                                aft_string_append(&result->value, group_separator);
                             }
 
                             int digit = digits_contents[digit_index];
-                            aft_string_append(&result->value,
-                                    &format->symbols.digits[digit]);
+                            aft_string_append(&result->value, &format->symbols.digits[digit]);
                         }
 
-                        aft_string_append(&result->value,
-                                &format->symbols.radix_separator);
+                        aft_string_append(&result->value, &format->symbols.radix_separator);
 
                         for(int digit_index = digits->exponent;
                                 digit_index < digits_count;
                                 digit_index += 1)
                         {
                             int digit = digits_contents[digit_index];
-                            aft_string_append(&result->value,
-                                    &format->symbols.digits[digit]);
+                            aft_string_append(&result->value, &format->symbols.digits[digit]);
                         }
 
                         if(format->use_significant_digits)
                         {
                             if(digits_count < format->min_significant_digits)
                             {
-                                int zeros =
-                                        format->min_significant_digits
-                                                - digits_count;
-                                pad_zeros_without_separator(&result->value,
-                                        format, zeros);
+                                int zeros = format->min_significant_digits - digits_count;
+                                pad_zeros_without_separator(&result->value, format, zeros);
                             }
                         }
                         else
                         {
-                            int fraction_digits =
-                                    digits_count - digits->exponent;
-                            if(fraction_digits
-                                    < format->min_fraction_digits)
+                            int fraction_digits = digits_count - digits->exponent;
+                            if(fraction_digits < format->min_fraction_digits)
                             {
-                                int zeros =
-                                        format->min_fraction_digits
-                                                - fraction_digits;
-                                pad_zeros_without_separator(&result->value,
-                                        format, zeros);
+                                int zeros = format->min_fraction_digits - fraction_digits;
+                                pad_zeros_without_separator(&result->value, format, zeros);
                             }
                         }
                     }
@@ -708,50 +678,45 @@ static void format_float_result(AftMaybeString* result,
                     {
                         int integer_digits = digits->exponent;
                         int integers_so_far = 0;
+                        int start_digit = 0;
 
                         if(integer_digits < format->min_integer_digits)
                         {
                             integer_digits = format->min_integer_digits;
-
                             int zeros = integer_digits - digits->exponent;
 
                             for(int digit_index = 0;
                                     digit_index < zeros;
                                     digit_index += 1)
                             {
-                                if(separate_group_at_location(format,
-                                        integer_digits - digit_index - 1,
-                                        integer_digits))
+                                if(separate_group_at_location(format, integer_digits - digit_index - 1, integer_digits))
                                 {
-                                    aft_string_append(&result->value,
-                                            group_separator);
+                                    aft_string_append(&result->value, group_separator);
                                 }
 
-                                aft_string_append(&result->value,
-                                        &format->symbols.digits[0]);
+                                aft_string_append(&result->value, &format->symbols.digits[0]);
                             }
 
                             integers_so_far += zeros;
                         }
+                        else if(digits->exponent > format->max_integer_digits)
+                        {
+                            start_digit = digits->exponent - format->max_integer_digits;
+                        }
 
-                        for(int digit_index = 0;
+                        for(int digit_index = start_digit;
                                 digit_index < digits_count;
                                 digit_index += 1)
                         {
-                            int digit = digits_contents[digit_index];
-
                             int location = digit_index + integers_so_far;
 
-                            if(separate_group_at_location(format,
-                                    integer_digits - location - 1,
-                                    integer_digits))
+                            if(separate_group_at_location(format, integer_digits - location - 1, integer_digits))
                             {
-                                aft_string_append(&result->value,
-                                        group_separator);
+                                aft_string_append(&result->value, group_separator);
                             }
 
-                            aft_string_append(&result->value,
-                                    &format->symbols.digits[digit]);
+                            int digit = digits_contents[digit_index];
+                            aft_string_append(&result->value, &format->symbols.digits[digit]);
                         }
 
                         for(int digit_index = digits_count;
@@ -760,70 +725,55 @@ static void format_float_result(AftMaybeString* result,
                         {
                             int location = digit_index + integers_so_far;
 
-                            if(separate_group_at_location(format,
-                                    integer_digits - location - 1,
-                                    integer_digits))
+                            if(separate_group_at_location(format, integer_digits - location - 1, integer_digits))
                             {
-                                aft_string_append(&result->value,
-                                        group_separator);
+                                aft_string_append(&result->value, group_separator);
                             }
 
-                            aft_string_append(&result->value,
-                                    &format->symbols.digits[0]);
+                            aft_string_append(&result->value, &format->symbols.digits[0]);
                         }
 
                         if(format->use_significant_digits)
                         {
                             if(format->min_significant_digits > digits_count)
                             {
-                                aft_string_append(&result->value,
-                                        &format->symbols.radix_separator);
+                                aft_string_append(&result->value, &format->symbols.radix_separator);
 
-                                int zeros =
-                                        format->min_significant_digits
-                                                - digits_count;
-                                pad_zeros_without_separator(&result->value,
-                                        format, zeros);
+                                int zeros = format->min_significant_digits - digits_count;
+                                pad_zeros_without_separator(&result->value, format, zeros);
                             }
                         }
                         else if(format->min_fraction_digits > 0)
                         {
-                            aft_string_append(&result->value,
-                                    &format->symbols.radix_separator);
+                            aft_string_append(&result->value, &format->symbols.radix_separator);
 
-                            pad_zeros_without_separator(&result->value,
-                                    format, format->min_fraction_digits);
+                            pad_zeros_without_separator(&result->value, format, format->min_fraction_digits);
                         }
                     }
                     break;
                 }
                 case AFT_DECIMAL_FORMAT_STYLE_SCIENTIFIC:
                 {
-                    aft_string_append(&result->value,
-                            &format->symbols.digits[digits_contents[0]]);
+                    aft_string_append(&result->value, &format->symbols.digits[digits_contents[0]]);
 
                     if(digits_count > 1)
                     {
-                        aft_string_append(&result->value,
-                                &format->symbols.radix_separator);
+                        aft_string_append(&result->value, &format->symbols.radix_separator);
 
                         for(int digit_index = 1;
                                 digit_index < digits_count;
                                 digit_index += 1)
                         {
                             int digit = digits_contents[digit_index];
-                            aft_string_append(&result->value,
-                                    &format->symbols.digits[digit]);
+                            aft_string_append(&result->value, &format->symbols.digits[digit]);
                         }
 
-                        aft_string_append(&result->value,
-                                &format->symbols.exponential_sign);
+                        aft_string_append(&result->value, &format->symbols.exponential_sign);
 
                         int exponent = digits->exponent - 1;
                         if(exponent < 0)
                         {
-                            aft_string_append(&result->value,
-                                    &format->symbols.minus_sign);
+                            aft_string_append(&result->value, &format->symbols.minus_sign);
                             exponent = -exponent;
                         }
 
@@ -832,8 +782,7 @@ static void format_float_result(AftMaybeString* result,
                         int exponent_digit_index = 0;
                         do
                         {
-                            exponent_digits[exponent_digit_index] =
-                                    exponent % 10;
+                            exponent_digits[exponent_digit_index] = exponent % 10;
                             exponent_digit_index += 1;
                             exponent /= 10;
                         } while(exponent);
@@ -843,8 +792,7 @@ static void format_float_result(AftMaybeString* result,
                                 exponent_digit_index -= 1)
                         {
                             int digit = exponent_digits[exponent_digit_index];
-                            aft_string_append(&result->value,
-                                    &format->symbols.digits[digit]);
+                            aft_string_append(&result->value, &format->symbols.digits[digit]);
                         }
                     }
                     break;
