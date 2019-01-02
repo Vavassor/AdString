@@ -619,13 +619,43 @@ static void format_float_result(AftMaybeString* result,
                     }
                     else if(digits->exponent < digits_count)
                     {
+                        int integer_digits = digits->exponent;
+                        int integers_so_far = 0;
+
+                        if(integer_digits < format->min_integer_digits)
+                        {
+                            integer_digits = format->min_integer_digits;
+
+                            int zeros = integer_digits - digits->exponent;
+
+                            for(int digit_index = 0;
+                                    digit_index < zeros;
+                                    digit_index += 1)
+                            {
+                                if(separate_group_at_location(format,
+                                        integer_digits - digit_index - 1,
+                                        integer_digits))
+                                {
+                                    aft_string_append(&result->value,
+                                            group_separator);
+                                }
+
+                                aft_string_append(&result->value,
+                                        &format->symbols.digits[0]);
+                            }
+
+                            integers_so_far += zeros;
+                        }
+
                         for(int digit_index = 0;
                                 digit_index < digits->exponent;
                                 digit_index += 1)
                         {
+                            int location = digit_index + integers_so_far;
+
                             if(separate_group_at_location(format,
-                                    digits->exponent - digit_index - 1,
-                                    digits->exponent))
+                                    integer_digits - location - 1,
+                                    integer_digits))
                             {
                                 aft_string_append(&result->value,
                                         group_separator);
@@ -676,15 +706,45 @@ static void format_float_result(AftMaybeString* result,
                     }
                     else
                     {
+                        int integer_digits = digits->exponent;
+                        int integers_so_far = 0;
+
+                        if(integer_digits < format->min_integer_digits)
+                        {
+                            integer_digits = format->min_integer_digits;
+
+                            int zeros = integer_digits - digits->exponent;
+
+                            for(int digit_index = 0;
+                                    digit_index < zeros;
+                                    digit_index += 1)
+                            {
+                                if(separate_group_at_location(format,
+                                        integer_digits - digit_index - 1,
+                                        integer_digits))
+                                {
+                                    aft_string_append(&result->value,
+                                            group_separator);
+                                }
+
+                                aft_string_append(&result->value,
+                                        &format->symbols.digits[0]);
+                            }
+
+                            integers_so_far += zeros;
+                        }
+
                         for(int digit_index = 0;
                                 digit_index < digits_count;
                                 digit_index += 1)
                         {
                             int digit = digits_contents[digit_index];
 
+                            int location = digit_index + integers_so_far;
+
                             if(separate_group_at_location(format,
-                                    digits->exponent - digit_index - 1,
-                                    digits->exponent))
+                                    integer_digits - location - 1,
+                                    integer_digits))
                             {
                                 aft_string_append(&result->value,
                                         group_separator);
@@ -698,9 +758,11 @@ static void format_float_result(AftMaybeString* result,
                                 digit_index < digits->exponent;
                                 digit_index += 1)
                         {
+                            int location = digit_index + integers_so_far;
+
                             if(separate_group_at_location(format,
-                                    digits->exponent - digit_index - 1,
-                                    digits->exponent))
+                                    integer_digits - location - 1,
+                                    integer_digits))
                             {
                                 aft_string_append(&result->value,
                                         group_separator);
