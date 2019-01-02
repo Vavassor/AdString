@@ -555,6 +555,13 @@ static void format_float_result(AftMaybeString* result,
                     aft_string_get_contents_const(&digits->digits);
             int digits_count = aft_string_get_count(&digits->digits);
 
+            const AftString* group_separator = &format->symbols.group_separator;
+            if(format->style == AFT_DECIMAL_FORMAT_STYLE_CURRENCY)
+            {
+                const AftString* group_separator =
+                        &format->symbols.currency_group_separator;
+            }
+
             switch(format->style)
             {
                 case AFT_DECIMAL_FORMAT_STYLE_CURRENCY:
@@ -616,6 +623,14 @@ static void format_float_result(AftMaybeString* result,
                                 digit_index < digits->exponent;
                                 digit_index += 1)
                         {
+                            if(separate_group_at_location(format,
+                                    digits->exponent - digit_index - 1,
+                                    digits->exponent))
+                            {
+                                aft_string_append(&result->value,
+                                        group_separator);
+                            }
+
                             int digit = digits_contents[digit_index];
                             aft_string_append(&result->value,
                                     &format->symbols.digits[digit]);
@@ -666,12 +681,34 @@ static void format_float_result(AftMaybeString* result,
                                 digit_index += 1)
                         {
                             int digit = digits_contents[digit_index];
+
+                            if(separate_group_at_location(format,
+                                    digits->exponent - digit_index - 1,
+                                    digits->exponent))
+                            {
+                                aft_string_append(&result->value,
+                                        group_separator);
+                            }
+
                             aft_string_append(&result->value,
                                     &format->symbols.digits[digit]);
                         }
 
-                        pad_zeros_without_separator(&result->value, format,
-                                digits->exponent - digits_count);
+                        for(int digit_index = digits_count;
+                                digit_index < digits->exponent;
+                                digit_index += 1)
+                        {
+                            if(separate_group_at_location(format,
+                                    digits->exponent - digit_index - 1,
+                                    digits->exponent))
+                            {
+                                aft_string_append(&result->value,
+                                        group_separator);
+                            }
+
+                            aft_string_append(&result->value,
+                                    &format->symbols.digits[0]);
+                        }
 
                         if(format->use_significant_digits)
                         {

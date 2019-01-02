@@ -390,6 +390,41 @@ static bool test_default_scientific_double_small(Test* test)
     return result;
 }
 
+static bool test_group_double(Test* test)
+{
+    const double values[2] = {7980400000000.14, 7980400000000.0};
+    const char* references[2] = {"798,040,000,0000.14", "798,040,000,0000"};
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    format.use_grouping = true;
+    format.primary_grouping_size = 4;
+    format.secondary_grouping_size = 3;
+    ASSERT(defaulted);
+
+    bool result = true;
+
+    for(int case_index = 0; case_index < 2; case_index += 1)
+    {
+        AftMaybeString string =
+                aft_string_from_double_with_allocator(values[case_index],
+                        &format, &test->allocator);
+
+        const char* contents = aft_string_get_contents_const(&string.value);
+        result = result
+                && string.valid
+                && strings_match(references[case_index], contents);
+
+        aft_string_destroy(&string.value);
+    }
+
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
 static bool test_hexadecimal(Test* test)
 {
     const uint64_t value = UINT64_C(0xffffffffffffffff);
@@ -925,6 +960,7 @@ int main(int argc, const char** argv)
                 "Test Default Scientific double");
     add_test(&suite, test_default_scientific_double_small,
                 "Test Default Scientific double Small");
+    add_test(&suite, test_group_double, "Test Group Double");
     add_test(&suite, test_hexadecimal, "Test Hexadecimal");
     add_test(&suite, test_max_fraction_digits_double,
                 "Test Max Fraction Digits double");
