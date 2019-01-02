@@ -581,6 +581,33 @@ static void format_float_result(AftMaybeString* result,
                                 aft_string_append(&result->value,
                                         &format->symbols.digits[digit]);
                             }
+
+                            if(format->use_significant_digits)
+                            {
+                                if(digits_count
+                                        < format->min_significant_digits)
+                                {
+                                    int zeros =
+                                            format->min_significant_digits
+                                                    - digits_count;
+                                    pad_zeros_without_separator(&result->value,
+                                            format, zeros);
+                                }
+                            }
+                            else
+                            {
+                                int fraction_digits =
+                                        digits_count - digits->exponent;
+                                if(fraction_digits
+                                        < format->min_fraction_digits)
+                                {
+                                    int zeros =
+                                            format->min_fraction_digits
+                                                    - fraction_digits;
+                                    pad_zeros_without_separator(&result->value,
+                                            format, zeros);
+                                }
+                            }
                         }
                     }
                     else if(digits->exponent < digits_count)
@@ -605,6 +632,32 @@ static void format_float_result(AftMaybeString* result,
                             aft_string_append(&result->value,
                                     &format->symbols.digits[digit]);
                         }
+
+                        if(format->use_significant_digits)
+                        {
+                            if(digits_count < format->min_significant_digits)
+                            {
+                                int zeros =
+                                        format->min_significant_digits
+                                                - digits_count;
+                                pad_zeros_without_separator(&result->value,
+                                        format, zeros);
+                            }
+                        }
+                        else
+                        {
+                            int fraction_digits =
+                                    digits_count - digits->exponent;
+                            if(fraction_digits
+                                    < format->min_fraction_digits)
+                            {
+                                int zeros =
+                                        format->min_fraction_digits
+                                                - fraction_digits;
+                                pad_zeros_without_separator(&result->value,
+                                        format, zeros);
+                            }
+                        }
                     }
                     else
                     {
@@ -619,6 +672,29 @@ static void format_float_result(AftMaybeString* result,
 
                         pad_zeros_without_separator(&result->value, format,
                                 digits->exponent - digits_count);
+
+                        if(format->use_significant_digits)
+                        {
+                            if(format->min_significant_digits > digits_count)
+                            {
+                                aft_string_append(&result->value,
+                                        &format->symbols.radix_separator);
+
+                                int zeros =
+                                        format->min_significant_digits
+                                                - digits_count;
+                                pad_zeros_without_separator(&result->value,
+                                        format, zeros);
+                            }
+                        }
+                        else if(format->min_fraction_digits > 0)
+                        {
+                            aft_string_append(&result->value,
+                                    &format->symbols.radix_separator);
+
+                            pad_zeros_without_separator(&result->value,
+                                    format, format->min_fraction_digits);
+                        }
                     }
                     break;
                 }
@@ -856,6 +932,8 @@ AftMaybeString aft_string_from_double(double value,
 AftMaybeString aft_string_from_double_with_allocator(double value,
         const AftDecimalFormat* format, void* allocator)
 {
+    AFT_ASSERT(aft_decimal_format_validate(format));
+
     AftMaybeString result;
     result.valid = true;
     aft_string_initialise_with_allocator(&result.value, allocator);
@@ -902,6 +980,8 @@ AftMaybeString aft_string_from_float(float value,
 AftMaybeString aft_string_from_float_with_allocator(float value,
         const AftDecimalFormat* format, void* allocator)
 {
+    AFT_ASSERT(aft_decimal_format_validate(format));
+
     AftMaybeString result;
     result.valid = true;
     aft_string_initialise_with_allocator(&result.value, allocator);
