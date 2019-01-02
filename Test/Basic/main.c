@@ -264,6 +264,25 @@ static bool test_append_c_string(Test* test)
     return result;
 }
 
+static bool test_append_char(Test* test)
+{
+    const char* a = u8"👌🏼";
+    AftMaybeString base = aft_string_from_c_string_with_allocator(a, &test->allocator);
+    ASSERT(base.valid);
+
+    bool appended = aft_string_append_char(&base.value, 'Z');
+    ASSERT(appended);
+
+    const char* combined = aft_string_get_contents_const(&base.value);
+    bool contents_match = strings_match(combined, u8"👌🏼Z");
+    bool size_correct = aft_string_get_count(&base.value) == string_size(combined);
+    bool result = contents_match && size_correct;
+
+    aft_string_destroy(&base.value);
+
+    return result;
+}
+
 static bool test_assign(Test* test)
 {
     const char* reference = u8"a猫🍌";
@@ -1253,6 +1272,7 @@ int main(int argc, const char** argv)
     add_test(&suite, test_append_self, "Append Self");
     add_test(&suite, test_append_to_nothing, "Append To Nothing");
     add_test(&suite, test_append_c_string, "Append C String");
+    add_test(&suite, test_append_char, "Append Char");
     add_test(&suite, test_assign, "Assign");
     add_test(&suite, test_assign_nothing, "Assign Nothing");
     add_test(&suite, test_assign_self, "Assign Self");
