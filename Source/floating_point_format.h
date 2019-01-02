@@ -1,6 +1,8 @@
 #ifndef FLOATING_POINT_FORMAT_H_
 #define FLOATING_POINT_FORMAT_H_
 
+#include <AftString/aft_string.h>
+
 #include <stdbool.h>
 
 
@@ -20,8 +22,7 @@ typedef enum CutoffMode
 
 typedef struct FloatResult
 {
-    int digits[32];
-    int digits_count;
+    AftString digits;
     int exponent;
     FloatResultType type;
     bool sign;
@@ -46,7 +47,9 @@ typedef struct FloatFormat
 } FloatFormat;
 
 
-FloatResult format_double(double value, const FloatFormat* format);
-FloatResult format_float(float value, const FloatFormat* format);
+FloatResult format_double(double value, const FloatFormat* format,
+        void* allocator);
+FloatResult format_float(float value, const FloatFormat* format,
+        void* allocator);
 
 #endif // FLOATING_POINT_FORMAT_H_

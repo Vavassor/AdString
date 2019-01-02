@@ -515,6 +515,30 @@ bool aft_string_append_c_string(AftString* to, const char* from)
     return true;
 }
 
+bool aft_string_append_char(AftString* to, char from)
+{
+    AFT_ASSERT(to);
+
+    int to_count = aft_string_get_count(to);
+    int count = to_count + 1;
+    bool reserved = aft_string_reserve(to, count);
+
+    if(!reserved)
+    {
+        return false;
+    }
+
+    int prior_count = to_count;
+    aft_string_set_count(to, count);
+    char* to_contents = aft_string_get_contents(to);
+    to_contents[prior_count] = from;
+    to_contents[count] = '\0';
+
+    AFT_ASSERT(aft_string_check_uncorrupted(to));
+
+    return true;
+}
+
 bool aft_string_append_range(AftString* to, const AftString* from,
         const AftStringRange* range)
 {

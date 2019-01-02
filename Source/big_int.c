@@ -141,8 +141,7 @@ void big_int_decuple(BigInt* a)
 
     for(; block_index < a->blocks_count; block_index += 1)
     {
-        uint64_t product =
-                UINT64_C(10) * (uint64_t) a->blocks[block_index] + carry;
+        uint64_t product = 10 * (uint64_t) a->blocks[block_index] + carry;
         a->blocks[block_index] = (uint32_t) (product & 0xffffffff);
         carry = product >> 32;
     }
@@ -208,7 +207,7 @@ uint32_t big_int_divide_max_quotient_9(BigInt* dividend, const BigInt* divisor)
 
     if(big_int_compare(dividend, divisor) >= 0)
     {
-        ++quotient;
+        quotient += 1;
 
         int dividend_index = 0;
         int divisor_index = 0;
@@ -293,7 +292,7 @@ BigInt big_int_multiply(const BigInt* a, const BigInt* b)
     {
         const uint64_t multiplier = shorter->blocks[shorter_index];
 
-        if(multiplier != UINT64_C(0))
+        if(multiplier != 0)
         {
             int longer_index = 0;
             int result_index = shorter_index;
@@ -483,13 +482,13 @@ void big_int_set_uint32(BigInt* a, uint32_t value)
 
 void big_int_set_uint64(BigInt* a, uint64_t value)
 {
-    if(value > UINT64_C(0xffffffff))
+    if(value > 0xffffffff)
     {
         a->blocks[0] = value & 0xffffffff;
         a->blocks[1] = (value >> 32) & 0xffffffff;
         a->blocks_count = 2;
     }
-    else if(value != UINT64_C(0))
+    else if(value != 0)
     {
         a->blocks[0] = value & 0xffffffff;
         a->blocks_count = 1;

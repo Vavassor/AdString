@@ -93,41 +93,75 @@ static uint32_t log2_uint32(uint32_t x)
 
 static FloatParts unpack_binary32(const Ieee754Binary32OrFloat* binary32)
 {
-    FloatParts result =
+    if(binary32->exponent != 0)
     {
-        .mantissa = UINT64_C(0x800000) | binary32->fraction,
-        .mantissa_high_bit = UINT32_C(23),
-        .exponent = (int32_t) binary32->exponent - INT32_C(128),
-        .factored_exponent =
-                (int32_t) binary32->exponent - INT32_C(127) - INT32_C(23),
-        .has_unequal_margins =
-                binary32->exponent != 1 && binary32->fraction == 0,
-        .sign = binary32->sign,
-    };
+        FloatParts result =
+        {
+            .mantissa = UINT64_C(0x800000) | binary32->fraction,
+            .mantissa_high_bit = 23,
+            .exponent = (int32_t) binary32->exponent - 127,
+            .factored_exponent = (int32_t) binary32->exponent - 127 - 23,
+            .has_unequal_margins =
+                    binary32->exponent != 1 && binary32->fraction == 0,
+            .sign = binary32->sign,
+        };
 
-    return result;
+        return result;
+    }
+    else
+    {
+        FloatParts result =
+        {
+            .mantissa = binary32->fraction,
+            .mantissa_high_bit = log2_uint32(binary32->fraction),
+            .exponent = 1 - 127,
+            .factored_exponent = 1 - 127 - 23,
+            .has_unequal_margins = false,
+            .sign = binary32->sign,
+        };
+
+        return result;
+    }
 }
 
 static FloatParts unpack_binary64(const Ieee754Binary64OrDouble* binary64)
 {
-    FloatParts result =
+    if(binary64->exponent != 0)
     {
-        .mantissa = UINT64_C(0x10000000000000) | binary64->fraction,
-        .mantissa_high_bit = UINT32_C(52),
-        .exponent = (int32_t) binary64->exponent - INT32_C(1024),
-        .factored_exponent =
-                (int32_t) binary64->exponent - INT32_C(1023) - INT32_C(52),
-        .has_unequal_margins =
-                binary64->exponent != 1 && binary64->fraction == 0,
-        .sign = binary64->sign,
-    };
+        FloatParts result =
+        {
+            .mantissa = UINT64_C(0x10000000000000) | binary64->fraction,
+            .mantissa_high_bit = 52,
+            .exponent = (int32_t) binary64->exponent - 1023,
+            .factored_exponent = (int32_t) binary64->exponent - 1023 - 52,
+            .has_unequal_margins =
+                    binary64->exponent != 1 && binary64->fraction == 0,
+            .sign = binary64->sign,
+        };
 
-    return result;
+        return result;
+    }
+    else
+    {
+        FloatParts result =
+        {
+            .mantissa = binary64->fraction,
+            .mantissa_high_bit = log2_uint32(binary64->fraction),
+            .exponent = 1 - 1023,
+            .factored_exponent = 1 - 1023 - 52,
+            .has_unequal_margins = false,
+            .sign = binary64->sign,
+        };
+
+        return result;
+    }
 }
 
-static FloatResult handle_nan_or_infinity(const FloatParts* value)
+static FloatResult handle_nan_or_infinity(const FloatParts* value,
+        void* allocator)
 {
     FloatResult result;
+    aft_string_initialise_with_allocator(&result.digits, allocator);
 
     if((((UINT64_C(1) << value->mantissa_high_bit) - 1) & value->mantissa) == 0)
     {
@@ -143,16 +177,15 @@ static FloatResult handle_nan_or_infinity(const FloatParts* value)
 }
 
 static FloatResult dragon4(const FloatParts* parts,
-        const FloatFormat* format)
+        const FloatFormat* format, void* allocator)
 {
     FloatResult result;
+    aft_string_initialise_with_allocator(&result.digits, allocator);
     result.type = FLOAT_RESULT_TYPE_NORMAL;
-    result.digits_count = 0;
 
-    if(parts->mantissa == UINT64_C(0))
+    if(parts->mantissa == 0)
     {
-        result.digits[0] = 0;
-        result.digits_count = 1;
+        aft_string_append_char(&result.digits, 0);
         result.exponent = 0;
         return result;
     }
@@ -302,8 +335,7 @@ static FloatResult dragon4(const FloatParts* parts,
             break;
         }
 
-        result.digits[result.digits_count] = output_digit;
-        result.digits_count += 1;
+        aft_string_append_char(&result.digits, output_digit);
 
         big_int_decuple(&scaled_value);
     }
@@ -324,37 +356,38 @@ static FloatResult dragon4(const FloatParts* parts,
 
     if(round_down)
     {
-        result.digits[result.digits_count] = output_digit;
-        result.digits_count += 1;
+        aft_string_append_char(&result.digits, output_digit);
     }
     else
     {
         if(output_digit == 9)
         {
-            for(;;)
+            char* contents = aft_string_get_contents(&result.digits);
+
+            for(int digit_index = aft_string_get_count(&result.digits);;)
             {
-                if(result.digits_count == 0)
+                if(digit_index == 0)
                 {
-                    result.digits[result.digits_count] = 1;
-                    result.digits_count += 1;
+                    aft_string_append_char(&result.digits, 1);
                     result.exponent += 1;
                     break;
                 }
 
-                result.digits_count -= 1;
+                digit_index -= 1;
 
-                if(result.digits[result.digits_count] != 9)
+                if(contents[digit_index] != 9)
                 {
-                    result.digits[result.digits_count] += 1;
-                    result.digits_count += 1;
+                    contents[digit_index] += 1;
                     break;
                 }
+
+                AftStringRange range = {digit_index, digit_index + 1};
+                aft_string_remove(&result.digits, &range);
             }
         }
         else
         {
-            result.digits[result.digits_count] = output_digit + 1;
-            result.digits_count += 1;
+            aft_string_append_char(&result.digits, output_digit + 1);
         }
     }
 
@@ -363,7 +396,8 @@ static FloatResult dragon4(const FloatParts* parts,
     {
         case CUTOFF_MODE_FRACTION_DIGITS:
         {
-            int integer_digits = result.digits_count - result.exponent;
+            int integer_digits =
+                    aft_string_get_count(&result.digits) - result.exponent;
             min_digits = integer_digits + format->min_fraction_digits;
             break;
         }
@@ -374,50 +408,56 @@ static FloatResult dragon4(const FloatParts* parts,
         }
     }
 
-    for(int digit_index = result.digits_count - 1;
+    int digits_count = aft_string_get_count(&result.digits);
+    const char* digits_contents = aft_string_get_contents_const(&result.digits);
+
+    for(int digit_index = digits_count - 1;
             digit_index > min_digits;
             digit_index -= 1)
     {
-        int digit = result.digits[digit_index];
+        int digit = digits_contents[digit_index];
 
         if(digit != 0)
         {
             break;
         }
 
-        result.digits_count -= 1;
+        AftStringRange range = {digit_index, digit_index + 1};
+        aft_string_remove(&result.digits, &range);
     }
 
     return result;
 }
 
 
-FloatResult format_double(double value, const FloatFormat* format)
+FloatResult format_double(double value, const FloatFormat* format,
+        void* allocator)
 {
     Ieee754Binary64OrDouble binary64 = {.value = value};
     FloatParts parts = unpack_binary64(&binary64);
 
-    if(parts.exponent == INT32_C(1023))
+    if(parts.exponent == 1024)
     {
-        return handle_nan_or_infinity(&parts);
+        return handle_nan_or_infinity(&parts, allocator);
     }
     else
     {
-        return dragon4(&parts, format);
+        return dragon4(&parts, format, allocator);
     }
 }
 
-FloatResult format_float(float value, const FloatFormat* format)
+FloatResult format_float(float value, const FloatFormat* format,
+        void* allocator)
 {
     Ieee754Binary32OrFloat binary32 = {.value = value};
     FloatParts parts = unpack_binary32(&binary32);
 
-    if(parts.exponent == INT32_C(127))
+    if(parts.exponent == 128)
     {
-        return handle_nan_or_infinity(&parts);
+        return handle_nan_or_infinity(&parts, allocator);
     }
     else
     {
-        return dragon4(&parts, format);
+        return dragon4(&parts, format, allocator);
     }
 }

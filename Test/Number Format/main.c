@@ -1,5 +1,6 @@
 #include "../Utility/test.h"
 
+#include <float.h>
 #include <math.h>
 
 static bool test_default(Test* test)
@@ -98,6 +99,35 @@ static bool test_default_double_infinity(Test* test)
     return result;
 }
 
+static bool test_default_double_max(Test* test)
+{
+    const double value = DBL_MAX;
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    ASSERT(defaulted);
+
+    AftMaybeString string =
+            aft_string_from_double_with_allocator(value, &format,
+                    &test->allocator);
+
+    const char* reference =
+            "179769313486231570814527423731704356798070567525844996598917476803"
+            "157260780028538760589558632766878171540458953514382464234321326889"
+            "464182768467546703537516986049910576551282076245490090389328944075"
+            "868508455133942304583236903222948165808559332123348274797826204144"
+            "723168738177180919299881250404026184124858368";
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = string.valid && strings_match(reference, contents);
+
+    aft_string_destroy(&string.value);
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
 static bool test_default_double_nan(Test* test)
 {
     const double value = NAN;
@@ -122,9 +152,57 @@ static bool test_default_double_nan(Test* test)
     return result;
 }
 
+static bool test_default_double_one(Test* test)
+{
+    const double value = 1.0;
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    ASSERT(defaulted);
+
+    AftMaybeString string =
+            aft_string_from_double_with_allocator(value, &format,
+                    &test->allocator);
+
+    const char* reference = "1";
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = string.valid && strings_match(reference, contents);
+
+    aft_string_destroy(&string.value);
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
 static bool test_default_double_small(Test* test)
 {
     const double value = 0.00000000000078904;
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    ASSERT(defaulted);
+
+    AftMaybeString string =
+            aft_string_from_double_with_allocator(value, &format,
+                    &test->allocator);
+
+    const char* reference = "0";
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = string.valid && strings_match(reference, contents);
+
+    aft_string_destroy(&string.value);
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_default_double_zero(Test* test)
+{
+    const double value = 0.0;
 
     AftDecimalFormat format;
     bool defaulted =
@@ -161,6 +239,30 @@ static bool test_default_float_infinity(Test* test)
                     &test->allocator);
 
     const char* reference = u8"-∞";
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = string.valid && strings_match(reference, contents);
+
+    aft_string_destroy(&string.value);
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_default_float_max(Test* test)
+{
+    const float value = FLT_MAX;
+
+    AftDecimalFormat format;
+    bool defaulted =
+            aft_decimal_format_default_with_allocator(&format,
+                    &test->allocator);
+    ASSERT(defaulted);
+
+    AftMaybeString string =
+            aft_string_from_float_with_allocator(value, &format,
+                    &test->allocator);
+
+    const char* reference = "340282346638528859811704183484516925440";
     const char* contents = aft_string_get_contents_const(&string.value);
     bool result = string.valid && strings_match(reference, contents);
 
@@ -736,10 +838,14 @@ int main(int argc, const char** argv)
     add_test(&suite, test_default_double_big, "Test Default double Big");
     add_test(&suite, test_default_double_infinity,
             "Test Default double Infinity");
+    add_test(&suite, test_default_double_max, "Test Default double Max");
     add_test(&suite, test_default_double_nan, "Test Default double NaN");
+    add_test(&suite, test_default_double_one, "Test Default double One");
     add_test(&suite, test_default_double_small, "Test Default double Small");
+    add_test(&suite, test_default_double_zero, "Test Default double Zero");
     add_test(&suite, test_default_float_infinity,
                 "Test Default float Infinity");
+    add_test(&suite, test_default_float_max, "Test Default float Max");
     add_test(&suite, test_default_float_nan, "Test Default float NaN");
     add_test(&suite, test_default_int, "Test Default int");
     add_test(&suite, test_default_int64, "Test Default int64_t");

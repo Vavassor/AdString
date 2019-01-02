@@ -143,6 +143,7 @@ bool aft_deallocate(void* allocator, AftMemoryBlock block);
 bool aft_string_add(AftString* to, const AftString* from, int index);
 bool aft_string_append(AftString* to, const AftString* from);
 bool aft_string_append_c_string(AftString* to, const char* from);
+bool aft_string_append_char(AftString* to, char from);
 bool aft_string_append_range(AftString* to, const AftString* from,
         const AftStringRange* range);
 bool aft_string_assign(AftString* to, const AftString* from);

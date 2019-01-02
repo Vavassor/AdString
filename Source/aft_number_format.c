@@ -551,6 +551,10 @@ static void format_float_result(AftMaybeString* result,
         {
             apply_prefix(&result->value, format, digits->sign);
 
+            const char* digits_contents =
+                    aft_string_get_contents_const(&digits->digits);
+            int digits_count = aft_string_get_count(&digits->digits);
+
             switch(format->style)
             {
                 case AFT_DECIMAL_FORMAT_STYLE_CURRENCY:
@@ -562,7 +566,7 @@ static void format_float_result(AftMaybeString* result,
                         aft_string_append(&result->value,
                                 &format->symbols.digits[0]);
 
-                        if(digits->digits_count > 1)
+                        if(digits_count > 1)
                         {
                             aft_string_append(&result->value,
                                     &format->symbols.radix_separator);
@@ -570,22 +574,22 @@ static void format_float_result(AftMaybeString* result,
                                     -digits->exponent);
 
                             for(int digit_index = 0;
-                                    digit_index < digits->digits_count;
+                                    digit_index < digits_count;
                                     digit_index += 1)
                             {
-                                int digit = digits->digits[digit_index];
+                                int digit = digits_contents[digit_index];
                                 aft_string_append(&result->value,
                                         &format->symbols.digits[digit]);
                             }
                         }
                     }
-                    else if(digits->exponent < digits->digits_count)
+                    else if(digits->exponent < digits_count)
                     {
                         for(int digit_index = 0;
                                 digit_index < digits->exponent;
                                 digit_index += 1)
                         {
-                            int digit = digits->digits[digit_index];
+                            int digit = digits_contents[digit_index];
                             aft_string_append(&result->value,
                                     &format->symbols.digits[digit]);
                         }
@@ -594,10 +598,10 @@ static void format_float_result(AftMaybeString* result,
                                 &format->symbols.radix_separator);
 
                         for(int digit_index = digits->exponent;
-                                digit_index < digits->digits_count;
+                                digit_index < digits_count;
                                 digit_index += 1)
                         {
-                            int digit = digits->digits[digit_index];
+                            int digit = digits_contents[digit_index];
                             aft_string_append(&result->value,
                                     &format->symbols.digits[digit]);
                         }
@@ -605,34 +609,34 @@ static void format_float_result(AftMaybeString* result,
                     else
                     {
                         for(int digit_index = 0;
-                                digit_index < digits->digits_count;
+                                digit_index < digits_count;
                                 digit_index += 1)
                         {
-                            int digit = digits->digits[digit_index];
+                            int digit = digits_contents[digit_index];
                             aft_string_append(&result->value,
                                     &format->symbols.digits[digit]);
                         }
 
                         pad_zeros_without_separator(&result->value, format,
-                                digits->exponent - digits->digits_count);
+                                digits->exponent - digits_count);
                     }
                     break;
                 }
                 case AFT_DECIMAL_FORMAT_STYLE_SCIENTIFIC:
                 {
                     aft_string_append(&result->value,
-                            &format->symbols.digits[digits->digits[0]]);
+                            &format->symbols.digits[digits_contents[0]]);
 
-                    if(digits->digits_count > 1)
+                    if(digits_count > 1)
                     {
                         aft_string_append(&result->value,
                                 &format->symbols.radix_separator);
 
                         for(int digit_index = 1;
-                                digit_index < digits->digits_count;
+                                digit_index < digits_count;
                                 digit_index += 1)
                         {
-                            int digit = digits->digits[digit_index];
+                            int digit = digits_contents[digit_index];
                             aft_string_append(&result->value,
                                     &format->symbols.digits[digit]);
                         }
@@ -646,11 +650,6 @@ static void format_float_result(AftMaybeString* result,
                             aft_string_append(&result->value,
                                     &format->symbols.minus_sign);
                             exponent = -exponent;
-                        }
-                        else if(format->use_explicit_plus_sign)
-                        {
-                            aft_string_append(&result->value,
-                                    &format->symbols.plus_sign);
                         }
 
                         AFT_ASSERT(count_digits(exponent) <= 3);
@@ -885,9 +884,11 @@ AftMaybeString aft_string_from_double_with_allocator(double value,
             float_format.min_fraction_digits = format->min_fraction_digits;
         }
     }
-    FloatResult digits = format_double(value, &float_format);
+    FloatResult digits = format_double(value, &float_format, allocator);
 
     format_float_result(&result, &digits, format);
+
+    aft_string_destroy(&digits.digits);
 
     return result;
 }
@@ -929,9 +930,11 @@ AftMaybeString aft_string_from_float_with_allocator(float value,
             float_format.min_fraction_digits = format->min_fraction_digits;
         }
     }
-    FloatResult digits = format_float(value, &float_format);
+    FloatResult digits = format_float(value, &float_format, allocator);
 
     format_float_result(&result, &digits, format);
+
+    aft_string_destroy(&digits.digits);
 
     return result;
 }
