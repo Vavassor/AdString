@@ -303,7 +303,7 @@ static FloatResult dragon4(const FloatParts* parts,
     AFT_ASSERT(scale.blocks_count > 0);
     uint32_t high_block = scale.blocks[scale.blocks_count - 1];
 
-    if(high_block < 8 || high_block > 429496729)
+    if(high_block < 8 || high_block > 0x19999999)
     {
         uint32_t high_block_log2 = log2_uint32(high_block);
         AFT_ASSERT(high_block_log2 < 3 || high_block_log2 > 27);
@@ -412,7 +412,7 @@ static FloatResult dragon4(const FloatParts* parts,
     const char* digits_contents = aft_string_get_contents_const(&result.digits);
 
     for(int digit_index = digits_count - 1;
-            digit_index > min_digits;
+            digit_index >= min_digits;
             digit_index -= 1)
     {
         int digit = digits_contents[digit_index];

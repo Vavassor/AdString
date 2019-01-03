@@ -931,7 +931,7 @@ bool aft_decimal_format_default_scientific_with_allocator(
             allocator);
 
     format->max_fraction_digits = 3;
-    format->max_integer_digits = 42;
+    format->max_integer_digits = 1;
     format->min_fraction_digits = 0;
     format->min_integer_digits = 1;
     format->rounding_mode = AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_EVEN;

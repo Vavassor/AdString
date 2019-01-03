@@ -639,6 +639,29 @@ static bool test_min_fraction_digits_double(Test* test)
     return result;
 }
 
+static bool test_min_fraction_digits_scientific_double(Test* test)
+{
+    const double value = 0.00000000000078904;
+
+    AftDecimalFormat format;
+    bool defaulted = aft_decimal_format_default_scientific_with_allocator(&format, &test->allocator);
+    format.max_fraction_digits = 12;
+    format.min_fraction_digits = 8;
+    ASSERT(defaulted);
+
+    AftMaybeString string = aft_string_from_double_with_allocator(value, &format, &test->allocator);
+
+    const char* reference = "7.89040000E-13";
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = string.valid && strings_match(reference, contents);
+
+    aft_string_destroy(&string.value);
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+
 static bool test_min_integer_digits(Test* test)
 {
     const int value = 1234;
@@ -759,6 +782,29 @@ static bool test_min_significant_digits_double(Test* test)
         aft_string_destroy(&string.value);
     }
 
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_min_significant_digits_scientific_double(Test* test)
+{
+    const double value = 0.00000000000078904;
+
+    AftDecimalFormat format;
+    bool defaulted = aft_decimal_format_default_scientific_with_allocator(&format, &test->allocator);
+    format.use_significant_digits = true;
+    format.max_significant_digits = 12;
+    format.min_significant_digits = 7;
+    ASSERT(defaulted);
+
+    AftMaybeString string = aft_string_from_double_with_allocator(value, &format, &test->allocator);
+
+    const char* reference = "7.890400E-13";
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = string.valid && strings_match(reference, contents);
+
+    aft_string_destroy(&string.value);
     aft_decimal_format_destroy(&format);
 
     return result;
@@ -1055,10 +1101,12 @@ int main(int argc, const char** argv)
     add_test(&suite, test_max_significant_digits, "Test Max Significant Digits");
     add_test(&suite, test_min_fraction_digits, "Test Min Fraction Digits");
     add_test(&suite, test_min_fraction_digits_double, "Test Min Fraction Digits double");
+    add_test(&suite, test_min_fraction_digits_scientific_double, "Test Min Fraction Digits Scientific double");
     add_test(&suite, test_min_integer_digits, "Test Min Integer Digits");
     add_test(&suite, test_min_integer_digits_double, "Test Min Integer Digits double");
     add_test(&suite, test_min_significant_digits_int, "Test Min Significant Digits int");
     add_test(&suite, test_min_significant_digits_double, "Test Min Significant Digits double");
+    add_test(&suite, test_min_significant_digits_scientific_double, "Test Min Significant Digits Scientific double");
     add_test(&suite, test_round_ceiling, "Test Round Down");
     add_test(&suite, test_round_down, "Test Round Down");
     add_test(&suite, test_round_floor, "Test Round Floor");
