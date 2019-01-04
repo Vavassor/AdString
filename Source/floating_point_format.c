@@ -101,8 +101,7 @@ static FloatParts unpack_binary32(const Ieee754Binary32OrFloat* binary32)
             .mantissa_high_bit = 23,
             .exponent = (int32_t) binary32->exponent - 127,
             .factored_exponent = (int32_t) binary32->exponent - 127 - 23,
-            .has_unequal_margins =
-                    binary32->exponent != 1 && binary32->fraction == 0,
+            .has_unequal_margins = binary32->exponent != 1 && binary32->fraction == 0,
             .sign = binary32->sign,
         };
 
@@ -134,8 +133,7 @@ static FloatParts unpack_binary64(const Ieee754Binary64OrDouble* binary64)
             .mantissa_high_bit = 52,
             .exponent = (int32_t) binary64->exponent - 1023,
             .factored_exponent = (int32_t) binary64->exponent - 1023 - 52,
-            .has_unequal_margins =
-                    binary64->exponent != 1 && binary64->fraction == 0,
+            .has_unequal_margins = binary64->exponent != 1 && binary64->fraction == 0,
             .sign = binary64->sign,
         };
 
@@ -157,8 +155,7 @@ static FloatParts unpack_binary64(const Ieee754Binary64OrDouble* binary64)
     }
 }
 
-static FloatResult handle_nan_or_infinity(const FloatParts* value,
-        void* allocator)
+static FloatResult handle_nan_or_infinity(const FloatParts* value, void* allocator)
 {
     FloatResult result;
     aft_string_initialise_with_allocator(&result.digits, allocator);
@@ -176,8 +173,7 @@ static FloatResult handle_nan_or_infinity(const FloatParts* value,
     return result;
 }
 
-static FloatResult dragon4(const FloatParts* parts,
-        const FloatFormat* format, void* allocator)
+static FloatResult dragon4(const FloatParts* parts, const FloatFormat* format, void* allocator)
 {
     FloatResult result;
     aft_string_initialise_with_allocator(&result.digits, allocator);
@@ -240,8 +236,7 @@ static FloatResult dragon4(const FloatParts* parts,
     }
 
     const double log10_2 = 0.30102999566398119521373889472449;
-    int32_t estimated_exponent =
-            (int32_t) ceil(log10_2 * parts->exponent - 0.69);
+    int32_t estimated_exponent = (int32_t) ceil(log10_2 * parts->exponent - 0.69);
 
     if(format->cutoff_mode == CUTOFF_MODE_FRACTION_DIGITS
             && estimated_exponent <= -(int32_t) format->max_fraction_digits)
@@ -292,8 +287,7 @@ static FloatResult dragon4(const FloatParts* parts,
         }
         case CUTOFF_MODE_SIGNIFICANT_DIGITS:
         {
-            cutoff_exponent =
-                    digit_exponent - (int32_t) format->max_significant_digits;
+            cutoff_exponent = digit_exponent - (int32_t) format->max_significant_digits;
             break;
         }
     }
@@ -396,8 +390,7 @@ static FloatResult dragon4(const FloatParts* parts,
     {
         case CUTOFF_MODE_FRACTION_DIGITS:
         {
-            int integer_digits =
-                    aft_string_get_count(&result.digits) - result.exponent;
+            int integer_digits = aft_string_get_count(&result.digits) - result.exponent;
             min_digits = integer_digits + format->min_fraction_digits;
             break;
         }
@@ -430,8 +423,7 @@ static FloatResult dragon4(const FloatParts* parts,
 }
 
 
-FloatResult format_double(double value, const FloatFormat* format,
-        void* allocator)
+FloatResult format_double(double value, const FloatFormat* format, void* allocator)
 {
     Ieee754Binary64OrDouble binary64 = {.value = value};
     FloatParts parts = unpack_binary64(&binary64);
@@ -446,8 +438,7 @@ FloatResult format_double(double value, const FloatFormat* format,
     }
 }
 
-FloatResult format_float(float value, const FloatFormat* format,
-        void* allocator)
+FloatResult format_float(float value, const FloatFormat* format, void* allocator)
 {
     Ieee754Binary32OrFloat binary32 = {.value = value};
     FloatParts parts = unpack_binary32(&binary32);

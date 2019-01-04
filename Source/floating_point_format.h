@@ -46,10 +46,7 @@ typedef struct FloatFormat
     CutoffMode cutoff_mode;
 } FloatFormat;
 
-
-FloatResult format_double(double value, const FloatFormat* format,
-        void* allocator);
-FloatResult format_float(float value, const FloatFormat* format,
-        void* allocator);
+FloatResult format_double(double value, const FloatFormat* format, void* allocator);
+FloatResult format_float(float value, const FloatFormat* format, void* allocator);
 
 #endif // FLOATING_POINT_FORMAT_H_

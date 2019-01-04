@@ -349,8 +349,7 @@ void aft_ascii_to_lowercase(AftString* string)
 
     for(int char_index = 0; char_index < count; char_index += 1)
     {
-        contents[char_index] =
-                aft_ascii_to_lowercase_char(contents[char_index]);
+        contents[char_index] = aft_ascii_to_lowercase_char(contents[char_index]);
     }
 }
 
@@ -375,8 +374,7 @@ void aft_ascii_to_uppercase(AftString* string)
 
     for(int char_index = 0; char_index < count; char_index += 1)
     {
-        contents[char_index] =
-                aft_ascii_to_uppercase_char(contents[char_index]);
+        contents[char_index] = aft_ascii_to_uppercase_char(contents[char_index]);
     }
 }
 
@@ -399,8 +397,7 @@ AftMaybeUint64 aft_ascii_uint64_from_string(const AftString* string)
     return aft_ascii_uint64_from_string_range(string, &range);
 }
 
-AftMaybeUint64 aft_ascii_uint64_from_string_range(const AftString* string,
-        const AftStringRange* range)
+AftMaybeUint64 aft_ascii_uint64_from_string_range(const AftString* string, const AftStringRange* range)
 {
     AFT_ASSERT(string);
     AFT_ASSERT(range);
@@ -472,8 +469,7 @@ bool aft_string_add(AftString* to, const AftString* from, int index)
     int shift_bytes = prior_count - index;
     if(shift_bytes > 0)
     {
-        copy_memory(&to_contents[index + from_count], &to_contents[index],
-                shift_bytes);
+        copy_memory(&to_contents[index + from_count], &to_contents[index], shift_bytes);
     }
     copy_memory(&to_contents[index], from_contents, from_count);
     to_contents[count] = '\0';
@@ -539,8 +535,7 @@ bool aft_string_append_char(AftString* to, char from)
     return true;
 }
 
-bool aft_string_append_range(AftString* to, const AftString* from,
-        const AftStringRange* range)
+bool aft_string_append_range(AftString* to, const AftString* from, const AftStringRange* range)
 {
     AFT_ASSERT(to);
     AFT_ASSERT(from);
@@ -559,8 +554,7 @@ bool aft_string_append_range(AftString* to, const AftString* from,
     aft_string_set_count(to, count);
     char* to_contents = aft_string_get_contents(to);
     const char* from_contents = aft_string_get_contents_const(from);
-    copy_memory(&to_contents[prior_count], &from_contents[range->start],
-            from_count);
+    copy_memory(&to_contents[prior_count], &from_contents[range->start], from_count);
     to_contents[count] = '\0';
 
     AFT_ASSERT(aft_string_check_uncorrupted(to));
@@ -707,8 +701,7 @@ AftMaybeInt aft_string_find_first_string(const AftString* string,
 
     for(int char_index = 0; char_index < search_count; char_index += 1)
     {
-        if(memory_matches(&string_contents[char_index], lookup_contents,
-                lookup_count))
+        if(memory_matches(&string_contents[char_index], lookup_contents, lookup_count))
         {
             result.value = char_index;
             result.valid = true;
@@ -745,8 +738,7 @@ AftMaybeInt aft_string_find_last_char(const AftString* string, char c)
     return result;
 }
 
-AftMaybeInt aft_string_find_last_string(const AftString* string,
-        const AftString* lookup)
+AftMaybeInt aft_string_find_last_string(const AftString* string, const AftString* lookup)
 {
     AFT_ASSERT(string);
     AFT_ASSERT(lookup);
@@ -762,8 +754,7 @@ AftMaybeInt aft_string_find_last_string(const AftString* string,
 
     for(int char_index = search_count - 1; char_index >= 0; char_index -= 1)
     {
-        if(memory_matches(&string_contents[char_index], lookup_contents,
-                lookup_count))
+        if(memory_matches(&string_contents[char_index], lookup_contents, lookup_count))
         {
             result.value = char_index;
             result.valid = true;
@@ -781,8 +772,7 @@ AftMaybeString aft_string_from_buffer(const char* buffer, int bytes)
     return aft_string_from_buffer_with_allocator(buffer, bytes, NULL);
 }
 
-AftMaybeString aft_string_from_buffer_with_allocator(const char* buffer,
-        int bytes, void* allocator)
+AftMaybeString aft_string_from_buffer_with_allocator(const char* buffer, int bytes, void* allocator)
 {
     int cap = bytes + 1;
 
@@ -825,8 +815,7 @@ AftMaybeString aft_string_from_c_string(const char* original)
     return aft_string_from_c_string_with_allocator(original, NULL);
 }
 
-AftMaybeString aft_string_from_c_string_with_allocator(const char* original,
-        void* allocator)
+AftMaybeString aft_string_from_c_string_with_allocator(const char* original, void* allocator)
 {
     int bytes = string_size(original);
     int cap = bytes + 1;
@@ -953,8 +942,7 @@ void aft_string_remove(AftString* string, const AftStringRange* range)
     AFT_ASSERT(aft_string_check_uncorrupted(string));
 }
 
-bool aft_string_replace(AftString* to, const AftStringRange* range,
-        const AftString* from)
+bool aft_string_replace(AftString* to, const AftStringRange* range, const AftString* from)
 {
     AFT_ASSERT(to);
     AFT_ASSERT(range);
@@ -978,8 +966,7 @@ bool aft_string_replace(AftString* to, const AftStringRange* range,
 
     int inserted_end = range->start + from_count;
     int moved_bytes = to_count - range->end;
-    copy_memory(&to_contents[inserted_end], &to_contents[range->end],
-            moved_bytes);
+    copy_memory(&to_contents[inserted_end], &to_contents[range->end], moved_bytes);
 
     copy_memory(&to_contents[range->start], from_contents, from_count);
     aft_string_set_count(to, count);
@@ -1063,8 +1050,7 @@ bool aft_string_starts_with(const AftString* string, const AftString* lookup)
     }
 }
 
-AftMaybeString aft_string_substring(const AftString* string,
-        const AftStringRange* range)
+AftMaybeString aft_string_substring(const AftString* string, const AftStringRange* range)
 {
     AFT_ASSERT(string);
     AFT_ASSERT(range);
@@ -1073,8 +1059,7 @@ AftMaybeString aft_string_substring(const AftString* string,
     const char* contents = aft_string_get_contents_const(string);
     const char* buffer = &contents[range->start];
     int bytes = range->end - range->start;
-    return aft_string_from_buffer_with_allocator(buffer, bytes,
-            string->allocator);
+    return aft_string_from_buffer_with_allocator(buffer, bytes, string->allocator);
 }
 
 char* aft_string_to_c_string(const AftString* string)
@@ -1082,8 +1067,7 @@ char* aft_string_to_c_string(const AftString* string)
     return aft_string_to_c_string_with_allocator(string, NULL);
 }
 
-char* aft_string_to_c_string_with_allocator(const AftString* string,
-        void* allocator)
+char* aft_string_to_c_string_with_allocator(const AftString* string, void* allocator)
 {
     AFT_ASSERT(string);
 
@@ -1102,9 +1086,7 @@ char* aft_string_to_c_string_with_allocator(const AftString* string,
     return result;
 }
 
-
-bool aft_string_range_check(const AftString* string,
-        const AftStringRange* range)
+bool aft_string_range_check(const AftString* string, const AftStringRange* range)
 {
     int count = aft_string_get_count(string);
 
@@ -1163,8 +1145,7 @@ AftMaybeString aft_utf32_to_utf8(const AftUtf32String* string)
     return aft_utf32_to_utf8_with_allocator(string, NULL);
 }
 
-AftMaybeString aft_utf32_to_utf8_with_allocator(const AftUtf32String* string,
-        void* allocator)
+AftMaybeString aft_utf32_to_utf8_with_allocator(const AftUtf32String* string, void* allocator)
 {
     AFT_ASSERT(string);
 
@@ -1229,8 +1210,7 @@ bool aft_utf8_check(const AftString* string)
 {
     AFT_ASSERT(string);
 
-    const uint8_t* contents =
-            (const uint8_t*) aft_string_get_contents_const(string);
+    const uint8_t* contents = (const uint8_t*) aft_string_get_contents_const(string);
     int count = aft_string_get_count(string);
     uint8_t state = 0;
 
@@ -1456,8 +1436,7 @@ AftMaybeChar32 aft_codepoint_iterator_prior(AftCodepointIterator* it)
     return result;
 }
 
-void aft_codepoint_iterator_set_string(AftCodepointIterator* it,
-        AftString* string)
+void aft_codepoint_iterator_set_string(AftCodepointIterator* it, AftString* string)
 {
     AFT_ASSERT(it);
     AFT_ASSERT(string);
