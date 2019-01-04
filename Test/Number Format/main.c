@@ -28,14 +28,10 @@ static bool test_default_double(Test* test)
     const double value = 789.04;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_double_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_double_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "789.04";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -52,14 +48,10 @@ static bool test_default_double_big(Test* test)
     const double value = 789040000000000000000.0;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_double_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_double_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "789040000000000000000";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -76,14 +68,10 @@ static bool test_default_double_infinity(Test* test)
     const double value = -HUGE_VAL;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_double_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_double_with_allocator(value, &format, &test->allocator);
 
     const char* reference = u8"-∞";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -120,14 +108,10 @@ static bool test_default_double_nan(Test* test)
     const double value = NAN;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_double_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_double_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "NaN";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -144,14 +128,10 @@ static bool test_default_double_one(Test* test)
     const double value = 1.0;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_double_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_double_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "1";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -168,14 +148,10 @@ static bool test_default_double_small(Test* test)
     const double value = 0.00000000000078904;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_double_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_double_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "0";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -192,14 +168,10 @@ static bool test_default_double_zero(Test* test)
     const double value = 0.0;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_double_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_double_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "0";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -216,14 +188,10 @@ static bool test_default_float_infinity(Test* test)
     const float value = -HUGE_VALF;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_float_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_float_with_allocator(value, &format, &test->allocator);
 
     const char* reference = u8"-∞";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -240,14 +208,10 @@ static bool test_default_float_max(Test* test)
     const float value = FLT_MAX;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_float_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_float_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "340282346638528859811704183484516925440";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -264,14 +228,10 @@ static bool test_default_float_nan(Test* test)
     const float value = NAN;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_float_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_float_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "NaN";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -288,13 +248,10 @@ static bool test_default_int(Test* test)
     const int value = -7;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format, &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_int_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_int_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "-7";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -311,13 +268,10 @@ static bool test_default_int64(Test* test)
     const int64_t value = INT64_C(-9223372036854775807) - 1;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format, &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_int64_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_int64_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "-9223372036854775808";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -334,14 +288,10 @@ static bool test_default_scientific_double(Test* test)
     const double value = 789.04;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_scientific_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_scientific_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_double_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_double_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "7.89E2";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -358,14 +308,10 @@ static bool test_default_scientific_double_small(Test* test)
     const double value = 0.00000000000078904;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_scientific_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_scientific_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_double_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_double_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "7.89E-13";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -382,15 +328,11 @@ static bool test_double_max(Test* test)
     const double value = DBL_MAX;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     format.max_integer_digits = 309;
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_double_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_double_with_allocator(value, &format, &test->allocator);
 
     const char* reference =
             "179769313486231570814527423731704356798070567525844996598917476803"
@@ -413,9 +355,7 @@ static bool test_group_double(Test* test)
     const char* references[2] = {"798,040,000,0000.14", "798,040,000,0000"};
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     format.use_grouping = true;
     format.primary_grouping_size = 4;
     format.secondary_grouping_size = 3;
@@ -425,14 +365,10 @@ static bool test_group_double(Test* test)
 
     for(int case_index = 0; case_index < 2; case_index += 1)
     {
-        AftMaybeString string =
-                aft_string_from_double_with_allocator(values[case_index],
-                        &format, &test->allocator);
+        AftMaybeString string = aft_string_from_double_with_allocator(values[case_index], &format, &test->allocator);
 
         const char* contents = aft_string_get_contents_const(&string.value);
-        result = result
-                && string.valid
-                && strings_match(references[case_index], contents);
+        result = result && string.valid && strings_match(references[case_index], contents);
 
         aft_string_destroy(&string.value);
     }
@@ -451,9 +387,7 @@ static bool test_hexadecimal(Test* test)
         .base = 16,
         .use_uppercase = false,
     };
-    AftMaybeString string =
-            aft_ascii_from_uint64_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_ascii_from_uint64_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "ffffffffffffffff";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -469,15 +403,11 @@ static bool test_max_fraction_digits_double(Test* test)
     const double value = 0.00000000000078904;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     format.max_fraction_digits = 17;
     ASSERT(defaulted);
 
-    AftMaybeString string =
-            aft_string_from_double_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_double_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "0.00000000000078904";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -494,16 +424,12 @@ static bool test_max_integer_digits(Test* test)
     const int value = 123456789;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
     format.max_integer_digits = 4;
     format.use_grouping = true;
 
-    AftMaybeString string =
-            aft_string_from_int_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_int_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "6,789";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -521,9 +447,7 @@ static bool test_max_integer_digits_double(Test* test)
     const char* references[2] = {"2,437,8904.041", "2,437,8904"};
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     format.min_integer_digits = 1;
     format.max_integer_digits = 8;
     format.use_grouping = true;
@@ -535,14 +459,11 @@ static bool test_max_integer_digits_double(Test* test)
 
     for(int case_index = 0; case_index < 2; case_index += 1)
     {
-        AftMaybeString string =
-                aft_string_from_double_with_allocator(values[case_index],
-                        &format, &test->allocator);
+        AftMaybeString string = aft_string_from_double_with_allocator(values[case_index], &format, &test->allocator);
 
         const char* contents = aft_string_get_contents_const(&string.value);
-        result = result
-                && string.valid
-                && strings_match(references[case_index], contents);
+        bool contents_match = strings_match(references[case_index], contents);
+        result = result && string.valid && contents_match;
 
         aft_string_destroy(&string.value);
     }
@@ -557,18 +478,14 @@ static bool test_max_significant_digits(Test* test)
     const int value = 123456789;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
     format.use_significant_digits = true;
     format.max_significant_digits = 4;
     format.min_significant_digits = 0;
     format.use_grouping = true;
 
-    AftMaybeString string =
-            aft_string_from_int_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_int_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "123,400,000";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -585,15 +502,11 @@ static bool test_min_fraction_digits(Test* test)
     const int value = 1234;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
     format.min_fraction_digits = 3;
 
-    AftMaybeString string =
-            aft_string_from_int_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_int_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "1234.000";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -611,9 +524,7 @@ static bool test_min_fraction_digits_double(Test* test)
     const char* references[3] = {"0.78904000", "1.78904000", "78904.00000000"};
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     format.min_fraction_digits = 8;
     format.max_fraction_digits = 15;
     ASSERT(defaulted);
@@ -622,14 +533,11 @@ static bool test_min_fraction_digits_double(Test* test)
 
     for(int case_index = 0; case_index < 3; case_index += 1)
     {
-        AftMaybeString string =
-                aft_string_from_double_with_allocator(values[case_index],
-                        &format, &test->allocator);
+        AftMaybeString string = aft_string_from_double_with_allocator(values[case_index], &format, &test->allocator);
 
         const char* contents = aft_string_get_contents_const(&string.value);
-        result = result
-                && string.valid
-                && strings_match(references[case_index], contents);
+        bool contents_match = strings_match(references[case_index], contents);
+        result = result && string.valid && contents_match;
 
         aft_string_destroy(&string.value);
     }
@@ -667,17 +575,13 @@ static bool test_min_integer_digits(Test* test)
     const int value = 1234;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
     format.min_integer_digits = 7;
     format.use_grouping = true;
     format.primary_grouping_size = 2;
 
-    AftMaybeString string =
-            aft_string_from_int_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_int_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "00,012,34";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -695,9 +599,7 @@ static bool test_min_integer_digits_double(Test* test)
     const char* references[2] = {"000,789,0400.14", "000,789,0400"};
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     format.min_integer_digits = 10;
     format.use_grouping = true;
     format.primary_grouping_size = 4;
@@ -708,14 +610,11 @@ static bool test_min_integer_digits_double(Test* test)
 
     for(int case_index = 0; case_index < 2; case_index += 1)
     {
-        AftMaybeString string =
-                aft_string_from_double_with_allocator(values[case_index],
-                        &format, &test->allocator);
+        AftMaybeString string = aft_string_from_double_with_allocator(values[case_index], &format, &test->allocator);
 
         const char* contents = aft_string_get_contents_const(&string.value);
-        result = result
-                && string.valid
-                && strings_match(references[case_index], contents);
+        bool contents_match = strings_match(references[case_index], contents);
+        result = result && string.valid && contents_match;
 
         aft_string_destroy(&string.value);
     }
@@ -730,17 +629,14 @@ static bool test_min_significant_digits_int(Test* test)
     const int value = 123456789;
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format, &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
     format.use_significant_digits = true;
     format.max_significant_digits = 14;
     format.min_significant_digits = 14;
     format.use_grouping = true;
 
-    AftMaybeString string =
-            aft_string_from_int_with_allocator(value, &format,
-                    &test->allocator);
+    AftMaybeString string = aft_string_from_int_with_allocator(value, &format, &test->allocator);
 
     const char* reference = "123,456,789.00000";
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -758,9 +654,7 @@ static bool test_min_significant_digits_double(Test* test)
     const char* references[3] = {"0.78904000", "1.7890400", "78904.000"};
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     format.use_significant_digits = true;
     format.min_significant_digits = 8;
     format.max_significant_digits = 15;
@@ -770,14 +664,11 @@ static bool test_min_significant_digits_double(Test* test)
 
     for(int case_index = 0; case_index < 3; case_index += 1)
     {
-        AftMaybeString string =
-                aft_string_from_double_with_allocator(values[case_index],
-                        &format, &test->allocator);
+        AftMaybeString string = aft_string_from_double_with_allocator(values[case_index], &format, &test->allocator);
 
         const char* contents = aft_string_get_contents_const(&string.value);
-        result = result
-                && string.valid
-                && strings_match(references[case_index], contents);
+        bool contents_match = strings_match(references[case_index], contents);
+        result = result && string.valid && contents_match;
 
         aft_string_destroy(&string.value);
     }
@@ -813,15 +704,11 @@ static bool test_min_significant_digits_scientific_double(Test* test)
 static bool test_round_ceiling(Test* test)
 {
     const int values[11] = {20, 22, 24, 26, 28, 0, -20, -22, -24, -26, -28};
-    const char* references[11] =
-            {"24", "24", "24", "32", "32", "0", "-16", "-16", "-24", "-24",
-                    "-24"};
+    const char* references[11] = {"24", "24", "24", "32", "32", "0", "-16", "-16", "-24", "-24", "-24"};
     const int increments[11] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
     format.rounding_mode = AFT_DECIMAL_FORMAT_ROUNDING_MODE_CEILING;
 
@@ -831,14 +718,11 @@ static bool test_round_ceiling(Test* test)
     {
         format.rounding_increment_int = increments[case_index];
 
-        AftMaybeString string =
-                aft_string_from_int_with_allocator(values[case_index],
-                        &format, &test->allocator);
+        AftMaybeString string = aft_string_from_int_with_allocator(values[case_index], &format, &test->allocator);
 
         const char* contents = aft_string_get_contents_const(&string.value);
-        result = result
-                && string.valid
-                && strings_match(references[case_index], contents);
+        bool contents_match = strings_match(references[case_index], contents);
+        result = result && string.valid && contents_match;
 
         aft_string_destroy(&string.value);
     }
@@ -851,15 +735,11 @@ static bool test_round_ceiling(Test* test)
 static bool test_round_down(Test* test)
 {
     const int values[11] = {20, 22, 24, 26, 28, 0, -20, -22, -24, -26, -28};
-    const char* references[11] =
-            {"16", "16", "24", "24", "24", "0", "-16", "-16", "-24", "-24",
-                    "-24"};
+    const char* references[11] = {"16", "16", "24", "24", "24", "0", "-16", "-16", "-24", "-24", "-24"};
     const int increments[11] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
     format.rounding_mode = AFT_DECIMAL_FORMAT_ROUNDING_MODE_DOWN;
 
@@ -869,14 +749,11 @@ static bool test_round_down(Test* test)
     {
         format.rounding_increment_int = increments[case_index];
 
-        AftMaybeString string =
-                aft_string_from_int_with_allocator(values[case_index],
-                        &format, &test->allocator);
+        AftMaybeString string = aft_string_from_int_with_allocator(values[case_index], &format, &test->allocator);
 
         const char* contents = aft_string_get_contents_const(&string.value);
-        result = result
-                && string.valid
-                && strings_match(references[case_index], contents);
+        bool contents_match = strings_match(references[case_index], contents);
+        result = result && string.valid && contents_match;
 
         aft_string_destroy(&string.value);
     }
@@ -889,15 +766,11 @@ static bool test_round_down(Test* test)
 static bool test_round_floor(Test* test)
 {
     const int values[11] = {20, 22, 24, 26, 28, 0, -20, -22, -24, -26, -28};
-    const char* references[11] =
-            {"16", "16", "24", "24", "24", "0", "-24", "-24", "-24", "-32",
-                    "-32"};
+    const char* references[11] = {"16", "16", "24", "24", "24", "0", "-24", "-24", "-24", "-32", "-32"};
     const int increments[11] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
     format.rounding_mode = AFT_DECIMAL_FORMAT_ROUNDING_MODE_FLOOR;
 
@@ -907,14 +780,11 @@ static bool test_round_floor(Test* test)
     {
         format.rounding_increment_int = increments[case_index];
 
-        AftMaybeString string =
-                aft_string_from_int_with_allocator(values[case_index],
-                        &format, &test->allocator);
+        AftMaybeString string = aft_string_from_int_with_allocator(values[case_index], &format, &test->allocator);
 
         const char* contents = aft_string_get_contents_const(&string.value);
-        result = result
-                && string.valid
-                && strings_match(references[case_index], contents);
+        bool contents_match = strings_match(references[case_index], contents);
+        result = result && string.valid && contents_match;
 
         aft_string_destroy(&string.value);
     }
@@ -927,15 +797,11 @@ static bool test_round_floor(Test* test)
 static bool test_round_half_down(Test* test)
 {
     const int values[11] = {20, 22, 24, 26, 28, 0, -20, -22, -24, -26, -28};
-    const char* references[11] =
-            {"16", "24", "24", "24", "24", "0","-16", "-24", "-24", "-24",
-                    "-24"};
+    const char* references[11] = {"16", "24", "24", "24", "24", "0","-16", "-24", "-24", "-24", "-24"};
     const int increments[11] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
     format.rounding_mode = AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_DOWN;
 
@@ -945,9 +811,37 @@ static bool test_round_half_down(Test* test)
     {
         format.rounding_increment_int = increments[case_index];
 
-        AftMaybeString string =
-                aft_string_from_int_with_allocator(values[case_index],
-                        &format, &test->allocator);
+        AftMaybeString string = aft_string_from_int_with_allocator(values[case_index], &format, &test->allocator);
+
+        const char* contents = aft_string_get_contents_const(&string.value);
+        bool contents_match = strings_match(references[case_index], contents);
+        result = result && string.valid && contents_match;
+
+        aft_string_destroy(&string.value);
+    }
+
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
+static bool test_round_half_even_double(Test* test)
+{
+    const double values[8] = {20.0, 0.5, 0.7, 0.225, 1.5, -0.5, -0.6, -1.5};
+    const char* references[8] = {"16", "0", "0.75", "0.3", "2", "0", "-0.6", "-2"};
+    const double increments[8] = {8.0, 1.0, 0.15, 0.15, 1.0, 1.0, 0.15, 1.0};
+
+    AftDecimalFormat format;
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
+    ASSERT(defaulted);
+
+    bool result = true;
+
+    for(int case_index = 0; case_index < 8; case_index += 1)
+    {
+        format.rounding_increment_double = increments[case_index];
+
+        AftMaybeString string = aft_string_from_double_with_allocator(values[case_index], &format, &test->allocator);
 
         const char* contents = aft_string_get_contents_const(&string.value);
         result = result
@@ -962,17 +856,14 @@ static bool test_round_half_down(Test* test)
     return result;
 }
 
-static bool test_round_half_even(Test* test)
+static bool test_round_half_even_int(Test* test)
 {
     const int values[9] = {20, 24, 28, 32, 0, -20, -24, -28, -32};
-    const char* references[9] =
-            {"16", "24", "32", "32", "0", "-16", "-24", "-32", "-32"};
+    const char* references[9] = {"16", "24", "32", "32", "0", "-16", "-24", "-32", "-32"};
     const int increments[9] = {8, 8, 8, 8, 8, 8, 8, 8, 8};
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
 
     bool result = true;
@@ -981,14 +872,11 @@ static bool test_round_half_even(Test* test)
     {
         format.rounding_increment_int = increments[case_index];
 
-        AftMaybeString string =
-                aft_string_from_int_with_allocator(values[case_index],
-                        &format, &test->allocator);
+        AftMaybeString string = aft_string_from_int_with_allocator(values[case_index], &format, &test->allocator);
 
         const char* contents = aft_string_get_contents_const(&string.value);
-        result = result
-                && string.valid
-                && strings_match(references[case_index], contents);
+        bool contents_match = strings_match(references[case_index], contents);
+        result = result && string.valid && contents_match;
 
         aft_string_destroy(&string.value);
     }
@@ -1005,9 +893,7 @@ static bool test_round_half_up(Test* test)
     const int increments[7] = {8, 8, 8, 8, 8, 8, 8};
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
     format.rounding_mode = AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_UP;
 
@@ -1017,14 +903,11 @@ static bool test_round_half_up(Test* test)
     {
         format.rounding_increment_int = increments[case_index];
 
-        AftMaybeString string =
-                aft_string_from_int_with_allocator(values[case_index],
-                        &format, &test->allocator);
+        AftMaybeString string = aft_string_from_int_with_allocator(values[case_index], &format, &test->allocator);
 
         const char* contents = aft_string_get_contents_const(&string.value);
-        result = result
-                && string.valid
-                && strings_match(references[case_index], contents);
+        bool contents_match = strings_match(references[case_index], contents);
+        result = result && string.valid && contents_match;
 
         aft_string_destroy(&string.value);
     }
@@ -1037,15 +920,11 @@ static bool test_round_half_up(Test* test)
 static bool test_round_up(Test* test)
 {
     const int values[11] = {20, 22, 24, 26, 28, 0, -20, -22, -24, -26, -28};
-    const char* references[11] =
-            {"24", "24", "24", "32", "32", "0", "-24", "-24", "-24", "-32",
-                    "-32"};
+    const char* references[11] = {"24", "24", "24", "32", "32", "0", "-24", "-24", "-24", "-32", "-32"};
     const int increments[11] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
 
     AftDecimalFormat format;
-    bool defaulted =
-            aft_decimal_format_default_with_allocator(&format,
-                    &test->allocator);
+    bool defaulted = aft_decimal_format_default_with_allocator(&format, &test->allocator);
     ASSERT(defaulted);
     format.rounding_mode = AFT_DECIMAL_FORMAT_ROUNDING_MODE_UP;
 
@@ -1055,14 +934,11 @@ static bool test_round_up(Test* test)
     {
         format.rounding_increment_int = increments[case_index];
 
-        AftMaybeString string =
-                aft_string_from_int_with_allocator(values[case_index],
-                        &format, &test->allocator);
+        AftMaybeString string = aft_string_from_int_with_allocator(values[case_index], &format, &test->allocator);
 
         const char* contents = aft_string_get_contents_const(&string.value);
-        result = result
-                && string.valid
-                && strings_match(references[case_index], contents);
+        bool contents_match = strings_match(references[case_index], contents);
+        result = result && string.valid && contents_match;
 
         aft_string_destroy(&string.value);
     }
@@ -1111,7 +987,8 @@ int main(int argc, const char** argv)
     add_test(&suite, test_round_down, "Test Round Down");
     add_test(&suite, test_round_floor, "Test Round Floor");
     add_test(&suite, test_round_half_down, "Test Round Half Down");
-    add_test(&suite, test_round_half_even, "Test Round Half Even");
+    add_test(&suite, test_round_half_even_double, "Test Round Half Even double");
+    add_test(&suite, test_round_half_even_int, "Test Round Half Even int");
     add_test(&suite, test_round_half_up, "Test Round Half Up");
     add_test(&suite, test_round_up, "Test Round Up");
 

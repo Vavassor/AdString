@@ -78,9 +78,7 @@ BigInt big_int_add(const BigInt* a, const BigInt* b)
 
     for(; block_index < shorter_count; block_index += 1)
     {
-        uint64_t sum =
-                (uint64_t) longer->blocks[block_index]
-                + (uint64_t) shorter->blocks[block_index] + carry;
+        uint64_t sum = (uint64_t) longer->blocks[block_index] + (uint64_t) shorter->blocks[block_index] + carry;
         carry = sum >> 32;
         result.blocks[block_index] = sum & 0xffffffff;
     }
@@ -170,8 +168,7 @@ uint32_t big_int_divide_max_quotient_9(BigInt* dividend, const BigInt* divisor)
     int final_divisor_block = blocks_count - 1;
     int final_dividend_block = blocks_count - 1;
 
-    uint32_t quotient = dividend->blocks[final_dividend_block]
-             / (divisor->blocks[final_divisor_block] + 1);
+    uint32_t quotient = dividend->blocks[final_dividend_block] / (divisor->blocks[final_divisor_block] + 1);
     AFT_ASSERT(quotient <= 9);
 
     if(quotient != 0)
@@ -183,12 +180,10 @@ uint32_t big_int_divide_max_quotient_9(BigInt* dividend, const BigInt* divisor)
         uint64_t carry = 0;
         do
         {
-            uint64_t product = (uint64_t) divisor->blocks[divisor_index]
-                    * (uint64_t) quotient + carry;
+            uint64_t product = (uint64_t) divisor->blocks[divisor_index] * (uint64_t) quotient + carry;
             carry = product >> 32;
 
-            uint64_t difference = (uint64_t) dividend->blocks[dividend_index]
-                    - (product & 0xffffffff) - borrow;
+            uint64_t difference = (uint64_t) dividend->blocks[dividend_index] - (product & 0xffffffff) - borrow;
             borrow = (difference >> 32) & 1;
 
             dividend->blocks[dividend_index] = difference & 0xffffffff;
@@ -215,8 +210,7 @@ uint32_t big_int_divide_max_quotient_9(BigInt* dividend, const BigInt* divisor)
         uint64_t borrow = 0;
         do
         {
-            uint64_t difference = (uint64_t) dividend->blocks[dividend_index]
-                    - (uint64_t) divisor->blocks[divisor_index] - borrow;
+            uint64_t difference = (uint64_t) dividend->blocks[dividend_index] - (uint64_t) divisor->blocks[divisor_index] - borrow;
             borrow = (difference >> 32) & 1;
 
             dividend->blocks[dividend_index] = difference & 0xffffffff;
@@ -299,10 +293,7 @@ BigInt big_int_multiply(const BigInt* a, const BigInt* b)
             uint64_t carry = 0;
             do
             {
-                uint64_t product =
-                        result.blocks[result_index]
-                               + multiplier * longer->blocks[longer_index]
-                               + carry;
+                uint64_t product = result.blocks[result_index] + multiplier * longer->blocks[longer_index] + carry;
                 carry = product >> 32;
                 result.blocks[result_index] = product & 0xffffffff;
                 longer_index += 1;
@@ -337,9 +328,7 @@ BigInt big_int_multiply_by_pow10(const BigInt* a, uint32_t exponent)
     uint32_t small_exponent = exponent & 0x7;
     if(small_exponent != 0)
     {
-        *current_temp =
-                big_int_multiply_uint32(a,
-                        powers_of_ten_uint32[small_exponent]);
+        *current_temp = big_int_multiply_uint32(a, powers_of_ten_uint32[small_exponent]);
     }
     else
     {
@@ -352,9 +341,7 @@ BigInt big_int_multiply_by_pow10(const BigInt* a, uint32_t exponent)
     {
         if(exponent & 1)
         {
-            *next_temp =
-                    big_int_multiply(current_temp,
-                            &powers_of_ten_big_int[table_index]);
+            *next_temp = big_int_multiply(current_temp, &powers_of_ten_big_int[table_index]);
 
             BigInt* swap = current_temp;
             current_temp = next_temp;
@@ -432,15 +419,11 @@ BigInt big_int_pow10(uint32_t exponent)
 
     exponent >>= 3;
 
-    for(uint32_t table_index = 0;
-            exponent != 0;
-            table_index += 1, exponent >>= 1)
+    for(uint32_t table_index = 0; exponent != 0; table_index += 1, exponent >>= 1)
     {
         if(exponent & 1)
         {
-            *next_temp =
-                    big_int_multiply(current_temp,
-                            &powers_of_ten_big_int[table_index]);
+            *next_temp = big_int_multiply(current_temp, &powers_of_ten_big_int[table_index]);
 
             BigInt* swap = current_temp;
             current_temp = next_temp;

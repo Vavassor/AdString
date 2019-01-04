@@ -90,11 +90,9 @@ typedef struct AftDecimalFormat
         };
     };
 
-    union
-    {
-        int rounding_increment_int;
-        double rounding_increment_double;
-    };
+    double rounding_increment_double;
+    float rounding_increment_float;
+    int rounding_increment_int;
 
     AftDecimalFormatRoundingMode rounding_mode;
     AftDecimalFormatStyle style;
@@ -106,39 +104,26 @@ typedef struct AftDecimalFormat
 } AftDecimalFormat;
 
 
-AftMaybeString aft_ascii_from_uint64(uint64_t value,
-        const AftBaseFormat* format);
-AftMaybeString aft_ascii_from_uint64_with_allocator(uint64_t value,
-        const AftBaseFormat* format, void* allocator);
+AftMaybeString aft_ascii_from_uint64(uint64_t value, const AftBaseFormat* format);
+AftMaybeString aft_ascii_from_uint64_with_allocator(uint64_t value, const AftBaseFormat* format, void* allocator);
 
 bool aft_decimal_format_default(AftDecimalFormat* format);
-bool aft_decimal_format_default_with_allocator(AftDecimalFormat* format,
-        void* allocator);
+bool aft_decimal_format_default_with_allocator(AftDecimalFormat* format, void* allocator);
 bool aft_decimal_format_default_scientific(AftDecimalFormat* format);
-bool aft_decimal_format_default_scientific_with_allocator(
-        AftDecimalFormat* format, void* allocator);
+bool aft_decimal_format_default_scientific_with_allocator(AftDecimalFormat* format, void* allocator);
 void aft_decimal_format_destroy(AftDecimalFormat* format);
 bool aft_decimal_format_validate(const AftDecimalFormat* format);
 
-AftMaybeString aft_string_from_double(double value,
-        const AftDecimalFormat* format);
-AftMaybeString aft_string_from_double_with_allocator(double value,
-        const AftDecimalFormat* format, void* allocator);
-AftMaybeString aft_string_from_float(float value,
-        const AftDecimalFormat* format);
-AftMaybeString aft_string_from_float_with_allocator(float value,
-        const AftDecimalFormat* format, void* allocator);
+AftMaybeString aft_string_from_double(double value, const AftDecimalFormat* format);
+AftMaybeString aft_string_from_double_with_allocator(double value, const AftDecimalFormat* format, void* allocator);
+AftMaybeString aft_string_from_float(float value, const AftDecimalFormat* format);
+AftMaybeString aft_string_from_float_with_allocator(float value, const AftDecimalFormat* format, void* allocator);
 AftMaybeString aft_string_from_int(int value, const AftDecimalFormat* format);
-AftMaybeString aft_string_from_int_with_allocator(int value,
-        const AftDecimalFormat* format, void* allocator);
-AftMaybeString aft_string_from_int64(int64_t value,
-        const AftDecimalFormat* format);
-AftMaybeString aft_string_from_int64_with_allocator(int64_t value,
-        const AftDecimalFormat* format, void* allocator);
-AftMaybeString aft_string_from_uint64(uint64_t value,
-        const AftDecimalFormat* format);
-AftMaybeString aft_string_from_uint64_with_allocator(uint64_t value,
-        const AftDecimalFormat* format, void* allocator);
+AftMaybeString aft_string_from_int_with_allocator(int value, const AftDecimalFormat* format, void* allocator);
+AftMaybeString aft_string_from_int64(int64_t value, const AftDecimalFormat* format);
+AftMaybeString aft_string_from_int64_with_allocator(int64_t value, const AftDecimalFormat* format, void* allocator);
+AftMaybeString aft_string_from_uint64(uint64_t value, const AftDecimalFormat* format);
+AftMaybeString aft_string_from_uint64_with_allocator(uint64_t value, const AftDecimalFormat* format, void* allocator);
 
 
 #endif // AD_NUMBER_FORMAT_H_
