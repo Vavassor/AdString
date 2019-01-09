@@ -6,6 +6,11 @@
 #include <uchar.h>
 
 
+#if defined(__cpluplus)
+extern "C" {
+#endif
+
+
 #define AFT_STRING_SMALL_CAP sizeof(AftStringBig)
 #define AFT_USE_CUSTOM_ALLOCATOR
 
@@ -183,5 +188,10 @@ AftMaybeUtf32String aft_utf8_to_utf32(const AftString* string);
 
 
 #include <AftString/aft_number_format.h>
+
+
+#if defined(__cplusplus)
+} // extern "C"
+#endif
 
 #endif // AFT_STRING_H_
