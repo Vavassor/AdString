@@ -1,17 +1,18 @@
 #ifndef FLOATING_POINT_FORMAT_H_
 #define FLOATING_POINT_FORMAT_H_
 
+#include <AftString/aft_number_format.h>
 #include <AftString/aft_string.h>
 
 #include <stdbool.h>
 
 
-typedef enum FloatResultType
+typedef enum DecimalQuantityType
 {
-    FLOAT_RESULT_TYPE_NORMAL,
-    FLOAT_RESULT_TYPE_INFINITY,
-    FLOAT_RESULT_TYPE_NAN,
-} FloatResultType;
+    DECIMAL_QUANTITY_TYPE_NORMAL,
+    DECIMAL_QUANTITY_TYPE_INFINITY,
+    DECIMAL_QUANTITY_TYPE_NAN,
+} DecimalQuantityType;
 
 typedef enum CutoffMode
 {
@@ -20,13 +21,13 @@ typedef enum CutoffMode
 } CutoffMode;
 
 
-typedef struct FloatResult
+typedef struct DecimalQuantity
 {
     AftString digits;
     int exponent;
-    FloatResultType type;
+    DecimalQuantityType type;
     bool sign;
-} FloatResult;
+} DecimalQuantity;
 
 typedef struct FloatFormat
 {
@@ -44,9 +45,10 @@ typedef struct FloatFormat
         };
     };
     CutoffMode cutoff_mode;
+    AftDecimalFormatRoundingMode rounding_mode;
 } FloatFormat;
 
-FloatResult format_double(double value, const FloatFormat* format, void* allocator);
-FloatResult format_float(float value, const FloatFormat* format, void* allocator);
+DecimalQuantity format_double(double value, const FloatFormat* format, void* allocator);
+DecimalQuantity format_float(float value, const FloatFormat* format, void* allocator);
 
 #endif // FLOATING_POINT_FORMAT_H_

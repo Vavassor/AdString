@@ -155,34 +155,35 @@ static FloatParts unpack_binary64(const Ieee754Binary64OrDouble* binary64)
     }
 }
 
-static FloatResult handle_nan_or_infinity(const FloatParts* value, void* allocator)
+static DecimalQuantity handle_nan_or_infinity(const FloatParts* value, void* allocator)
 {
-    FloatResult result;
+    DecimalQuantity result;
     aft_string_initialise_with_allocator(&result.digits, allocator);
 
     if((((UINT64_C(1) << value->mantissa_high_bit) - 1) & value->mantissa) == 0)
     {
-        result.type = FLOAT_RESULT_TYPE_INFINITY;
+        result.type = DECIMAL_QUANTITY_TYPE_INFINITY;
         result.sign = value->sign;
     }
     else
     {
-        result.type = FLOAT_RESULT_TYPE_NAN;
+        result.type = DECIMAL_QUANTITY_TYPE_NAN;
     }
 
     return result;
 }
 
-static FloatResult dragon4(const FloatParts* parts, const FloatFormat* format, void* allocator)
+static DecimalQuantity dragon4(const FloatParts* parts, const FloatFormat* format, void* allocator)
 {
-    FloatResult result;
+    DecimalQuantity result;
     aft_string_initialise_with_allocator(&result.digits, allocator);
-    result.type = FLOAT_RESULT_TYPE_NORMAL;
+    result.type = DECIMAL_QUANTITY_TYPE_NORMAL;
 
     if(parts->mantissa == 0)
     {
         aft_string_append_char(&result.digits, 0);
         result.exponent = 0;
+        result.sign = false;
         return result;
     }
 
@@ -314,8 +315,6 @@ static FloatResult dragon4(const FloatParts* parts, const FloatFormat* format, v
     }
 
     uint32_t output_digit;
-    bool low = false;
-    bool high = false;
 
     for(;;)
     {
@@ -334,17 +333,65 @@ static FloatResult dragon4(const FloatParts* parts, const FloatFormat* format, v
         big_int_decuple(&scaled_value);
     }
 
-    bool round_down = low;
+    bool round_down = false;
 
-    if(low == high)
+    switch(format->rounding_mode)
     {
-        big_int_double(&scaled_value);
-        int32_t compare = big_int_compare(&scaled_value, &scale);
-        round_down = compare < 0;
-
-        if(compare == 0)
+        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_CEILING:
         {
-            round_down = (output_digit & 1) == 0;
+            round_down = big_int_is_zero(&scaled_value) || result.sign;
+            break;
+        }
+        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_DOWN:
+        {
+            round_down = true;
+            break;
+        }
+        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_FLOOR:
+        {
+            round_down = big_int_is_zero(&scaled_value) || !result.sign;
+            break;
+        }
+        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_DOWN:
+        {
+            big_int_double(&scaled_value);
+            int32_t compare = big_int_compare(&scaled_value, &scale);
+            round_down = compare < 0;
+
+            if(compare == 0)
+            {
+                round_down = true;
+            }
+            break;
+        }
+        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_EVEN:
+        {
+            big_int_double(&scaled_value);
+            int32_t compare = big_int_compare(&scaled_value, &scale);
+            round_down = compare < 0;
+
+            if(compare == 0)
+            {
+                round_down = (output_digit & 1) == 0;
+            }
+            break;
+        }
+        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_UP:
+        {
+            big_int_double(&scaled_value);
+            int32_t compare = big_int_compare(&scaled_value, &scale);
+            round_down = compare < 0;
+
+            if(compare == 0)
+            {
+                round_down = false;
+            }
+            break;
+        }
+        case AFT_DECIMAL_FORMAT_ROUNDING_MODE_UP:
+        {
+            round_down = big_int_is_zero(&scaled_value);
+            break;
         }
     }
 
@@ -419,11 +466,16 @@ static FloatResult dragon4(const FloatParts* parts, const FloatFormat* format, v
         aft_string_remove(&result.digits, &range);
     }
 
+    if(aft_string_get_count(&result.digits) == 1 && digits_contents[0] == 0)
+    {
+        result.sign = false;
+    }
+
     return result;
 }
 
 
-FloatResult format_double(double value, const FloatFormat* format, void* allocator)
+DecimalQuantity format_double(double value, const FloatFormat* format, void* allocator)
 {
     Ieee754Binary64OrDouble binary64 = {.value = value};
     FloatParts parts = unpack_binary64(&binary64);
@@ -438,7 +490,7 @@ FloatResult format_double(double value, const FloatFormat* format, void* allocat
     }
 }
 
-FloatResult format_float(float value, const FloatFormat* format, void* allocator)
+DecimalQuantity format_float(float value, const FloatFormat* format, void* allocator)
 {
     Ieee754Binary32OrFloat binary32 = {.value = value};
     FloatParts parts = unpack_binary32(&binary32);

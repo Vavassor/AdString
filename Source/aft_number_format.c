@@ -136,36 +136,12 @@ static uint64_t round_half_down(uint64_t value, uint64_t increment)
     return increment * ((value + increment / 2 - 1) / increment);
 }
 
-static double round_half_down_double(double value)
-{
-    double x = round(value);
-
-    if(fabs(value - x) == 0.5)
-    {
-        return trunc(value);
-    }
-
-    return x;
-}
-
 static uint64_t round_half_even(uint64_t value, uint64_t increment)
 {
     AFT_ASSERT(increment > 0);
 
     uint64_t even_increment = (1 & (value / increment)) ^ 1;
     return increment * ((value + increment / 2 - even_increment) / increment);
-}
-
-static double round_half_even_double(double value)
-{
-    double x = round(value);
-
-    if(fabs(value - x) == 0.5)
-    {
-        return 2.0 * round(0.5 * value);
-    }
-
-    return x;
 }
 
 static uint64_t round_half_up(uint64_t value, uint64_t increment)
@@ -180,69 +156,6 @@ static uint64_t round_up(uint64_t value, uint64_t increment)
     AFT_ASSERT(increment > 0);
 
     return increment * ((value + (increment - 1)) / increment);
-}
-
-static double round_up_double(double value)
-{
-    if(value < 0)
-    {
-        return floor(value);
-    }
-    else
-    {
-        return ceil(value);
-    }
-}
-
-static double apply_rounding_double(double value, double increment, AftDecimalFormatRoundingMode rounding_mode)
-{
-    if(increment != 0.0)
-    {
-        value /= increment;
-
-        switch(rounding_mode)
-        {
-            case AFT_DECIMAL_FORMAT_ROUNDING_MODE_CEILING:
-            {
-                value = ceil(value);
-                break;
-            }
-            case AFT_DECIMAL_FORMAT_ROUNDING_MODE_DOWN:
-            {
-                value = trunc(value);
-                break;
-            }
-            case AFT_DECIMAL_FORMAT_ROUNDING_MODE_FLOOR:
-            {
-                value = floor(value);
-                break;
-            }
-            case AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_DOWN:
-            {
-                value = round_half_down_double(value);
-                break;
-            }
-            case AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_EVEN:
-            {
-                value = round_half_even_double(value);
-                break;
-            }
-            case AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_UP:
-            {
-                value = round(value);
-                break;
-            }
-            case AFT_DECIMAL_FORMAT_ROUNDING_MODE_UP:
-            {
-                value = round_up_double(value);
-                break;
-            }
-        }
-
-        value *= increment;
-    }
-
-    return value;
 }
 
 static uint64_t round_uint64_and_sign(uint64_t value, uint64_t increment, bool sign, AftDecimalFormatRoundingMode rounding_mode)
@@ -597,28 +510,28 @@ static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign, con
     return result;
 }
 
-static void format_float_result(AftMaybeString* result, const FloatResult* digits, const AftDecimalFormat* format)
+static void format_float_result(AftMaybeString* result, const DecimalQuantity* quantity, const AftDecimalFormat* format)
 {
-    switch(digits->type)
+    switch(quantity->type)
     {
-        case FLOAT_RESULT_TYPE_INFINITY:
+        case DECIMAL_QUANTITY_TYPE_INFINITY:
         {
-            apply_prefix(&result->value, format, digits->sign);
+            apply_prefix(&result->value, format, quantity->sign);
             aft_string_append(&result->value, &format->symbols.infinity_sign);
-            apply_suffix(&result->value, format, digits->sign);
+            apply_suffix(&result->value, format, quantity->sign);
             break;
         }
-        case FLOAT_RESULT_TYPE_NAN:
+        case DECIMAL_QUANTITY_TYPE_NAN:
         {
             aft_string_assign(&result->value, &format->symbols.nan_sign);
             break;
         }
-        case FLOAT_RESULT_TYPE_NORMAL:
+        case DECIMAL_QUANTITY_TYPE_NORMAL:
         {
-            apply_prefix(&result->value, format, digits->sign);
+            apply_prefix(&result->value, format, quantity->sign);
 
-            const char* digits_contents = aft_string_get_contents_const(&digits->digits);
-            int digits_count = aft_string_get_count(&digits->digits);
+            const char* digits_contents = aft_string_get_contents_const(&quantity->digits);
+            int digits_count = aft_string_get_count(&quantity->digits);
 
             const AftString* group_separator = &format->symbols.group_separator;
             if(format->style == AFT_DECIMAL_FORMAT_STYLE_CURRENCY)
@@ -632,14 +545,14 @@ static void format_float_result(AftMaybeString* result, const FloatResult* digit
                 case AFT_DECIMAL_FORMAT_STYLE_FIXED_POINT:
                 case AFT_DECIMAL_FORMAT_STYLE_PERCENT:
                 {
-                    if(digits->exponent <= 0)
+                    if(quantity->exponent <= 0)
                     {
                         aft_string_append(&result->value, &format->symbols.digits[0]);
 
                         if(digits_count >= 1 && (digits_count != 1 || digits_contents[0] != 0))
                         {
                             aft_string_append(&result->value, &format->symbols.radix_separator);
-                            pad_zeros_without_separator(&result->value, format, -digits->exponent);
+                            pad_zeros_without_separator(&result->value, format, -quantity->exponent);
 
                             for(int digit_index = 0;
                                     digit_index < digits_count;
@@ -659,7 +572,7 @@ static void format_float_result(AftMaybeString* result, const FloatResult* digit
                             }
                             else
                             {
-                                int fraction_digits = digits_count - digits->exponent;
+                                int fraction_digits = digits_count - quantity->exponent;
                                 if(fraction_digits < format->min_fraction_digits)
                                 {
                                     int zeros = format->min_fraction_digits - fraction_digits;
@@ -668,16 +581,16 @@ static void format_float_result(AftMaybeString* result, const FloatResult* digit
                             }
                         }
                     }
-                    else if(digits->exponent < digits_count)
+                    else if(quantity->exponent < digits_count)
                     {
-                        int integer_digits = digits->exponent;
+                        int integer_digits = quantity->exponent;
                         int integers_so_far = 0;
                         int start_digit = 0;
 
                         if(integer_digits < format->min_integer_digits)
                         {
                             integer_digits = format->min_integer_digits;
-                            int zeros = integer_digits - digits->exponent;
+                            int zeros = integer_digits - quantity->exponent;
 
                             for(int digit_index = 0;
                                     digit_index < zeros;
@@ -693,13 +606,13 @@ static void format_float_result(AftMaybeString* result, const FloatResult* digit
 
                             integers_so_far += zeros;
                         }
-                        else if(digits->exponent > format->max_integer_digits)
+                        else if(quantity->exponent > format->max_integer_digits)
                         {
-                            start_digit = digits->exponent - format->max_integer_digits;
+                            start_digit = quantity->exponent - format->max_integer_digits;
                         }
 
                         for(int digit_index = start_digit;
-                                digit_index < digits->exponent;
+                                digit_index < quantity->exponent;
                                 digit_index += 1)
                         {
                             int location = digit_index + integers_so_far;
@@ -715,7 +628,7 @@ static void format_float_result(AftMaybeString* result, const FloatResult* digit
 
                         aft_string_append(&result->value, &format->symbols.radix_separator);
 
-                        for(int digit_index = digits->exponent;
+                        for(int digit_index = quantity->exponent;
                                 digit_index < digits_count;
                                 digit_index += 1)
                         {
@@ -733,7 +646,7 @@ static void format_float_result(AftMaybeString* result, const FloatResult* digit
                         }
                         else
                         {
-                            int fraction_digits = digits_count - digits->exponent;
+                            int fraction_digits = digits_count - quantity->exponent;
                             if(fraction_digits < format->min_fraction_digits)
                             {
                                 int zeros = format->min_fraction_digits - fraction_digits;
@@ -743,14 +656,14 @@ static void format_float_result(AftMaybeString* result, const FloatResult* digit
                     }
                     else
                     {
-                        int integer_digits = digits->exponent;
+                        int integer_digits = quantity->exponent;
                         int integers_so_far = 0;
                         int start_digit = 0;
 
                         if(integer_digits < format->min_integer_digits)
                         {
                             integer_digits = format->min_integer_digits;
-                            int zeros = integer_digits - digits->exponent;
+                            int zeros = integer_digits - quantity->exponent;
 
                             for(int digit_index = 0;
                                     digit_index < zeros;
@@ -766,9 +679,9 @@ static void format_float_result(AftMaybeString* result, const FloatResult* digit
 
                             integers_so_far += zeros;
                         }
-                        else if(digits->exponent > format->max_integer_digits)
+                        else if(quantity->exponent > format->max_integer_digits)
                         {
-                            start_digit = digits->exponent - format->max_integer_digits;
+                            start_digit = quantity->exponent - format->max_integer_digits;
                         }
 
                         for(int digit_index = start_digit;
@@ -787,7 +700,7 @@ static void format_float_result(AftMaybeString* result, const FloatResult* digit
                         }
 
                         for(int digit_index = digits_count;
-                                digit_index < digits->exponent;
+                                digit_index < quantity->exponent;
                                 digit_index += 1)
                         {
                             int location = digit_index + integers_so_far;
@@ -837,7 +750,7 @@ static void format_float_result(AftMaybeString* result, const FloatResult* digit
 
                         aft_string_append(&result->value, &format->symbols.exponential_sign);
 
-                        int exponent = digits->exponent - 1;
+                        int exponent = quantity->exponent - 1;
                         if(exponent < 0)
                         {
                             aft_string_append(&result->value, &format->symbols.minus_sign);
@@ -866,7 +779,7 @@ static void format_float_result(AftMaybeString* result, const FloatResult* digit
                 }
             }
 
-            apply_suffix(&result->value, format, digits->sign);
+            apply_suffix(&result->value, format, quantity->sign);
             break;
         }
     }
@@ -1056,9 +969,9 @@ AftMaybeString aft_string_from_double_with_allocator(double value, const AftDeci
         value *= (double) format->percent.multiplier;
     }
 
-    value = apply_rounding_double(value, format->rounding_increment_double, format->rounding_mode);
-
     FloatFormat float_format;
+    float_format.rounding_mode = format->rounding_mode;
+
     if(format->use_significant_digits)
     {
         float_format.cutoff_mode = CUTOFF_MODE_SIGNIFICANT_DIGITS;
@@ -1080,11 +993,11 @@ AftMaybeString aft_string_from_double_with_allocator(double value, const AftDeci
             float_format.min_fraction_digits = format->min_fraction_digits;
         }
     }
-    FloatResult digits = format_double(value, &float_format, allocator);
 
-    format_float_result(&result, &digits, format);
+    DecimalQuantity quantity = format_double(value, &float_format, allocator);
+    format_float_result(&result, &quantity, format);
 
-    aft_string_destroy(&digits.digits);
+    aft_string_destroy(&quantity.digits);
 
     return result;
 }
@@ -1108,6 +1021,8 @@ AftMaybeString aft_string_from_float_with_allocator(float value, const AftDecima
     }
 
     FloatFormat float_format;
+    float_format.rounding_mode = format->rounding_mode;
+
     if(format->use_significant_digits)
     {
         float_format.cutoff_mode = CUTOFF_MODE_SIGNIFICANT_DIGITS;
@@ -1129,11 +1044,11 @@ AftMaybeString aft_string_from_float_with_allocator(float value, const AftDecima
             float_format.min_fraction_digits = format->min_fraction_digits;
         }
     }
-    FloatResult digits = format_float(value, &float_format, allocator);
 
-    format_float_result(&result, &digits, format);
+    DecimalQuantity quantity = format_float(value, &float_format, allocator);
+    format_float_result(&result, &quantity, format);
 
-    aft_string_destroy(&digits.digits);
+    aft_string_destroy(&quantity.digits);
 
     return result;
 }
