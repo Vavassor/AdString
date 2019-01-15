@@ -149,6 +149,7 @@ bool aft_string_append_char(AftString* to, char from);
 bool aft_string_append_range(AftString* to, const AftString* from, const AftStringRange* range);
 bool aft_string_assign(AftString* to, const AftString* from);
 AftMaybeString aft_string_copy(AftString* string);
+AftMaybeString aft_string_copy_range(const AftString* string, const AftStringRange* range);
 bool aft_string_destroy(AftString* string);
 bool aft_string_ends_with(const AftString* string, const AftString* lookup);
 AftMaybeInt aft_string_find_first_char(const AftString* string, char c);
@@ -169,11 +170,11 @@ void aft_string_remove(AftString* string, const AftStringRange* range);
 bool aft_string_replace(AftString* to, const AftStringRange* range, const AftString* from);
 bool aft_string_reserve(AftString* string, int count);
 bool aft_string_starts_with(const AftString* string, const AftString* lookup);
-AftMaybeString aft_string_substring(const AftString* string, const AftStringRange* range);
 char* aft_string_to_c_string(const AftString* string);
 char* aft_string_to_c_string_with_allocator(const AftString* string, void* allocator);
 
 bool aft_string_range_check(const AftString* string, const AftStringRange* range);
+int aft_string_range_count(const AftStringRange* range);
 
 bool aft_strings_match(const AftString* a, const AftString* b);
 

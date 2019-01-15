@@ -541,7 +541,7 @@ bool aft_string_append_range(AftString* to, const AftString* from, const AftStri
     AFT_ASSERT(from);
 
     int to_count = aft_string_get_count(to);
-    int from_count = range->end - range->start;
+    int from_count = aft_string_range_count(range);
     int count = to_count + from_count;
     bool reserved = aft_string_reserve(to, count);
 
@@ -618,6 +618,18 @@ AftMaybeString aft_string_copy(AftString* string)
     return result;
 }
 
+AftMaybeString aft_string_copy_range(const AftString* string, const AftStringRange* range)
+{
+    AFT_ASSERT(string);
+    AFT_ASSERT(range);
+    AFT_ASSERT(aft_string_range_check(string, range));
+
+    const char* contents = aft_string_get_contents_const(string);
+    const char* buffer = &contents[range->start];
+    int bytes = aft_string_range_count(range);
+    return aft_string_from_buffer_with_allocator(buffer, bytes, string->allocator);
+}
+
 bool aft_string_destroy(AftString* string)
 {
     AFT_ASSERT(string);
@@ -684,8 +696,7 @@ AftMaybeInt aft_string_find_first_char(const AftString* string, char c)
     return result;
 }
 
-AftMaybeInt aft_string_find_first_string(const AftString* string,
-        const AftString* lookup)
+AftMaybeInt aft_string_find_first_string(const AftString* string, const AftString* lookup)
 {
     AFT_ASSERT(string);
     AFT_ASSERT(lookup);
@@ -926,12 +937,11 @@ void aft_string_initialise_with_allocator(AftString* string, void* allocator)
 void aft_string_remove(AftString* string, const AftStringRange* range)
 {
     AFT_ASSERT(string);
-    AFT_ASSERT(range);
     AFT_ASSERT(aft_string_range_check(string, range));
 
     int count = aft_string_get_count(string);
     int copied_bytes = count - range->end;
-    int removed_bytes = range->end - range->start;
+    int removed_bytes = aft_string_range_count(range);
 
     char* contents = aft_string_get_contents(string);
     copy_memory(&contents[range->start], &contents[range->end], copied_bytes);
@@ -949,7 +959,7 @@ bool aft_string_replace(AftString* to, const AftStringRange* range, const AftStr
     AFT_ASSERT(from);
     AFT_ASSERT(aft_string_range_check(to, range));
 
-    int view_bytes = range->end - range->start;
+    int view_bytes = aft_string_range_count(range);
     int to_count = aft_string_get_count(to);
     int from_count = aft_string_get_count(from);
     int count = to_count - view_bytes + from_count;
@@ -1050,18 +1060,6 @@ bool aft_string_starts_with(const AftString* string, const AftString* lookup)
     }
 }
 
-AftMaybeString aft_string_substring(const AftString* string, const AftStringRange* range)
-{
-    AFT_ASSERT(string);
-    AFT_ASSERT(range);
-    AFT_ASSERT(aft_string_range_check(string, range));
-
-    const char* contents = aft_string_get_contents_const(string);
-    const char* buffer = &contents[range->start];
-    int bytes = range->end - range->start;
-    return aft_string_from_buffer_with_allocator(buffer, bytes, string->allocator);
-}
-
 char* aft_string_to_c_string(const AftString* string)
 {
     return aft_string_to_c_string_with_allocator(string, NULL);
@@ -1086,14 +1084,25 @@ char* aft_string_to_c_string_with_allocator(const AftString* string, void* alloc
     return result;
 }
 
+
 bool aft_string_range_check(const AftString* string, const AftStringRange* range)
 {
+    AFT_ASSERT(string);
+    AFT_ASSERT(range);
+
     int count = aft_string_get_count(string);
 
     return range->start <= range->end
             && range->start >= 0
             && range->end >= 0
             && range->end <= count;
+}
+
+int aft_string_range_count(const AftStringRange* range)
+{
+    AFT_ASSERT(range);
+
+    return range->end - range->start;
 }
 
 

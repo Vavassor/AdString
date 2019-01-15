@@ -88,6 +88,7 @@ String
     functions/aft-string-append-char
     functions/aft-string-assign
     functions/aft-string-copy
+    functions/aft-string-copy-range
     functions/aft-string-destroy
     functions/aft-string-ends-with
     functions/aft-string-find-first-char
@@ -108,7 +109,6 @@ String
     functions/aft-string-replace
     functions/aft-string-reserve
     functions/aft-string-starts-with
-    functions/aft-string-substring
     functions/aft-string-to-c-string
     functions/aft-string-to-c-string-with-allocator
 
@@ -119,6 +119,7 @@ String Range
     :maxdepth: 1
 
     functions/aft-string-range-check
+    functions/aft-string-range-count
 
 Strings
 ^^^^^^^
