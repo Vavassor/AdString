@@ -394,6 +394,28 @@ static void pad_leading_zeros_and_set_digit_limits(DecimalFormatter* formatter)
     formatter->digits_shown = digits_shown;
 }
 
+static void set_digit_limits_scientific(DecimalFormatter* formatter)
+{
+    int digit_index = formatter->digit_index;
+    int digit_total = formatter->digit_total;
+    const AftDecimalFormat* format = formatter->format;
+
+    int digits_shown;
+
+    if(format->use_significant_digits)
+    {
+        digits_shown = format->max_significant_digits;
+    }
+    else
+    {
+        digits_shown = format->max_fraction_digits + 1;
+    }
+
+    formatter->digit_index = digit_index;
+    formatter->digit_total = digit_total;
+    formatter->digits_shown = digits_shown;
+}
+
 static void format_significant_integer_digits(DecimalFormatter* formatter)
 {
     int digit_index = formatter->digit_index;
@@ -419,6 +441,56 @@ static void format_significant_integer_digits(DecimalFormatter* formatter)
     }
 
     formatter->digit_index = digit_index;
+}
+
+static void format_scientific_digits_and_exponent(DecimalFormatter* formatter)
+{
+    const AftDecimalFormat* format = formatter->format;
+
+    int digit_index = formatter->digit_index - 1;
+
+    aft_string_append(formatter->string, &format->symbols.digits[formatter->digits[digit_index]]);
+    digit_index -= 1;
+
+    if(formatter->digits_shown > 1)
+    {
+        aft_string_append(formatter->string, &format->symbols.radix_separator);
+
+        for(int digit_limiter = 1;
+                digit_limiter < formatter->digits_shown && digit_index >= 0;
+                digit_limiter += 1, digit_index -= 1)
+        {
+            int digit = formatter->digits[digit_index];
+            aft_string_append(formatter->string, &format->symbols.digits[digit]);
+        }
+
+        aft_string_append(formatter->string, &format->symbols.exponential_sign);
+
+        int exponent = formatter->digit_index - 1;
+        if(exponent < 0)
+        {
+            aft_string_append(formatter->string, &format->symbols.minus_sign);
+            exponent = -exponent;
+        }
+
+        AFT_ASSERT(count_digits(exponent) <= 3);
+        int exponent_digits[3];
+        int exponent_digit_index = 0;
+        do
+        {
+            exponent_digits[exponent_digit_index] = exponent % 10;
+            exponent_digit_index += 1;
+            exponent /= 10;
+        } while(exponent);
+
+        for(exponent_digit_index -= 1;
+                exponent_digit_index >= 0;
+                exponent_digit_index -= 1)
+        {
+            int digit = exponent_digits[exponent_digit_index];
+            aft_string_append(formatter->string, &format->symbols.digits[digit]);
+        }
+    }
 }
 
 static void pad_zeros_without_separator(AftString* string, const AftDecimalFormat* format, int count)
@@ -502,9 +574,26 @@ static AftMaybeString string_from_uint64_and_sign(uint64_t value, bool sign, con
 
     apply_prefix(formatter.string, formatter.format, sign);
     digitize(&formatter, value);
-    pad_leading_zeros_and_set_digit_limits(&formatter);
-    format_significant_integer_digits(&formatter);
-    format_remaining_integer_digits_and_fraction_digits(&formatter);
+
+    switch(format->style)
+    {
+        case AFT_DECIMAL_FORMAT_STYLE_CURRENCY:
+        case AFT_DECIMAL_FORMAT_STYLE_FIXED_POINT:
+        case AFT_DECIMAL_FORMAT_STYLE_PERCENT:
+        {
+            pad_leading_zeros_and_set_digit_limits(&formatter);
+            format_significant_integer_digits(&formatter);
+            format_remaining_integer_digits_and_fraction_digits(&formatter);
+            break;
+        }
+        case AFT_DECIMAL_FORMAT_STYLE_SCIENTIFIC:
+        {
+            set_digit_limits_scientific(&formatter);
+            format_scientific_digits_and_exponent(&formatter);
+            break;
+        }
+    }
+
     apply_suffix(formatter.string, formatter.format, sign);
 
     return result;

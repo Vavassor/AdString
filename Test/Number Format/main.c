@@ -323,6 +323,26 @@ static bool test_default_scientific_double_small(Test* test)
     return result;
 }
 
+static bool test_default_scientific_int(Test* test)
+{
+    const int value = 78940000;
+
+    AftDecimalFormat format;
+    bool defaulted = aft_decimal_format_default_scientific_with_allocator(&format, &test->allocator);
+    ASSERT(defaulted);
+
+    AftMaybeString string = aft_string_from_int_with_allocator(value, &format, &test->allocator);
+
+    const char* reference = "7.894E7";
+    const char* contents = aft_string_get_contents_const(&string.value);
+    bool result = string.valid && strings_match(reference, contents);
+
+    aft_string_destroy(&string.value);
+    aft_decimal_format_destroy(&format);
+
+    return result;
+}
+
 static bool test_double_max(Test* test)
 {
     const double value = DBL_MAX;
@@ -1160,6 +1180,7 @@ int main(int argc, const char** argv)
     add_test(&suite, test_default_int64, "Test Default int64_t");
     add_test(&suite, test_default_scientific_double, "Test Default Scientific double");
     add_test(&suite, test_default_scientific_double_small, "Test Default Scientific double Small");
+    add_test(&suite, test_default_scientific_int, "Test Default Scientific int");
     add_test(&suite, test_double_max, "Test double Max");
     add_test(&suite, test_group_double, "Test Group Double");
     add_test(&suite, test_hexadecimal, "Test Hexadecimal");
