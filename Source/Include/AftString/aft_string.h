@@ -63,6 +63,12 @@ typedef struct AftStringRange
     int end;
 } AftStringRange;
 
+typedef struct AftStringSlice
+{
+    const char* contents;
+    int count;
+} AftStringSlice;
+
 typedef struct AftUtf32String
 {
     char32_t* contents;
@@ -81,6 +87,12 @@ typedef struct AftMaybeChar32
     char32_t value;
     bool valid;
 } AftMaybeChar32;
+
+typedef struct AftMaybeDouble
+{
+    double value;
+    bool valid;
+} AftMaybeDouble;
 
 typedef struct AftMaybeInt
 {
@@ -121,6 +133,7 @@ bool aft_ascii_is_uppercase(char c);
 bool aft_ascii_is_whitespace(char c);
 void aft_ascii_reverse(AftString* string);
 void aft_ascii_reverse_range(AftString* string, const AftStringRange* range);
+AftMaybeDouble aft_ascii_to_double(const AftStringSlice* slice);
 void aft_ascii_to_lowercase(AftString* string);
 char aft_ascii_to_lowercase_char(char c);
 void aft_ascii_to_uppercase(AftString* string);
@@ -176,6 +189,15 @@ char* aft_string_to_c_string_with_allocator(const AftString* string, void* alloc
 bool aft_string_range_check(const AftString* string, const AftStringRange* range);
 int aft_string_range_count(const AftStringRange* range);
 
+AftStringSlice aft_string_slice(const AftStringSlice* slice, int start, int end);
+int aft_string_slice_count(const AftStringSlice* slice);
+AftStringSlice aft_string_slice_from_buffer(const char* contents, int count);
+AftStringSlice aft_string_slice_from_c_string(const char* contents);
+bool aft_string_slice_matches(const AftStringSlice* a, const AftStringSlice* b);
+void aft_string_slice_remove_end(AftStringSlice* slice, int count);
+void aft_string_slice_remove_start(AftStringSlice* slice, int count);
+const char* aft_string_slice_start(const AftStringSlice* slice);
+
 bool aft_strings_match(const AftString* a, const AftString* b);
 
 bool aft_utf32_destroy(AftUtf32String* string);
@@ -183,6 +205,7 @@ bool aft_utf32_destroy_with_allocator(AftUtf32String* string, void* allocator);
 AftMaybeString aft_utf32_to_utf8(const AftUtf32String* string);
 AftMaybeString aft_utf32_to_utf8_with_allocator(const AftUtf32String* string, void* allocator);
 
+bool aft_utf8_append_codepoint(AftString* string, char32_t codepoint);
 bool aft_utf8_check(const AftString* string);
 int aft_utf8_codepoint_count(const AftString* string);
 AftMaybeUtf32String aft_utf8_to_utf32(const AftString* string);

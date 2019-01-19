@@ -340,6 +340,156 @@ void aft_ascii_reverse_range(AftString* string, const AftStringRange* range)
     }
 }
 
+// Warning!
+//
+// This implementation does not produce very accurate results. A more robust
+// algorithm would use large integers and assemble the binary representation of
+// the double by parts. Repeatedly operating on a float-point intermediate value
+// compounds rounding errors and reduces the accuracy of the result in this
+// implementation.
+//
+// A good modern implementation might be something like Albert Chan's
+// strtod-fast in this repository https://github.com/achan001/dtoa-fast. Or
+// a simpler but less speedy traditional implementation using big integers
+// as outlined here
+// https://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/.
+AftMaybeDouble aft_ascii_to_double(const AftStringSlice* slice)
+{
+    AftMaybeDouble result;
+    result.valid = false;
+    result.value = 0.0;
+
+    bool sign = false;
+
+    const char* contents = aft_string_slice_start(slice);
+    int count = aft_string_slice_count(slice);
+
+    int char_index = 0;
+
+    if(char_index < count)
+    {
+        if(contents[char_index] == '-')
+        {
+            sign = true;
+            char_index += 1;
+        }
+        else if(contents[char_index] == '+')
+        {
+            sign = false;
+            char_index += 1;
+        }
+    }
+
+    double value = 0.0;
+    int mantissa_count = 0;
+    int fraction_digits = 0;
+    int exponent = 0;
+
+    while(char_index < count && aft_ascii_is_numeric(contents[char_index]))
+    {
+        value = (10.0 * value) + (contents[char_index] - '0');
+        char_index += 1;
+        mantissa_count += 1;
+    }
+
+    if(char_index < count && contents[char_index] == '.')
+    {
+        char_index += 1;
+
+        while(char_index < count && aft_ascii_is_numeric(contents[char_index]))
+        {
+            value = (10.0 * value) + (contents[char_index] - '0');
+            char_index += 1;
+            fraction_digits += 1;
+            mantissa_count += 1;
+        }
+
+        exponent -= fraction_digits;
+    }
+
+    if(mantissa_count == 0)
+    {
+        return result;
+    }
+
+    if(char_index < count && (contents[char_index] == 'E' || contents[char_index] == 'e'))
+    {
+        char_index += 1;
+
+        bool exponent_sign = false;
+
+        if(char_index < count)
+        {
+            if(contents[char_index] == '-')
+            {
+                exponent_sign = true;
+                char_index += 1;
+            }
+            else if(contents[char_index] == '+')
+            {
+                exponent_sign = false;
+                char_index += 1;
+            }
+        }
+
+        int explicit_exponent = 0;
+        while(char_index < count && aft_ascii_is_numeric(contents[char_index]))
+        {
+            explicit_exponent = (10 * explicit_exponent) + (contents[char_index] - '0');
+            char_index += 1;
+        }
+
+        if(exponent_sign)
+        {
+            exponent -= explicit_exponent;
+        }
+        else
+        {
+            exponent += explicit_exponent;
+        }
+    }
+
+    if(exponent < -307 || exponent > 308)
+    {
+        return result;
+    }
+
+    double power_of_ten = 10.0;
+    int exponent_magnitude = exponent;
+    if(exponent_magnitude < 0)
+    {
+        exponent_magnitude = -exponent_magnitude;
+    }
+
+    while(exponent_magnitude)
+    {
+        if(exponent_magnitude & 1)
+        {
+            if(exponent < 0)
+            {
+                value /= power_of_ten;
+            }
+            else
+            {
+                value *= power_of_ten;
+            }
+        }
+
+        exponent_magnitude >>= 1;
+        power_of_ten *= power_of_ten;
+    }
+
+    if(sign)
+    {
+        value = -value;
+    }
+
+    result.valid = true;
+    result.value = value;
+
+    return result;
+}
+
 void aft_ascii_to_lowercase(AftString* string)
 {
     AFT_ASSERT(string);
@@ -1106,6 +1256,75 @@ int aft_string_range_count(const AftStringRange* range)
 }
 
 
+AftStringSlice aft_string_slice(const AftStringSlice* slice, int start, int end)
+{
+    AftStringSlice result =
+    {
+        .contents = slice->contents + start,
+        .count = end - start,
+    };
+
+    return result;
+}
+
+int aft_string_slice_count(const AftStringSlice* slice)
+{
+    return slice->count;
+}
+
+AftStringSlice aft_string_slice_from_buffer(const char* contents, int count)
+{
+    AftStringSlice result = {contents, count};
+    return result;
+}
+
+AftStringSlice aft_string_slice_from_c_string(const char* contents)
+{
+    return aft_string_slice_from_buffer(contents, string_size(contents));
+}
+
+bool aft_string_slice_matches(const AftStringSlice* a, const AftStringSlice* b)
+{
+    AFT_ASSERT(a);
+    AFT_ASSERT(b);
+
+    if(a->count != b->count)
+    {
+        return false;
+    }
+
+    for(int char_index = 0; char_index < a->count; char_index += 1)
+    {
+        if(a->contents[char_index] != b->contents[char_index])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void aft_string_slice_remove_end(AftStringSlice* slice, int count)
+{
+    AFT_ASSERT(count >= 0 && count <= slice->count);
+
+    slice->count -= count;
+}
+
+void aft_string_slice_remove_start(AftStringSlice* slice, int count)
+{
+    AFT_ASSERT(count >= 0 && count <= slice->count);
+
+    slice->contents += count;
+    slice->count -= count;
+}
+
+const char* aft_string_slice_start(const AftStringSlice* slice)
+{
+    return slice->contents;
+}
+
+
 bool aft_strings_match(const AftString* a, const AftString* b)
 {
     AFT_ASSERT(a);
@@ -1167,42 +1386,7 @@ AftMaybeString aft_utf32_to_utf8_with_allocator(const AftUtf32String* string, vo
     for(int code_index = 0; code_index < string->count; code_index += 1)
     {
         char32_t codepoint = string->contents[code_index];
-        char buffer[5];
-
-        if(codepoint < 0x80)
-        {
-            buffer[0] = (char) codepoint;
-            buffer[1] = '\0';
-        }
-        else if(codepoint < 0x800)
-        {
-            buffer[0] = (codepoint >> 6) | 0xc0;
-            buffer[1] = (codepoint & 0x3f) | 0x80;
-            buffer[2] = '\0';
-        }
-        else if(codepoint < 0x10000)
-        {
-            buffer[0] = (codepoint >> 12) | 0xe0;
-            buffer[1] = ((codepoint >> 6) & 0x3f) | 0x80;
-            buffer[2] = (codepoint & 0x3f) | 0x80;
-            buffer[3] = '\0';
-        }
-        else if(codepoint < 0x110000)
-        {
-            buffer[0] = (codepoint >> 18) | 0xf0;
-            buffer[1] = ((codepoint >> 12) & 0x3f) | 0x80;
-            buffer[2] = ((codepoint >> 6) & 0x3f) | 0x80;
-            buffer[3] = (codepoint & 0x3f) | 0x80;
-            buffer[4] = '\0';
-        }
-        else
-        {
-            aft_string_destroy(&result.value);
-            result.valid = false;
-            return result;
-        }
-
-        bool appended = aft_string_append_c_string(&result.value, buffer);
+        bool appended = aft_utf8_append_codepoint(&result.value, codepoint);
         if(!appended)
         {
             aft_string_destroy(&result.value);
@@ -1214,6 +1398,44 @@ AftMaybeString aft_utf32_to_utf8_with_allocator(const AftUtf32String* string, vo
     return result;
 }
 
+
+bool aft_utf8_append_codepoint(AftString* string, char32_t codepoint)
+{
+    char buffer[5];
+
+    if(codepoint < 0x80)
+    {
+        buffer[0] = (char) codepoint;
+        buffer[1] = '\0';
+    }
+    else if(codepoint < 0x800)
+    {
+        buffer[0] = (codepoint >> 6) | 0xc0;
+        buffer[1] = (codepoint & 0x3f) | 0x80;
+        buffer[2] = '\0';
+    }
+    else if(codepoint < 0x10000)
+    {
+        buffer[0] = (codepoint >> 12) | 0xe0;
+        buffer[1] = ((codepoint >> 6) & 0x3f) | 0x80;
+        buffer[2] = (codepoint & 0x3f) | 0x80;
+        buffer[3] = '\0';
+    }
+    else if(codepoint < 0x110000)
+    {
+        buffer[0] = (codepoint >> 18) | 0xf0;
+        buffer[1] = ((codepoint >> 12) & 0x3f) | 0x80;
+        buffer[2] = ((codepoint >> 6) & 0x3f) | 0x80;
+        buffer[3] = (codepoint & 0x3f) | 0x80;
+        buffer[4] = '\0';
+    }
+    else
+    {
+        return false;
+    }
+
+    return aft_string_append_c_string(string, buffer);
+}
 
 bool aft_utf8_check(const AftString* string)
 {

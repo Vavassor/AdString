@@ -51,6 +51,29 @@ add_test(
 )
 
 
+add_executable(TestJson "")
+
+target_link_libraries(
+    TestJson
+    PRIVATE
+    AftString
+)
+
+target_sources(
+    TestJson
+    PRIVATE
+    "Json/json.c"
+    "Json/main.c"
+    Utility/random.c
+    Utility/test.c
+)
+
+add_test(
+    NAME Json
+    COMMAND TestJson
+)
+
+
 add_executable(TestNumberFormat "")
 
 target_link_libraries(
