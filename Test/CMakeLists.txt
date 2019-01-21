@@ -63,6 +63,8 @@ target_sources(
     TestJson
     PRIVATE
     "Json/json.c"
+    "Json/json_deserialize.c"
+    "Json/json_serialize.c"
     "Json/main.c"
     Utility/random.c
     Utility/test.c
@@ -72,6 +74,8 @@ add_test(
     NAME Json
     COMMAND TestJson
 )
+
+configure_file(Json/handmade.json ${CMAKE_CURRENT_BINARY_DIR}/handmade.json COPYONLY)
 
 
 add_executable(TestNumberFormat "")

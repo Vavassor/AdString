@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <math.h>
 #include <stddef.h>
+#include <stdio.h>
 
 
 #define AFT_ASSERT(expression) \
@@ -28,6 +29,30 @@ typedef struct DecimalFormatter
 
 static const char* base36_digits_uppercase = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 static const char* base36_digits_lowercase = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+static const uint64_t powers_of_ten[AFT_UINT64_MAX_DECIMAL_DIGITS] =
+{
+    UINT64_C(10000000000000000000),
+    UINT64_C(1000000000000000000),
+    UINT64_C(100000000000000000),
+    UINT64_C(10000000000000000),
+    UINT64_C(1000000000000000),
+    UINT64_C(100000000000000),
+    UINT64_C(10000000000000),
+    UINT64_C(1000000000000),
+    UINT64_C(100000000000),
+    UINT64_C(10000000000),
+    UINT64_C(1000000000),
+    UINT64_C(100000000),
+    UINT64_C(10000000),
+    UINT64_C(1000000),
+    UINT64_C(100000),
+    UINT64_C(10000),
+    UINT64_C(1000),
+    UINT64_C(100),
+    UINT64_C(10),
+    UINT64_C(1),
+};
 
 
 static uint64_t abs_int64_to_uint64(int64_t x)
@@ -874,6 +899,23 @@ static void format_float_result(AftMaybeString* result, const DecimalQuantity* q
     }
 }
 
+AftMaybeString aft_ascii_from_double(double value)
+{
+    return aft_ascii_from_double_with_allocator(value, NULL);
+}
+
+AftMaybeString aft_ascii_from_double_with_allocator(double value, void* allocator)
+{
+    AftMaybeString result;
+    result.valid = true;
+    aft_string_initialise_with_allocator(&result.value, allocator);
+
+    char cheating[25];
+    sprintf(cheating, "%g", value);
+    aft_string_append_c_string(&result.value, cheating);
+
+    return result;
+}
 
 AftMaybeString aft_ascii_from_uint64(uint64_t value, const AftBaseFormat* format)
 {
@@ -906,6 +948,194 @@ AftMaybeString aft_ascii_from_uint64_with_allocator(uint64_t value, const AftBas
 
     AftMaybeString result = aft_string_from_c_string_with_allocator(digits, allocator);
     aft_ascii_reverse(&result.value);
+
+    return result;
+}
+
+// Warning!
+//
+// This implementation does not produce very accurate results. A more robust
+// algorithm would use large integers and assemble the binary representation of
+// the double by parts. Repeatedly operating on a float-point intermediate value
+// compounds rounding errors and reduces the accuracy of the result in this
+// implementation.
+//
+// A good modern implementation might be something like Albert Chan's
+// strtod-fast in this repository https://github.com/achan001/dtoa-fast. Or
+// a simpler but less speedy traditional implementation using big integers
+// as outlined here
+// https://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/.
+AftMaybeDouble aft_ascii_to_double(const AftStringSlice* slice)
+{
+    AftMaybeDouble result;
+    result.valid = false;
+    result.value = 0.0;
+
+    bool sign = false;
+
+    const char* contents = aft_string_slice_start(slice);
+    int count = aft_string_slice_count(slice);
+
+    int char_index = 0;
+
+    if(char_index < count)
+    {
+        if(contents[char_index] == '-')
+        {
+            sign = true;
+            char_index += 1;
+        }
+        else if(contents[char_index] == '+')
+        {
+            sign = false;
+            char_index += 1;
+        }
+    }
+
+    double value = 0.0;
+    int mantissa_count = 0;
+    int fraction_digits = 0;
+    int exponent = 0;
+
+    while(char_index < count && aft_ascii_is_numeric(contents[char_index]))
+    {
+        value = (10.0 * value) + (contents[char_index] - '0');
+        char_index += 1;
+        mantissa_count += 1;
+    }
+
+    if(char_index < count && contents[char_index] == '.')
+    {
+        char_index += 1;
+
+        while(char_index < count && aft_ascii_is_numeric(contents[char_index]))
+        {
+            value = (10.0 * value) + (contents[char_index] - '0');
+            char_index += 1;
+            fraction_digits += 1;
+            mantissa_count += 1;
+        }
+
+        exponent -= fraction_digits;
+    }
+
+    if(mantissa_count == 0)
+    {
+        return result;
+    }
+
+    if(char_index < count && (contents[char_index] == 'E' || contents[char_index] == 'e'))
+    {
+        char_index += 1;
+
+        bool exponent_sign = false;
+
+        if(char_index < count)
+        {
+            if(contents[char_index] == '-')
+            {
+                exponent_sign = true;
+                char_index += 1;
+            }
+            else if(contents[char_index] == '+')
+            {
+                exponent_sign = false;
+                char_index += 1;
+            }
+        }
+
+        int explicit_exponent = 0;
+        while(char_index < count && aft_ascii_is_numeric(contents[char_index]))
+        {
+            explicit_exponent = (10 * explicit_exponent) + (contents[char_index] - '0');
+            char_index += 1;
+        }
+
+        if(exponent_sign)
+        {
+            exponent -= explicit_exponent;
+        }
+        else
+        {
+            exponent += explicit_exponent;
+        }
+    }
+
+    if(exponent < -307 || exponent > 308)
+    {
+        return result;
+    }
+
+    double power_of_ten = 10.0;
+    int exponent_magnitude = exponent;
+    if(exponent_magnitude < 0)
+    {
+        exponent_magnitude = -exponent_magnitude;
+    }
+
+    while(exponent_magnitude)
+    {
+        if(exponent_magnitude & 1)
+        {
+            if(exponent < 0)
+            {
+                value /= power_of_ten;
+            }
+            else
+            {
+                value *= power_of_ten;
+            }
+        }
+
+        exponent_magnitude >>= 1;
+        power_of_ten *= power_of_ten;
+    }
+
+    if(sign)
+    {
+        value = -value;
+    }
+
+    result.valid = true;
+    result.value = value;
+
+    return result;
+}
+
+AftMaybeUint64 aft_ascii_uint64_from_string(const AftString* string)
+{
+    int count = aft_string_get_count(string);
+    AftStringRange range = {0, count};
+    return aft_ascii_uint64_from_string_range(string, &range);
+}
+
+AftMaybeUint64 aft_ascii_uint64_from_string_range(const AftString* string, const AftStringRange* range)
+{
+    AFT_ASSERT(string);
+    AFT_ASSERT(range);
+    AFT_ASSERT(aft_string_range_check(string, range));
+    AFT_ASSERT(aft_ascii_check_range(string, range));
+
+    AftMaybeUint64 result;
+    result.valid = true;
+    result.value = 0;
+
+    const char* contents = aft_string_get_contents_const(string);
+
+    int count = range->end - range->start;
+    int power_index = AFT_UINT64_MAX_DECIMAL_DIGITS - count;
+
+    for(int char_index = range->start; char_index < range->end; char_index += 1)
+    {
+        uint64_t character = contents[char_index];
+        uint64_t digit = character - '0';
+        if(digit >= 10)
+        {
+            result.valid = false;
+            return result;
+        }
+        result.value += powers_of_ten[power_index] * digit;
+    }
 
     return result;
 }

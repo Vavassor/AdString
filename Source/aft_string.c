@@ -6,8 +6,6 @@
 #define AFT_ASSERT(expression) \
     assert(expression)
 
-#define UINT64_MAX_DIGITS 20
-
 
 #if !defined(AFT_USE_CUSTOM_ALLOCATOR)
 
@@ -40,30 +38,6 @@ bool aft_deallocate(void* allocator, AftMemoryBlock block)
 
 static const uint32_t canary_start = 0x9573cea9;
 static const uint32_t canary_end = 0x5f33ccfa;
-
-static const uint64_t powers_of_ten[UINT64_MAX_DIGITS] =
-{
-    UINT64_C(10000000000000000000),
-    UINT64_C(1000000000000000000),
-    UINT64_C(100000000000000000),
-    UINT64_C(10000000000000000),
-    UINT64_C(1000000000000000),
-    UINT64_C(100000000000000),
-    UINT64_C(10000000000000),
-    UINT64_C(1000000000000),
-    UINT64_C(100000000000),
-    UINT64_C(10000000000),
-    UINT64_C(1000000000),
-    UINT64_C(100000000),
-    UINT64_C(10000000),
-    UINT64_C(1000000),
-    UINT64_C(100000),
-    UINT64_C(10000),
-    UINT64_C(1000),
-    UINT64_C(100),
-    UINT64_C(10),
-    UINT64_C(1),
-};
 
 static const uint8_t utf8_decode_state_table[] =
 {
@@ -340,156 +314,6 @@ void aft_ascii_reverse_range(AftString* string, const AftStringRange* range)
     }
 }
 
-// Warning!
-//
-// This implementation does not produce very accurate results. A more robust
-// algorithm would use large integers and assemble the binary representation of
-// the double by parts. Repeatedly operating on a float-point intermediate value
-// compounds rounding errors and reduces the accuracy of the result in this
-// implementation.
-//
-// A good modern implementation might be something like Albert Chan's
-// strtod-fast in this repository https://github.com/achan001/dtoa-fast. Or
-// a simpler but less speedy traditional implementation using big integers
-// as outlined here
-// https://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/.
-AftMaybeDouble aft_ascii_to_double(const AftStringSlice* slice)
-{
-    AftMaybeDouble result;
-    result.valid = false;
-    result.value = 0.0;
-
-    bool sign = false;
-
-    const char* contents = aft_string_slice_start(slice);
-    int count = aft_string_slice_count(slice);
-
-    int char_index = 0;
-
-    if(char_index < count)
-    {
-        if(contents[char_index] == '-')
-        {
-            sign = true;
-            char_index += 1;
-        }
-        else if(contents[char_index] == '+')
-        {
-            sign = false;
-            char_index += 1;
-        }
-    }
-
-    double value = 0.0;
-    int mantissa_count = 0;
-    int fraction_digits = 0;
-    int exponent = 0;
-
-    while(char_index < count && aft_ascii_is_numeric(contents[char_index]))
-    {
-        value = (10.0 * value) + (contents[char_index] - '0');
-        char_index += 1;
-        mantissa_count += 1;
-    }
-
-    if(char_index < count && contents[char_index] == '.')
-    {
-        char_index += 1;
-
-        while(char_index < count && aft_ascii_is_numeric(contents[char_index]))
-        {
-            value = (10.0 * value) + (contents[char_index] - '0');
-            char_index += 1;
-            fraction_digits += 1;
-            mantissa_count += 1;
-        }
-
-        exponent -= fraction_digits;
-    }
-
-    if(mantissa_count == 0)
-    {
-        return result;
-    }
-
-    if(char_index < count && (contents[char_index] == 'E' || contents[char_index] == 'e'))
-    {
-        char_index += 1;
-
-        bool exponent_sign = false;
-
-        if(char_index < count)
-        {
-            if(contents[char_index] == '-')
-            {
-                exponent_sign = true;
-                char_index += 1;
-            }
-            else if(contents[char_index] == '+')
-            {
-                exponent_sign = false;
-                char_index += 1;
-            }
-        }
-
-        int explicit_exponent = 0;
-        while(char_index < count && aft_ascii_is_numeric(contents[char_index]))
-        {
-            explicit_exponent = (10 * explicit_exponent) + (contents[char_index] - '0');
-            char_index += 1;
-        }
-
-        if(exponent_sign)
-        {
-            exponent -= explicit_exponent;
-        }
-        else
-        {
-            exponent += explicit_exponent;
-        }
-    }
-
-    if(exponent < -307 || exponent > 308)
-    {
-        return result;
-    }
-
-    double power_of_ten = 10.0;
-    int exponent_magnitude = exponent;
-    if(exponent_magnitude < 0)
-    {
-        exponent_magnitude = -exponent_magnitude;
-    }
-
-    while(exponent_magnitude)
-    {
-        if(exponent_magnitude & 1)
-        {
-            if(exponent < 0)
-            {
-                value /= power_of_ten;
-            }
-            else
-            {
-                value *= power_of_ten;
-            }
-        }
-
-        exponent_magnitude >>= 1;
-        power_of_ten *= power_of_ten;
-    }
-
-    if(sign)
-    {
-        value = -value;
-    }
-
-    result.valid = true;
-    result.value = value;
-
-    return result;
-}
-
 void aft_ascii_to_lowercase(AftString* string)
 {
     AFT_ASSERT(string);
@@ -538,44 +362,6 @@ char aft_ascii_to_uppercase_char(char c)
     {
         return c;
     }
-}
-
-AftMaybeUint64 aft_ascii_uint64_from_string(const AftString* string)
-{
-    int count = aft_string_get_count(string);
-    AftStringRange range = {0, count};
-    return aft_ascii_uint64_from_string_range(string, &range);
-}
-
-AftMaybeUint64 aft_ascii_uint64_from_string_range(const AftString* string, const AftStringRange* range)
-{
-    AFT_ASSERT(string);
-    AFT_ASSERT(range);
-    AFT_ASSERT(aft_string_range_check(string, range));
-    AFT_ASSERT(aft_ascii_check_range(string, range));
-
-    AftMaybeUint64 result;
-    result.valid = true;
-    result.value = 0;
-
-    const char* contents = aft_string_get_contents_const(string);
-
-    int count = range->end - range->start;
-    int power_index = UINT64_MAX_DIGITS - count;
-
-    for(int char_index = range->start; char_index < range->end; char_index += 1)
-    {
-        uint64_t character = contents[char_index];
-        uint64_t digit = character - '0';
-        if(digit >= 10)
-        {
-            result.valid = false;
-            return result;
-        }
-        result.value += powers_of_ten[power_index] * digit;
-    }
-
-    return result;
 }
 
 
@@ -928,6 +714,49 @@ AftMaybeInt aft_string_find_last_string(const AftString* string, const AftString
     return result;
 }
 
+AftMaybeString aft_string_from_slice(const AftStringSlice* slice)
+{
+    return aft_string_from_slice_with_allocator(slice, NULL);
+}
+
+AftMaybeString aft_string_from_slice_with_allocator(const AftStringSlice* slice, void* allocator)
+{
+    int cap = slice->count + 1;
+
+    AftMaybeString result;
+    result.valid = true;
+    result.value.allocator = allocator;
+    aft_string_set_uncorrupted(&result.value);
+
+    if(cap > AFT_STRING_SMALL_CAP)
+    {
+        AftMemoryBlock block = aft_allocate(allocator, cap);
+        char* copy = block.memory;
+
+        if(!copy)
+        {
+            result.valid = false;
+            zero_memory(&result.value, sizeof(result.value));
+            return result;
+        }
+
+        copy_memory(copy, slice->contents, slice->count);
+        copy[slice->count] = '\0';
+        result.value.big.contents = copy;
+        result.value.cap = cap;
+        aft_string_set_count(&result.value, slice->count);
+    }
+    else
+    {
+        copy_memory(result.value.small.contents, slice->contents, slice->count);
+        result.value.small.contents[slice->count] = '\0';
+        result.value.cap = AFT_STRING_SMALL_CAP;
+        aft_string_set_count(&result.value, slice->count);
+    }
+
+    return result;
+}
+
 AftMaybeString aft_string_from_buffer(const char* buffer, int bytes)
 {
     return aft_string_from_buffer_with_allocator(buffer, bytes, NULL);
@@ -1258,6 +1087,11 @@ int aft_string_range_count(const AftStringRange* range)
 
 AftStringSlice aft_string_slice(const AftStringSlice* slice, int start, int end)
 {
+    if(end < 0)
+    {
+        end += aft_string_slice_count(slice) + 1;
+    }
+
     AftStringSlice result =
     {
         .contents = slice->contents + start,
@@ -1281,6 +1115,14 @@ AftStringSlice aft_string_slice_from_buffer(const char* contents, int count)
 AftStringSlice aft_string_slice_from_c_string(const char* contents)
 {
     return aft_string_slice_from_buffer(contents, string_size(contents));
+}
+
+AftStringSlice aft_string_slice_from_string(const AftString* string)
+{
+    const char* contents = aft_string_get_contents_const(string);
+    int count = aft_string_get_count(string);
+
+    return aft_string_slice_from_buffer(contents, count);
 }
 
 bool aft_string_slice_matches(const AftStringSlice* a, const AftStringSlice* b)
