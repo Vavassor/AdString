@@ -54,13 +54,6 @@ static const uint64_t powers_of_ten[AFT_UINT64_MAX_DECIMAL_DIGITS] =
     UINT64_C(1),
 };
 
-
-static uint64_t abs_int64_to_uint64(int64_t x)
-{
-    uint64_t mask = -((uint64_t) x >> (8 * sizeof(uint64_t) - 1));
-    return ((uint64_t) x + mask) ^ mask;
-}
-
 static int count_digits(int value)
 {
     int digits = 0;
@@ -223,6 +216,7 @@ static uint64_t round_uint64_and_sign(uint64_t value, uint64_t increment, bool s
         {
             return round_half_down(value, increment);
         }
+        default:
         case AFT_DECIMAL_FORMAT_ROUNDING_MODE_HALF_EVEN:
         {
             return round_half_even(value, increment);
@@ -461,7 +455,7 @@ static void format_significant_integer_digits(DecimalFormatter* formatter)
             aft_string_append(formatter->string, formatter->group_separator);
         }
 
-        int digit = formatter->digits[digit_index];
+        int digit = (int) formatter->digits[digit_index];
         aft_string_append(formatter->string, &formatter->format->symbols.digits[digit]);
     }
 
@@ -485,7 +479,7 @@ static void format_scientific_digits_and_exponent(DecimalFormatter* formatter)
                 digit_limiter < formatter->digits_shown && digit_index >= 0;
                 digit_limiter += 1, digit_index -= 1)
         {
-            int digit = formatter->digits[digit_index];
+            int digit = (int) formatter->digits[digit_index];
             aft_string_append(formatter->string, &format->symbols.digits[digit]);
         }
 
@@ -911,7 +905,7 @@ AftMaybeString aft_ascii_from_double_with_allocator(double value, void* allocato
     aft_string_initialise_with_allocator(&result.value, allocator);
 
     char cheating[25];
-    sprintf(cheating, "%g", value);
+    snprintf(cheating, 25, "%g", value);
     aft_string_append_c_string(&result.value, cheating);
 
     return result;
@@ -1389,7 +1383,13 @@ AftMaybeString aft_string_from_int64(int64_t value, const AftDecimalFormat* form
 
 AftMaybeString aft_string_from_int64_with_allocator(int64_t value, const AftDecimalFormat* format, void* allocator)
 {
-    return string_from_uint64_and_sign(abs_int64_to_uint64(value), value < 0, format, allocator);
+    bool sign = value < 0;
+    if(sign)
+    {
+        value = -value;
+    }
+
+    return string_from_uint64_and_sign((uint64_t) sign, sign, format, allocator);
 }
 
 AftMaybeString aft_string_from_uint64(uint64_t value, const AftDecimalFormat* format)

@@ -12,6 +12,12 @@ set_target_properties(
     C_STANDARD_REQUIRED ON
 )
 
+target_compile_options(
+	AftString
+	PUBLIC
+	$<$<C_COMPILER_ID:MSVC>:/utf-8>
+)
+
 target_include_directories(
     AftString
     PUBLIC
@@ -22,7 +28,7 @@ target_include_directories(
 target_link_libraries(
     AftString
     PRIVATE
-    m
+    $<$<C_COMPILER_ID:GNU>:m>
 )
 
 target_sources(

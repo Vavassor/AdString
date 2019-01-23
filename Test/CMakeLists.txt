@@ -62,12 +62,13 @@ target_link_libraries(
 target_sources(
     TestJson
     PRIVATE
-    "Json/filesystem.c"
-    "Json/filesystem_posix.c"
-    "Json/json.c"
-    "Json/json_deserialize.c"
-    "Json/json_serialize.c"
-    "Json/main.c"
+    Json/filesystem.c
+    $<$<PLATFORM_ID:Linux>:Json/filesystem_posix.c>
+	$<$<PLATFORM_ID:Windows>:Json/filesystem_windows.c>
+    Json/json.c
+    Json/json_deserialize.c
+    Json/json_serialize.c
+    Json/main.c
     Utility/random.c
     Utility/test.c
 )

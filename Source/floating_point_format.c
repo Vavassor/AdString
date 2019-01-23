@@ -144,7 +144,7 @@ static FloatParts unpack_binary64(const Ieee754Binary64OrDouble* binary64)
         FloatParts result =
         {
             .mantissa = binary64->fraction,
-            .mantissa_high_bit = log2_uint32(binary64->fraction),
+            .mantissa_high_bit = log2_uint32((uint32_t) binary64->fraction),
             .exponent = 1 - 1023,
             .factored_exponent = 1 - 1023 - 52,
             .has_unequal_margins = false,
