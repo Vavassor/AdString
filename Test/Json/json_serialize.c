@@ -15,8 +15,8 @@ typedef struct Serializer
 } Serializer;
 
 
-static void serialize_element(Serializer* serializer, const JsonElement* element);
-static void serialize_string(Serializer* serializer, const JsonElement* element);
+static bool serialize_element(Serializer* serializer, const JsonElement* element);
+static bool serialize_string(Serializer* serializer, const JsonElement* element);
 
 
 static void add_indentation(AftString* string, int indent_level, int spaces_per_indent)
@@ -29,12 +29,12 @@ static void add_indentation(AftString* string, int indent_level, int spaces_per_
     }
 }
 
-static void serialize_array(Serializer* serializer, const JsonElement* element)
+static bool serialize_array(Serializer* serializer, const JsonElement* element)
 {
     if(element->array.count == 0)
     {
         aft_string_append_c_string(serializer->string, "[]");
-        return;
+        return true;
     }
 
     aft_string_append_c_string(serializer->string, "[\n");
@@ -64,14 +64,16 @@ static void serialize_array(Serializer* serializer, const JsonElement* element)
     add_indentation(serializer->string, serializer->indent_level, serializer->spaces_per_indent);
 
     aft_string_append_char(serializer->string, ']');
+
+    return true;
 }
 
-static void serialize_object(Serializer* serializer, const JsonElement* element)
+static bool serialize_object(Serializer* serializer, const JsonElement* element)
 {
     if(element->object.count == 0)
     {
         aft_string_append_c_string(serializer->string, "{}");
-        return;
+        return true;
     }
 
     aft_string_append_c_string(serializer->string, "{\n");
@@ -107,9 +109,11 @@ static void serialize_object(Serializer* serializer, const JsonElement* element)
     add_indentation(serializer->string, serializer->indent_level, serializer->spaces_per_indent);
 
     aft_string_append_char(serializer->string, '}');
+
+    return true;
 }
 
-static void serialize_string(Serializer* serializer, const JsonElement* element)
+static bool serialize_string(Serializer* serializer, const JsonElement* element)
 {
     aft_string_append_char(serializer->string, '"');
 
@@ -166,49 +170,45 @@ static void serialize_string(Serializer* serializer, const JsonElement* element)
     }
 
     aft_string_append_char(serializer->string, '"');
+
+    return true;
 }
 
-static void serialize_element(Serializer* serializer, const JsonElement* element)
+static bool serialize_element(Serializer* serializer, const JsonElement* element)
 {
     switch(element->kind)
     {
         case JSON_ELEMENT_KIND_ARRAY:
         {
-            serialize_array(serializer, element);
-            break;
+            return serialize_array(serializer, element);
         }
         case JSON_ELEMENT_KIND_FALSE:
         {
-            aft_string_append_c_string(serializer->string, "false");
-            break;
+            return aft_string_append_c_string(serializer->string, "false");
         }
         case JSON_ELEMENT_KIND_OBJECT:
         {
-            serialize_object(serializer, element);
-            break;
+            return serialize_object(serializer, element);
         }
         case JSON_ELEMENT_KIND_NUMBER:
         {
             AftMaybeString result = aft_ascii_from_double(element->number);
             ASSERT(result.valid);
-            aft_string_append(serializer->string, &result.value);
+            bool serialized = aft_string_append(serializer->string, &result.value);
             aft_string_destroy(&result.value);
-            break;
+            return serialized;
         }
         case JSON_ELEMENT_KIND_NULL:
         {
-            aft_string_append_c_string(serializer->string, "null");
-            break;
+            return aft_string_append_c_string(serializer->string, "null");
         }
         case JSON_ELEMENT_KIND_STRING:
         {
-            serialize_string(serializer, element);
-            break;
+            return serialize_string(serializer, element);
         }
         case JSON_ELEMENT_KIND_TRUE:
         {
-            aft_string_append_c_string(serializer->string, "true");
-            break;
+            return aft_string_append_c_string(serializer->string, "true");
         }
     }
 }
@@ -224,9 +224,14 @@ AftMaybeString json_serialize(const JsonElement* element, void* allocator)
         .spaces_per_indent = 4,
         .string = &result.value,
     };
-    serialize_element(&serializer, element);
+    bool serialized = serialize_element(&serializer, element);
 
-    result.valid = true;
+    if(!serialized)
+    {
+        aft_string_destroy(serializer.string);
+    }
+
+    result.valid = serialized;
 
     return result;
 }

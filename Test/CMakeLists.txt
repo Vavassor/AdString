@@ -62,6 +62,8 @@ target_link_libraries(
 target_sources(
     TestJson
     PRIVATE
+    "Json/filesystem.c"
+    "Json/filesystem_posix.c"
     "Json/json.c"
     "Json/json_deserialize.c"
     "Json/json_serialize.c"
@@ -76,6 +78,7 @@ add_test(
 )
 
 configure_file(Json/handmade.json ${CMAKE_CURRENT_BINARY_DIR}/handmade.json COPYONLY)
+configure_file(Json/omdb.json ${CMAKE_CURRENT_BINARY_DIR}/omdb.json COPYONLY)
 
 
 add_executable(TestNumberFormat "")

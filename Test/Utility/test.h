@@ -15,6 +15,7 @@
 
 typedef struct Allocator
 {
+    uint64_t blocks_used;
     uint64_t bytes_used;
     bool force_allocation_failure;
 } Allocator;

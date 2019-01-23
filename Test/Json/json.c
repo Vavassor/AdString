@@ -2,16 +2,8 @@
 
 #include <assert.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #define AFT_ASSERT(expression) assert(expression)
-
-
-typedef struct JsonMemoryBlock
-{
-    void* memory;
-    uint64_t bytes;
-} JsonMemoryBlock;
 
 
 static JsonElement* const object_slot_empty = 0;
@@ -19,27 +11,8 @@ static JsonElement* const object_overflow_empty = ((void*) 1);
 static const int object_iterator_end_index = -1;
 
 
-static JsonMemoryBlock json_allocate(void* allocator, uint64_t bytes)
-{
-    AFT_ASSERT(allocator);
+static void json_object_destroy(JsonElement* element);
 
-    JsonMemoryBlock block =
-    {
-        .memory = calloc(bytes, 1),
-        .bytes = bytes,
-    };
-
-    return block;
-}
-
-static bool json_deallocate(void* allocator, JsonMemoryBlock block)
-{
-    AFT_ASSERT(allocator);
-
-    free(block.memory);
-
-    return true;
-}
 
 static uint32_t next_power_of_two(uint32_t x)
 {
@@ -99,9 +72,9 @@ static void json_object_grow(JsonElement* object_element, int cap)
 
     int prior_cap = object->cap;
 
-    JsonElement** keys = json_allocate(object->allocator, sizeof(JsonElement*) * (cap + 1)).memory;
-    JsonElement** values = json_allocate(object->allocator, sizeof(JsonElement*) * (cap + 1)).memory;
-    uint32_t* hashes = json_allocate(object->allocator, sizeof(uint32_t) * cap).memory;
+    JsonElement** keys = aft_allocate(object->allocator, sizeof(JsonElement*) * (cap + 1)).memory;
+    JsonElement** values = aft_allocate(object->allocator, sizeof(JsonElement*) * (cap + 1)).memory;
+    uint32_t* hashes = aft_allocate(object->allocator, sizeof(uint32_t) * cap).memory;
 
     for(int slot_index = 0;
             slot_index < prior_cap;
@@ -125,12 +98,12 @@ static void json_object_grow(JsonElement* object_element, int cap)
     keys[cap] = object->keys[prior_cap];
     values[cap] = object->values[prior_cap];
 
-    JsonMemoryBlock key_block = {object->keys, sizeof(JsonElement*) * (prior_cap + 1)};
-    JsonMemoryBlock value_block = {object->keys, sizeof(JsonElement*) * (prior_cap + 1)};
-    JsonMemoryBlock hash_block = {object->keys, sizeof(uint32_t) * prior_cap};
-    json_deallocate(object->allocator, key_block);
-    json_deallocate(object->allocator, value_block);
-    json_deallocate(object->allocator, hash_block);
+    AftMemoryBlock key_block = {object->keys, sizeof(JsonElement*) * (prior_cap + 1)};
+    AftMemoryBlock value_block = {object->values, sizeof(JsonElement*) * (prior_cap + 1)};
+    AftMemoryBlock hash_block = {object->hashes, sizeof(uint32_t) * prior_cap};
+    aft_deallocate(object->allocator, key_block);
+    aft_deallocate(object->allocator, value_block);
+    aft_deallocate(object->allocator, hash_block);
 
     object->keys = keys;
     object->values = values;
@@ -159,7 +132,7 @@ void json_array_add(JsonElement* array_element, const JsonElement* element)
             cap *= 2;
         }
 
-        JsonMemoryBlock block = json_allocate(array->allocator, cap * sizeof(JsonElement));
+        AftMemoryBlock block = aft_allocate(array->allocator, sizeof(JsonElement) * cap);
         JsonElement* elements = block.memory;
 
         if(old_cap > 0)
@@ -171,8 +144,8 @@ void json_array_add(JsonElement* array_element, const JsonElement* element)
                 elements[element_index] = array->elements[element_index];
             }
 
-            JsonMemoryBlock old_block = {array->elements, old_cap * sizeof(JsonElement)};
-            json_deallocate(array->allocator, old_block);
+            AftMemoryBlock old_block = {array->elements, old_cap * sizeof(JsonElement)};
+            aft_deallocate(array->allocator, old_block);
         }
 
         array->elements = elements;
@@ -196,8 +169,13 @@ void json_element_destroy(JsonElement* element)
                 json_element_destroy(&element->array.elements[element_index]);
             }
 
-            JsonMemoryBlock block = {element->array.elements, sizeof(JsonElement) * element->array.cap};
-            json_deallocate(element->array.allocator, block);
+            AftMemoryBlock block = {element->array.elements, sizeof(JsonElement) * element->array.cap};
+            aft_deallocate(element->array.allocator, block);
+            break;
+        }
+        case JSON_ELEMENT_KIND_OBJECT:
+        {
+            json_object_destroy(element);
             break;
         }
         case JSON_ELEMENT_KIND_STRING:
@@ -214,8 +192,8 @@ void json_object_add(JsonElement* object_element, JsonElement* original_key, Jso
 
     JsonObject* object = &object_element->object;
 
-    JsonElement* key = json_allocate(object->allocator, sizeof(JsonElement)).memory;
-    JsonElement* value = json_allocate(object->allocator, sizeof(JsonElement)).memory;
+    JsonElement* key = aft_allocate(object->allocator, sizeof(JsonElement)).memory;
+    JsonElement* value = aft_allocate(object->allocator, sizeof(JsonElement)).memory;
     *key = *original_key;
     *value = *original_value;
 
@@ -270,16 +248,16 @@ void json_object_create(JsonElement* element, int cap, void* allocator)
     object->count = 0;
     object->allocator = allocator;
 
-    object->keys = json_allocate(allocator, sizeof(JsonElement*) * (cap + 1)).memory;
-    object->values = json_allocate(allocator, sizeof(JsonElement*) * (cap + 1)).memory;
-    object->hashes = json_allocate(allocator, sizeof(uint32_t) * cap).memory;
+    object->keys = aft_allocate(allocator, sizeof(JsonElement*) * (cap + 1)).memory;
+    object->values = aft_allocate(allocator, sizeof(JsonElement*) * (cap + 1)).memory;
+    object->hashes = aft_allocate(allocator, sizeof(uint32_t) * cap).memory;
 
     int overflow_index = cap;
     object->keys[overflow_index] = object_overflow_empty;
     object->values[overflow_index] = NULL;
 }
 
-void json_object_destroy(JsonElement* element)
+static void json_object_destroy(JsonElement* element)
 {
     AFT_ASSERT(element->kind == JSON_ELEMENT_KIND_OBJECT);
 
@@ -292,18 +270,21 @@ void json_object_destroy(JsonElement* element)
         JsonElement* key = json_object_iterator_get_key(it);
         JsonElement* value = json_object_iterator_get_value(it);
 
-        JsonMemoryBlock key_block = {key, sizeof(JsonElement)};
-        JsonMemoryBlock value_block = {value, sizeof(JsonElement)};
-        json_deallocate(object->allocator, key_block);
-        json_deallocate(object->allocator, value_block);
+        json_element_destroy(key);
+        json_element_destroy(value);
+
+        AftMemoryBlock key_block = {key, sizeof(JsonElement)};
+        AftMemoryBlock value_block = {value, sizeof(JsonElement)};
+        aft_deallocate(object->allocator, key_block);
+        aft_deallocate(object->allocator, value_block);
     }
 
-    JsonMemoryBlock key_block = {object->keys, sizeof(JsonElement*) * (object->cap + 1)};
-    JsonMemoryBlock value_block = {object->values, sizeof(JsonElement*) * (object->cap + 1)};
-    JsonMemoryBlock hash_block = {object->hashes, sizeof(uint32_t) * object->cap};
-    json_deallocate(object->allocator, key_block);
-    json_deallocate(object->allocator, value_block);
-    json_deallocate(object->allocator, hash_block);
+    AftMemoryBlock key_block = {object->keys, sizeof(JsonElement*) * (object->cap + 1)};
+    AftMemoryBlock value_block = {object->values, sizeof(JsonElement*) * (object->cap + 1)};
+    AftMemoryBlock hash_block = {object->hashes, sizeof(uint32_t) * object->cap};
+    aft_deallocate(object->allocator, key_block);
+    aft_deallocate(object->allocator, value_block);
+    aft_deallocate(object->allocator, hash_block);
 
     object->cap = 0;
     object->count = 0;
@@ -397,15 +378,7 @@ JsonObjectIterator json_object_iterator_start(const JsonObject* object)
 {
     JsonObjectIterator iterator;
     iterator.object = object;
-
-    if(object->count > 0)
-    {
-        iterator.index = 0;
-    }
-    else
-    {
-        iterator.index = object_iterator_end_index;
-    }
+    iterator.index = -1;
 
     return json_object_iterator_next(iterator);
 }
