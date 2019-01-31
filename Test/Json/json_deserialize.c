@@ -408,7 +408,7 @@ static void next_token(Lexer* lexer)
             }
         }
 
-        int count = aft_string_slice_start(lexer->slice) - start;
+        int count = (int) (aft_string_slice_start(lexer->slice) - start);
         lexer->token.slice = aft_string_slice_from_buffer(start, count);
     }
 }

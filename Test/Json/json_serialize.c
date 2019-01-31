@@ -210,6 +210,10 @@ static bool serialize_element(Serializer* serializer, const JsonElement* element
         {
             return aft_string_append_c_string(serializer->string, "true");
         }
+        default:
+        {
+            return false;
+        }
     }
 }
 

@@ -21,19 +21,19 @@ static const uint32_t powers_of_ten_uint32[] =
 
 static const BigInt powers_of_ten_big_int[] =
 {
-    (BigInt){{UINT32_C(100000000)}, 1},
-    (BigInt){{UINT32_C(0x6fc10000), UINT32_C(0x002386f2)}, 2},
-    (BigInt){{UINT32_C(0x00000000), UINT32_C(0x85acef81), UINT32_C(0x2d6d415b),
+    {{UINT32_C(100000000)}, 1},
+    {{UINT32_C(0x6fc10000), UINT32_C(0x002386f2)}, 2},
+    {{UINT32_C(0x00000000), UINT32_C(0x85acef81), UINT32_C(0x2d6d415b),
             UINT32_C(0x000004ee)}, 4},
-    (BigInt){{UINT32_C(0x00000000), UINT32_C(0x00000000), UINT32_C(0xbf6a1f01),
+    {{UINT32_C(0x00000000), UINT32_C(0x00000000), UINT32_C(0xbf6a1f01),
             UINT32_C(0x6e38ed64), UINT32_C(0xdaa797ed), UINT32_C(0xe93ff9f4),
             UINT32_C(0x00184f03)}, 7},
-    (BigInt){{UINT32_C(0x00000000), UINT32_C(0x00000000), UINT32_C(0x00000000),
+    {{UINT32_C(0x00000000), UINT32_C(0x00000000), UINT32_C(0x00000000),
             UINT32_C(0x00000000), UINT32_C(0x2e953e01), UINT32_C(0x03df9909),
             UINT32_C(0x0f1538fd), UINT32_C(0x2374e42f), UINT32_C(0xd3cff5ec),
             UINT32_C(0xc404dc08), UINT32_C(0xbccdb0da), UINT32_C(0xa6337f19),
             UINT32_C(0xe91f2603), UINT32_C(0x0000024e)}, 14},
-    (BigInt){{UINT32_C(0x00000000), UINT32_C(0x00000000), UINT32_C(0x00000000),
+    {{UINT32_C(0x00000000), UINT32_C(0x00000000), UINT32_C(0x00000000),
             UINT32_C(0x00000000), UINT32_C(0x00000000), UINT32_C(0x00000000),
             UINT32_C(0x00000000), UINT32_C(0x00000000), UINT32_C(0x982e7c01),
             UINT32_C(0xbed3875b), UINT32_C(0xd8d99f72), UINT32_C(0x12152f87),
@@ -147,7 +147,7 @@ void big_int_decuple(BigInt* a)
     if(carry != 0)
     {
         AFT_ASSERT(a->blocks_count + 1 <= BIG_INT_BLOCK_CAP);
-        a->blocks[block_index] = carry;
+        a->blocks[block_index] = (uint32_t) carry;
         a->blocks_count += 1;
     }
 }

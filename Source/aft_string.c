@@ -96,7 +96,7 @@ static void aft_string_set_count(AftString* string, int count)
     }
     else
     {
-        string->small.bytes_left = AFT_STRING_SMALL_CAP - count;
+        string->small.bytes_left = (char) (AFT_STRING_SMALL_CAP - count);
     }
 }
 

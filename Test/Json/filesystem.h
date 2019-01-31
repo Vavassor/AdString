@@ -25,7 +25,7 @@ typedef struct AftMaybePath
 
 typedef struct AftReadFileResult
 {
-    int bytes;
+    uint64_t bytes;
     bool success;
 } AftReadFileResult;
 
@@ -44,6 +44,7 @@ AftMaybePath aft_get_executable_directory(void* allocator);
 bool aft_path_append(AftPath* path, const AftPath* after);
 void aft_path_destroy(AftPath* path);
 AftMaybePath aft_path_from_c_string_with_allocator(const char* path, void* allocator);
+AftMaybePath aft_path_from_slice_with_allocator(const AftStringSlice* path, void* allocator);
 const char* aft_path_get_contents_const(const AftPath* path);
 const AftString* aft_path_get_string_const(const AftPath* path);
 void aft_path_initialise_with_allocator(AftPath* path, void* allocator);

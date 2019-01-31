@@ -1,6 +1,21 @@
 #include "filesystem.h"
 
 
+static void replace_backslashes(AftString* string)
+{
+    char* contents = aft_string_get_contents(string);
+    int count = aft_string_get_count(string);
+
+    for(int char_index = 0; char_index < count; char_index += 1)
+    {
+        if(contents[char_index] == '\\')
+        {
+            contents[char_index] = '/';
+        }
+    }
+}
+
+
 AftMaybeString aft_load_text_file(const AftPath* path, void* allocator)
 {
     AftMaybeString result;
@@ -36,8 +51,8 @@ AftMaybeString aft_load_text_file(const AftPath* path, void* allocator)
         return result;
     }
 
-    AftStringSlice slice = aft_string_slice_from_buffer(block.memory, block.bytes);
-    result = aft_string_copy_slice_with_allocator(&slice, allocator);
+    AftStringSlice slice = aft_string_slice_from_buffer(block.memory, (int) block.bytes);
+    result = aft_string_from_slice_with_allocator(&slice, allocator);
 
     aft_deallocate(allocator, block);
 
@@ -67,6 +82,19 @@ AftMaybePath aft_path_from_c_string_with_allocator(const char* path, void* alloc
     AftMaybePath result;
     result.valid = string.valid;
     result.value.string = string.value;
+
+    return result;
+}
+
+AftMaybePath aft_path_from_slice_with_allocator(const AftStringSlice* path, void* allocator)
+{
+    AftMaybeString string = aft_string_from_slice_with_allocator(path, allocator);
+
+    AftMaybePath result;
+    result.valid = string.valid;
+    result.value.string = string.value;
+
+    replace_backslashes(&result.value.string);
 
     return result;
 }

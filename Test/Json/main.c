@@ -7,6 +7,9 @@
 
 int main(const char* argv, int argc)
 {
+    (void) argv;
+    (void) argc;
+
     Allocator allocator = {0};
 
     const char* test_paths[2] =

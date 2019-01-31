@@ -41,9 +41,12 @@ bool aft_deallocate(void* allocator_pointer, AftMemoryBlock block)
 {
     ASSERT(allocator_pointer);
 
-    Allocator* allocator = (Allocator*) allocator_pointer;
-    allocator->bytes_used -= block.bytes;
-    allocator->blocks_used -= 1;
+    if(block.memory)
+    {
+        Allocator* allocator = (Allocator*)allocator_pointer;
+        allocator->bytes_used -= block.bytes;
+        allocator->blocks_used -= 1;
+    }
 
     free(block.memory);
 
