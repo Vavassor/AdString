@@ -381,14 +381,17 @@ bool aft_c_string_deallocate_with_allocator(void* allocator, char* string)
 }
 
 
-bool aft_string_add(AftString* to, const AftString* from, int index)
+bool aft_string_add(AftString* to, const AftStringSlice* from, int index)
 {
     int to_count = aft_string_get_count(to);
-    int from_count = aft_string_get_count(from);
+    int from_count = aft_string_slice_count(from);
 
     AFT_ASSERT(to);
     AFT_ASSERT(from);
     AFT_ASSERT(index >= 0 && index <= to_count);
+
+    bool adding_to_self = aft_string_slice_in_string(from, to);
+    const char* to_contents_before_reserve = aft_string_get_contents_const(to);
 
     int count = to_count + from_count;
     bool reserved = aft_string_reserve(to, count);
@@ -401,7 +404,14 @@ bool aft_string_add(AftString* to, const AftString* from, int index)
     int prior_count = to_count;
     aft_string_set_count(to, count);
     char* to_contents = aft_string_get_contents(to);
-    const char* from_contents = aft_string_get_contents_const(from);
+
+    const char* from_contents = aft_string_slice_start(from);
+    if(adding_to_self)
+    {
+        ptrdiff_t start_index = from_contents - to_contents_before_reserve;
+        from_contents = to_contents + start_index;
+    }
+
     int shift_bytes = prior_count - index;
     if(shift_bytes > 0)
     {
@@ -554,6 +564,50 @@ AftMaybeString aft_string_copy(AftString* string)
     return result;
 }
 
+AftMaybeString aft_string_copy_c_string(const char* original)
+{
+    return aft_string_copy_c_string_with_allocator(original, NULL);
+}
+
+AftMaybeString aft_string_copy_c_string_with_allocator(const char* original, void* allocator)
+{
+    int bytes = string_size(original);
+    int cap = bytes + 1;
+
+    AftMaybeString result;
+    result.valid = true;
+    result.value.allocator = allocator;
+    aft_string_set_uncorrupted(&result.value);
+
+    if(cap > AFT_STRING_SMALL_CAP)
+    {
+        AftMemoryBlock block = aft_allocate(allocator, cap);
+        char* copy = block.memory;
+
+        if(!copy)
+        {
+            result.valid = false;
+            zero_memory(&result.value, sizeof(result.value));
+            return result;
+        }
+
+        copy_memory(copy, original, bytes);
+        copy[bytes] = '\0';
+        result.value.big.contents = copy;
+        result.value.cap = cap;
+        aft_string_set_count(&result.value, bytes);
+    }
+    else
+    {
+        copy_memory(result.value.small.contents, original, bytes);
+        result.value.small.contents[bytes] = '\0';
+        result.value.cap = AFT_STRING_SMALL_CAP;
+        aft_string_set_count(&result.value, bytes);
+    }
+
+    return result;
+}
+
 AftMaybeString aft_string_copy_range(const AftString* string, const AftStringRange* range)
 {
     AFT_ASSERT(string);
@@ -561,165 +615,18 @@ AftMaybeString aft_string_copy_range(const AftString* string, const AftStringRan
     AFT_ASSERT(aft_string_range_check(string, range));
 
     const char* contents = aft_string_get_contents_const(string);
-    const char* buffer = &contents[range->start];
-    int bytes = aft_string_range_count(range);
-    return aft_string_from_buffer_with_allocator(buffer, bytes, string->allocator);
+    const char* start = &contents[range->start];
+    int count = aft_string_range_count(range);
+    AftStringSlice slice = aft_string_slice_from_buffer(start, count);
+    return aft_string_copy_slice_with_allocator(&slice, string->allocator);
 }
 
-bool aft_string_destroy(AftString* string)
+AftMaybeString aft_string_copy_slice(const AftStringSlice* slice)
 {
-    AFT_ASSERT(string);
-
-    bool result = true;
-
-    if(aft_string_is_big(string))
-    {
-        AftMemoryBlock block =
-        {
-            .memory = string->big.contents,
-            .bytes = string->cap,
-        };
-        result = aft_deallocate(string->allocator, block);
-    }
-
-    aft_string_initialise_with_allocator(string, string->allocator);
-
-    return result;
+    return aft_string_copy_slice_with_allocator(slice, NULL);
 }
 
-bool aft_string_ends_with(const AftString* string, const AftString* lookup)
-{
-    AFT_ASSERT(string);
-    AFT_ASSERT(lookup);
-
-    int lookup_count = aft_string_get_count(lookup);
-    int string_count = aft_string_get_count(string);
-
-    if(lookup_count > string_count)
-    {
-        return false;
-    }
-    else
-    {
-        const char* string_contents = aft_string_get_contents_const(string);
-        const char* lookup_contents = aft_string_get_contents_const(lookup);
-        const char* near_end = &string_contents[string_count - lookup_count];
-        return memory_matches(near_end, lookup_contents, lookup_count);
-    }
-}
-
-AftMaybeInt aft_string_find_first_char(const AftString* string, char c)
-{
-    AFT_ASSERT(string);
-
-    AftMaybeInt result;
-
-    const char* contents = aft_string_get_contents_const(string);
-    int count = aft_string_get_count(string);
-
-    for(int char_index = 0; char_index < count; char_index += 1)
-    {
-        if(contents[char_index] == c)
-        {
-            result.value = char_index;
-            result.valid = true;
-            return result;
-        }
-    }
-
-    result.valid = false;
-    result.value = 0;
-    return result;
-}
-
-AftMaybeInt aft_string_find_first_string(const AftString* string, const AftString* lookup)
-{
-    AFT_ASSERT(string);
-    AFT_ASSERT(lookup);
-
-    AftMaybeInt result;
-
-    const char* string_contents = aft_string_get_contents_const(string);
-    const char* lookup_contents = aft_string_get_contents_const(lookup);
-
-    int string_count = aft_string_get_count(string);
-    int lookup_count = aft_string_get_count(lookup);
-    int search_count = string_count - lookup_count + 1;
-
-    for(int char_index = 0; char_index < search_count; char_index += 1)
-    {
-        if(memory_matches(&string_contents[char_index], lookup_contents, lookup_count))
-        {
-            result.value = char_index;
-            result.valid = true;
-            return result;
-        }
-    }
-
-    result.value = 0;
-    result.valid = false;
-    return result;
-}
-
-AftMaybeInt aft_string_find_last_char(const AftString* string, char c)
-{
-    AFT_ASSERT(string);
-
-    AftMaybeInt result;
-
-    const char* contents = aft_string_get_contents_const(string);
-    int count = aft_string_get_count(string);
-
-    for(int char_index = count - 1; char_index >= 0; char_index -= 1)
-    {
-        if(contents[char_index] == c)
-        {
-            result.value = char_index;
-            result.valid = true;
-            return result;
-        }
-    }
-
-    result.value = 0;
-    result.valid = false;
-    return result;
-}
-
-AftMaybeInt aft_string_find_last_string(const AftString* string, const AftString* lookup)
-{
-    AFT_ASSERT(string);
-    AFT_ASSERT(lookup);
-
-    AftMaybeInt result;
-
-    const char* string_contents = aft_string_get_contents_const(string);
-    const char* lookup_contents = aft_string_get_contents_const(lookup);
-
-    int string_count = aft_string_get_count(string);
-    int lookup_count = aft_string_get_count(lookup);
-    int search_count = string_count - lookup_count + 1;
-
-    for(int char_index = search_count - 1; char_index >= 0; char_index -= 1)
-    {
-        if(memory_matches(&string_contents[char_index], lookup_contents, lookup_count))
-        {
-            result.value = char_index;
-            result.valid = true;
-            return result;
-        }
-    }
-
-    result.value = 0;
-    result.valid = false;
-    return result;
-}
-
-AftMaybeString aft_string_from_slice(const AftStringSlice* slice)
-{
-    return aft_string_from_slice_with_allocator(slice, NULL);
-}
-
-AftMaybeString aft_string_from_slice_with_allocator(const AftStringSlice* slice, void* allocator)
+AftMaybeString aft_string_copy_slice_with_allocator(const AftStringSlice* slice, void* allocator)
 {
     int cap = slice->count + 1;
 
@@ -757,91 +664,46 @@ AftMaybeString aft_string_from_slice_with_allocator(const AftStringSlice* slice,
     return result;
 }
 
-AftMaybeString aft_string_from_buffer(const char* buffer, int bytes)
+bool aft_string_destroy(AftString* string)
 {
-    return aft_string_from_buffer_with_allocator(buffer, bytes, NULL);
-}
+    AFT_ASSERT(string);
 
-AftMaybeString aft_string_from_buffer_with_allocator(const char* buffer, int bytes, void* allocator)
-{
-    int cap = bytes + 1;
+    bool result = true;
 
-    AftMaybeString result;
-    result.valid = true;
-    result.value.allocator = allocator;
-    aft_string_set_uncorrupted(&result.value);
-
-    if(cap > AFT_STRING_SMALL_CAP)
+    if(aft_string_is_big(string))
     {
-        AftMemoryBlock block = aft_allocate(allocator, cap);
-        char* copy = block.memory;
-
-        if(!copy)
+        AftMemoryBlock block =
         {
-            result.valid = false;
-            zero_memory(&result.value, sizeof(result.value));
-            return result;
-        }
+            .memory = string->big.contents,
+            .bytes = string->cap,
+        };
+        result = aft_deallocate(string->allocator, block);
+    }
 
-        copy_memory(copy, buffer, bytes);
-        copy[bytes] = '\0';
-        result.value.big.contents = copy;
-        result.value.cap = cap;
-        aft_string_set_count(&result.value, bytes);
-    }
-    else
-    {
-        copy_memory(result.value.small.contents, buffer, bytes);
-        result.value.small.contents[bytes] = '\0';
-        result.value.cap = AFT_STRING_SMALL_CAP;
-        aft_string_set_count(&result.value, bytes);
-    }
+    aft_string_initialise_with_allocator(string, string->allocator);
 
     return result;
 }
 
-AftMaybeString aft_string_from_c_string(const char* original)
+bool aft_string_ends_with(const AftString* string, const AftStringSlice* lookup)
 {
-    return aft_string_from_c_string_with_allocator(original, NULL);
-}
+    AFT_ASSERT(string);
+    AFT_ASSERT(lookup);
 
-AftMaybeString aft_string_from_c_string_with_allocator(const char* original, void* allocator)
-{
-    int bytes = string_size(original);
-    int cap = bytes + 1;
+    int lookup_count = aft_string_slice_count(lookup);
+    int string_count = aft_string_get_count(string);
 
-    AftMaybeString result;
-    result.valid = true;
-    result.value.allocator = allocator;
-    aft_string_set_uncorrupted(&result.value);
-
-    if(cap > AFT_STRING_SMALL_CAP)
+    if(lookup_count > string_count)
     {
-        AftMemoryBlock block = aft_allocate(allocator, cap);
-        char* copy = block.memory;
-
-        if(!copy)
-        {
-            result.valid = false;
-            zero_memory(&result.value, sizeof(result.value));
-            return result;
-        }
-
-        copy_memory(copy, original, bytes);
-        copy[bytes] = '\0';
-        result.value.big.contents = copy;
-        result.value.cap = cap;
-        aft_string_set_count(&result.value, bytes);
+        return false;
     }
     else
     {
-        copy_memory(result.value.small.contents, original, bytes);
-        result.value.small.contents[bytes] = '\0';
-        result.value.cap = AFT_STRING_SMALL_CAP;
-        aft_string_set_count(&result.value, bytes);
+        const char* string_contents = aft_string_get_contents_const(string);
+        const char* lookup_contents = aft_string_slice_start(lookup);
+        const char* near_end = &string_contents[string_count - lookup_count];
+        return memory_matches(near_end, lookup_contents, lookup_count);
     }
-
-    return result;
 }
 
 int aft_string_get_capacity(const AftString* string)
@@ -931,16 +793,19 @@ void aft_string_remove(AftString* string, const AftStringRange* range)
     AFT_ASSERT(aft_string_check_uncorrupted(string));
 }
 
-bool aft_string_replace(AftString* to, const AftStringRange* range, const AftString* from)
+bool aft_string_replace(AftString* to, const AftStringRange* range, const AftStringSlice* from)
 {
     AFT_ASSERT(to);
     AFT_ASSERT(range);
     AFT_ASSERT(from);
     AFT_ASSERT(aft_string_range_check(to, range));
 
+    const char* to_contents_before_reserve = aft_string_get_contents_const(to);
+    bool self_replace = aft_string_slice_in_string(from, to);
+
     int view_bytes = aft_string_range_count(range);
     int to_count = aft_string_get_count(to);
-    int from_count = aft_string_get_count(from);
+    int from_count = aft_string_slice_count(from);
     int count = to_count - view_bytes + from_count;
 
     bool reserved = aft_string_reserve(to, count);
@@ -951,7 +816,13 @@ bool aft_string_replace(AftString* to, const AftStringRange* range, const AftStr
     }
 
     char* to_contents = aft_string_get_contents(to);
-    const char* from_contents = aft_string_get_contents_const(from);
+    const char* from_contents = aft_string_slice_start(from);
+
+    if(self_replace)
+    {
+        ptrdiff_t start_index = from_contents - to_contents_before_reserve;
+        from_contents = to_contents + start_index;
+    }
 
     int inserted_end = range->start + from_count;
     int moved_bytes = to_count - range->end;
@@ -1019,13 +890,13 @@ bool aft_string_reserve(AftString* string, int space)
     return true;
 }
 
-bool aft_string_starts_with(const AftString* string, const AftString* lookup)
+bool aft_string_starts_with(const AftString* string, const AftStringSlice* lookup)
 {
     AFT_ASSERT(string);
     AFT_ASSERT(lookup);
 
     int string_count = aft_string_get_count(string);
-    int lookup_count = aft_string_get_count(lookup);
+    int lookup_count = aft_string_slice_count(lookup);
 
     if(lookup_count > string_count)
     {
@@ -1034,7 +905,7 @@ bool aft_string_starts_with(const AftString* string, const AftString* lookup)
     else
     {
         const char* string_contents = aft_string_get_contents_const(string);
-        const char* lookup_contents = aft_string_get_contents_const(lookup);
+        const char* lookup_contents = aft_string_slice_start(lookup);
         return memory_matches(string_contents, lookup_contents, lookup_count);
     }
 }
@@ -1106,6 +977,138 @@ int aft_string_slice_count(const AftStringSlice* slice)
     return slice->count;
 }
 
+const char* aft_string_slice_end(const AftStringSlice* slice)
+{
+    return slice->contents + slice->count;
+}
+
+bool aft_string_slice_ends_with(const AftStringSlice* slice, const AftStringSlice* lookup)
+{
+    AFT_ASSERT(slice);
+    AFT_ASSERT(lookup);
+
+    int lookup_count = aft_string_slice_count(lookup);
+    int string_count = aft_string_slice_count(slice);
+
+    if(lookup_count > string_count)
+    {
+        return false;
+    }
+    else
+    {
+        const char* string_contents = aft_string_slice_start(slice);
+        const char* lookup_contents = aft_string_slice_start(lookup);
+        const char* near_end = &string_contents[string_count - lookup_count];
+        return memory_matches(near_end, lookup_contents, lookup_count);
+    }
+}
+
+AftMaybeInt aft_string_slice_find_first_char(const AftStringSlice* string, char c)
+{
+    AFT_ASSERT(string);
+
+    AftMaybeInt result;
+
+    const char* contents = aft_string_slice_start(string);
+    int count = aft_string_slice_count(string);
+
+    for(int char_index = 0; char_index < count; char_index += 1)
+    {
+        if(contents[char_index] == c)
+        {
+            result.value = char_index;
+            result.valid = true;
+            return result;
+        }
+    }
+
+    result.valid = false;
+    result.value = 0;
+    return result;
+}
+
+AftMaybeInt aft_string_slice_find_first_string(const AftStringSlice* string, const AftStringSlice* lookup)
+{
+    AFT_ASSERT(string);
+    AFT_ASSERT(lookup);
+
+    AftMaybeInt result;
+
+    const char* string_contents = aft_string_slice_start(string);
+    const char* lookup_contents = aft_string_slice_start(lookup);
+
+    int string_count = aft_string_slice_count(string);
+    int lookup_count = aft_string_slice_count(lookup);
+    int search_count = string_count - lookup_count + 1;
+
+    for(int char_index = 0; char_index < search_count; char_index += 1)
+    {
+        if(memory_matches(&string_contents[char_index], lookup_contents, lookup_count))
+        {
+            result.value = char_index;
+            result.valid = true;
+            return result;
+        }
+    }
+
+    result.value = 0;
+    result.valid = false;
+    return result;
+}
+
+AftMaybeInt aft_string_slice_find_last_char(const AftStringSlice* string, char c)
+{
+    AFT_ASSERT(string);
+
+    AftMaybeInt result;
+
+    const char* contents = aft_string_slice_start(string);
+    int count = aft_string_slice_count(string);
+
+    for(int char_index = count - 1; char_index >= 0; char_index -= 1)
+    {
+        if(contents[char_index] == c)
+        {
+            result.value = char_index;
+            result.valid = true;
+            return result;
+        }
+    }
+
+    result.value = 0;
+    result.valid = false;
+    return result;
+}
+
+AftMaybeInt aft_string_slice_find_last_string(const AftStringSlice* string, const AftStringSlice* lookup)
+{
+    AFT_ASSERT(string);
+    AFT_ASSERT(lookup);
+
+    AftMaybeInt result;
+
+    const char* string_contents = aft_string_slice_start(string);
+    const char* lookup_contents = aft_string_slice_start(lookup);
+
+    int string_count = aft_string_slice_count(string);
+    int lookup_count = aft_string_slice_count(lookup);
+    int search_count = string_count - lookup_count + 1;
+
+    for(int char_index = search_count - 1; char_index >= 0; char_index -= 1)
+    {
+        if(memory_matches(&string_contents[char_index], lookup_contents, lookup_count))
+        {
+            result.value = char_index;
+            result.valid = true;
+            return result;
+        }
+    }
+
+    result.value = 0;
+    result.valid = false;
+    return result;
+}
+
 AftStringSlice aft_string_slice_from_buffer(const char* contents, int count)
 {
     AftStringSlice result = {contents, count};
@@ -1123,6 +1126,18 @@ AftStringSlice aft_string_slice_from_string(const AftString* string)
     int count = aft_string_get_count(string);
 
     return aft_string_slice_from_buffer(contents, count);
+}
+
+bool aft_string_slice_in_string(const AftStringSlice* slice, const AftString* string)
+{
+    const char* start = aft_string_slice_start(slice);
+    const char* end = aft_string_slice_end(slice);
+
+    AftStringSlice other = aft_string_slice_from_string(string);
+    const char* other_start = aft_string_slice_start(&other);
+    const char* other_end = aft_string_slice_end(&other);
+
+    return start >= other_start && end <= other_end;
 }
 
 bool aft_string_slice_matches(const AftStringSlice* a, const AftStringSlice* b)
@@ -1164,6 +1179,26 @@ void aft_string_slice_remove_start(AftStringSlice* slice, int count)
 const char* aft_string_slice_start(const AftStringSlice* slice)
 {
     return slice->contents;
+}
+
+bool aft_string_slice_starts_with(const AftStringSlice* slice, const AftStringSlice* lookup)
+{
+    AFT_ASSERT(slice);
+    AFT_ASSERT(lookup);
+
+    int string_count = aft_string_slice_count(slice);
+    int lookup_count = aft_string_slice_count(lookup);
+
+    if(lookup_count > string_count)
+    {
+        return false;
+    }
+    else
+    {
+        const char* string_contents = aft_string_slice_start(slice);
+        const char* lookup_contents = aft_string_slice_start(lookup);
+        return memory_matches(string_contents, lookup_contents, lookup_count);
+    }
 }
 
 

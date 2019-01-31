@@ -37,7 +37,7 @@ AftMaybeString aft_load_text_file(const AftPath* path, void* allocator)
     }
 
     AftStringSlice slice = aft_string_slice_from_buffer(block.memory, block.bytes);
-    result = aft_string_from_slice_with_allocator(&slice, allocator);
+    result = aft_string_copy_slice_with_allocator(&slice, allocator);
 
     aft_deallocate(allocator, block);
 
@@ -62,7 +62,7 @@ void aft_path_destroy(AftPath* path)
 
 AftMaybePath aft_path_from_c_string_with_allocator(const char* path, void* allocator)
 {
-    AftMaybeString string = aft_string_from_c_string_with_allocator(path, allocator);
+    AftMaybeString string = aft_string_copy_c_string_with_allocator(path, allocator);
 
     AftMaybePath result;
     result.valid = string.valid;
@@ -88,7 +88,8 @@ void aft_path_initialise_with_allocator(AftPath* path, void* allocator)
 
 void aft_path_remove_basename(AftPath* path)
 {
-    AftMaybeInt slash = aft_string_find_last_char(&path->string, '/');
+    AftStringSlice slice = aft_string_slice_from_string(&path->string);
+    AftMaybeInt slash = aft_string_slice_find_last_char(&slice, '/');
 
     if(slash.valid)
     {

@@ -1,3 +1,5 @@
+// JSON (Javascript Object Notation)
+
 #ifndef JSON_H_
 #define JSON_H_
 
@@ -89,6 +91,8 @@ JsonObjectIterator json_object_iterator_next(JsonObjectIterator it);
 JsonObjectIterator json_object_iterator_start(const JsonObject* object);
 
 JsonResult json_deserialize(AftStringSlice* slice, void* allocator);
+
+/** Produce JSON conforming to the RFC 7493 specification https://tools.ietf.org/html/rfc7493. */
 AftMaybeString json_serialize(const JsonElement* element, void* allocator);
 
 #endif // JSON_H_

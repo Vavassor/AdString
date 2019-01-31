@@ -106,7 +106,7 @@ static bool default_number_symbols(AftNumberSymbols* symbols, void* allocator)
     for(int symbol_index = 0; symbol_index < 22; symbol_index += 1)
     {
         const char* symbol = table[symbol_index].symbol;
-        AftMaybeString result = aft_string_from_c_string_with_allocator(symbol, allocator);
+        AftMaybeString result = aft_string_copy_c_string_with_allocator(symbol, allocator);
 
         if(!result.valid)
         {
@@ -946,7 +946,7 @@ AftMaybeString aft_ascii_from_uint64_with_allocator(uint64_t value, const AftBas
 
     digits[digit_index] = '\0';
 
-    AftMaybeString result = aft_string_from_c_string_with_allocator(digits, allocator);
+    AftMaybeString result = aft_string_copy_c_string_with_allocator(digits, allocator);
     aft_ascii_reverse(&result.value);
 
     return result;
@@ -1153,14 +1153,14 @@ bool aft_decimal_format_default_with_allocator(AftDecimalFormat* format, void* a
         return false;
     }
 
-    AftMaybeString positive_pattern = aft_string_from_c_string_with_allocator("+", allocator);
+    AftMaybeString positive_pattern = aft_string_copy_c_string_with_allocator("+", allocator);
     if(!positive_pattern.valid)
     {
         return false;
     }
     format->positive_prefix_pattern = positive_pattern.value;
 
-    AftMaybeString negative_pattern = aft_string_from_c_string_with_allocator("-", allocator);
+    AftMaybeString negative_pattern = aft_string_copy_c_string_with_allocator("-", allocator);
     if(!negative_pattern.valid)
     {
         return false;
@@ -1201,14 +1201,14 @@ bool aft_decimal_format_default_scientific_with_allocator(AftDecimalFormat* form
         return false;
     }
 
-    AftMaybeString positive_pattern = aft_string_from_c_string_with_allocator("+", allocator);
+    AftMaybeString positive_pattern = aft_string_copy_c_string_with_allocator("+", allocator);
     if(!positive_pattern.valid)
     {
         return false;
     }
     format->positive_prefix_pattern = positive_pattern.value;
 
-    AftMaybeString negative_pattern = aft_string_from_c_string_with_allocator("-", allocator);
+    AftMaybeString negative_pattern = aft_string_copy_c_string_with_allocator("-", allocator);
     if(!negative_pattern.valid)
     {
         return false;

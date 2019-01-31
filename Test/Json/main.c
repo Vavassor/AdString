@@ -28,7 +28,7 @@ int main(const char* argv, int argc)
         AftMaybeString file_contents = aft_load_text_file(&path.value, &allocator);
         if(!file_contents.valid)
         {
-            AftString message = aft_string_from_c_string_with_allocator("Failed to load ", &allocator).value;
+            AftString message = aft_string_copy_c_string_with_allocator("Failed to load ", &allocator).value;
             aft_string_append(&message, aft_path_get_string_const(&path.value));
             aft_string_append_c_string(&message, ".\n");
             AftStringSlice slice = aft_string_slice_from_string(&message);
@@ -61,7 +61,7 @@ int main(const char* argv, int argc)
             }
             else
             {
-                AftString message = aft_string_from_c_string_with_allocator("Output:\n", &allocator).value;
+                AftString message = aft_string_copy_c_string_with_allocator("Output:\n", &allocator).value;
                 aft_string_append(&message, &serialized.value);
                 aft_string_append_c_string(&message, "\n");
                 AftStringSlice slice = aft_string_slice_from_string(&message);
@@ -77,7 +77,7 @@ int main(const char* argv, int argc)
 
     if(allocator.bytes_used != 0)
     {
-        AftString message = aft_string_from_c_string_with_allocator("Memory leak warning! ", &allocator).value;
+        AftString message = aft_string_copy_c_string_with_allocator("Memory leak warning! ", &allocator).value;
 
         AftBaseFormat format = {.base = 10};
         AftString bytes = aft_ascii_from_uint64_with_allocator(allocator.bytes_used, &format, &allocator).value;
