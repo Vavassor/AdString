@@ -16,8 +16,7 @@ static BigInt big_int_from_c_string(const char* string)
     {
         BigInt digit;
         big_int_set_uint32(&digit, string[char_index] - '0');
-        BigInt product =
-                big_int_multiply_by_pow10(&digit, bytes - 1 - char_index);
+        BigInt product = big_int_multiply_by_pow10(&digit, bytes - 1 - char_index);
         result = big_int_add(&result, &product);
     }
 
@@ -28,8 +27,7 @@ static bool test_add(Test* test)
 {
     const BigInt a = big_int_from_c_string("590223487857837587888821111122222");
     const BigInt b = big_int_from_c_string("112444555266666666677777775542221");
-    const BigInt answer =
-            big_int_from_c_string("702668043124504254566598886664443");
+    const BigInt answer = big_int_from_c_string("702668043124504254566598886664443");
 
     BigInt sum = big_int_add(&a, &b);
 
@@ -56,8 +54,7 @@ static bool test_compare(Test* test)
 static bool test_decuple(Test* test)
 {
     BigInt a = big_int_from_c_string("23423512512512412323332323232");
-    const BigInt answer =
-            big_int_from_c_string("234235125125124123233323232320");
+    const BigInt answer = big_int_from_c_string("234235125125124123233323232320");
 
     big_int_decuple(&a);
 
@@ -78,8 +75,7 @@ static bool test_multiply(Test* test)
 {
     const BigInt a = {{0x3ac76ec1, 0x3d3f5867, 0x4f4}, 3};
     const BigInt b = {{0xe0e3331, 0xd48bd7f, 0x15}, 3};
-    const BigInt answer = {{0x97caa5f1, 0x2b950a2d, 0xb5c43b67, 0xd5aa786d,
-            0x684a}, 5};
+    const BigInt answer = {{0x97caa5f1, 0x2b950a2d, 0xb5c43b67, 0xd5aa786d, 0x684a}, 5};
 
     BigInt product = big_int_multiply(&a, &b);
 
@@ -89,8 +85,7 @@ static bool test_multiply(Test* test)
 static bool test_multiply_by_pow10(Test* test)
 {
     const BigInt a = big_int_from_c_string("23542352111117009235462177");
-    const BigInt answer =
-            big_int_from_c_string("235423521111170092354621770000000000");
+    const BigInt answer = big_int_from_c_string("235423521111170092354621770000000000");
 
     BigInt product = big_int_multiply_by_pow10(&a, 10);
 
@@ -104,8 +99,7 @@ static bool test_multiply_by_pow10(Test* test)
 static bool test_multiply_by_2(Test* test)
 {
     const BigInt a = big_int_from_c_string("23542352111117009235462177");
-    const BigInt answer =
-            big_int_from_c_string("47084704222234018470924354");
+    const BigInt answer = big_int_from_c_string("47084704222234018470924354");
 
     BigInt product = big_int_multiply_by_2(&a);
 
@@ -115,8 +109,7 @@ static bool test_multiply_by_2(Test* test)
 static bool test_multiply_uint32(Test* test)
 {
     const BigInt a = big_int_from_c_string("23542352111117009235462177");
-    const BigInt answer =
-            big_int_from_c_string("3612974151436794056338673917659");
+    const BigInt answer = big_int_from_c_string("3612974151436794056338673917659");
 
     BigInt product = big_int_multiply_uint32(&a, 153467);
 
@@ -125,8 +118,7 @@ static bool test_multiply_uint32(Test* test)
 
 static bool test_pow2(Test* test)
 {
-    const BigInt answer =
-            big_int_from_c_string("10633823966279326983230456482242756608");
+    const BigInt answer = big_int_from_c_string("10633823966279326983230456482242756608");
 
     BigInt power = big_int_pow2(123);
 
@@ -135,8 +127,7 @@ static bool test_pow2(Test* test)
 
 static bool test_pow10(Test* test)
 {
-    const BigInt answer =
-                big_int_from_c_string("1000000000000000000000000000000");
+    const BigInt answer = big_int_from_c_string("1000000000000000000000000000000");
 
     BigInt power = big_int_pow10(30);
 
@@ -145,10 +136,8 @@ static bool test_pow10(Test* test)
 
 static bool test_shift_left(Test* test)
 {
-    BigInt a =
-            big_int_from_c_string("239532523146662462532532623644");
-    const BigInt answer =
-            big_int_from_c_string("30660162962772795204164175826432");
+    BigInt a = big_int_from_c_string("239532523146662462532532623644");
+    const BigInt answer = big_int_from_c_string("30660162962772795204164175826432");
 
     big_int_shift_left(&a, 7);
 

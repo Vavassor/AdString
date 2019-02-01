@@ -101,7 +101,7 @@ bool aft_write_file_sync(AftFile* file, const void* data, uint64_t bytes)
     return ((uint64_t) written) == bytes;
 }
 
-void aft_write_to_error_output(const AftStringSlice* slice)
+void aft_write_to_error_output(AftStringSlice slice)
 {
     int flag = O_WRONLY;
     mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
@@ -115,7 +115,7 @@ void aft_write_to_error_output(const AftStringSlice* slice)
     }
 }
 
-void aft_write_to_standard_output(const AftStringSlice* slice)
+void aft_write_to_standard_output(AftStringSlice slice)
 {
     int flag = O_WRONLY;
     mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;

@@ -422,8 +422,7 @@ static DecimalQuantity dragon4(const FloatParts* parts, const FloatFormat* forma
                     break;
                 }
 
-                AftStringRange range = {digit_index, digit_index + 1};
-                aft_string_remove(&result.digits, &range);
+                aft_string_remove(&result.digits, digit_index, digit_index + 1);
             }
         }
         else
@@ -462,8 +461,7 @@ static DecimalQuantity dragon4(const FloatParts* parts, const FloatFormat* forma
             break;
         }
 
-        AftStringRange range = {digit_index, digit_index + 1};
-        aft_string_remove(&result.digits, &range);
+        aft_string_remove(&result.digits, digit_index, digit_index + 1);
     }
 
     if(aft_string_get_count(&result.digits) == 1 && digits_contents[0] == 0)

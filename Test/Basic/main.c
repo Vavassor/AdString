@@ -30,7 +30,7 @@ static bool test_add_end(Test* test)
     AftStringSlice inner = aft_string_slice_from_c_string(egg);
     ASSERT(outer.valid);
 
-    bool combined = aft_string_add(&outer.value, &inner, string_size(chicken));
+    bool combined = aft_string_add(&outer.value, inner, string_size(chicken));
     ASSERT(combined);
 
     const char* contents = aft_string_get_contents_const(&outer.value);
@@ -52,7 +52,7 @@ static bool test_add_middle(Test* test)
     AftStringSlice inner = aft_string_slice_from_c_string(egg);
     ASSERT(outer.valid);
 
-    bool combined = aft_string_add(&outer.value, &inner, 4);
+    bool combined = aft_string_add(&outer.value, inner, 4);
     ASSERT(combined);
 
     const char* contents = aft_string_get_contents_const(&outer.value);
@@ -73,7 +73,7 @@ static bool test_add_self_middle(Test* test)
     ASSERT(string.valid);
     AftStringSlice slice = aft_string_slice_from_string(&string.value);
 
-    bool combined = aft_string_add(&string.value, &slice, 4);
+    bool combined = aft_string_add(&string.value, slice, 4);
     ASSERT(combined);
 
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -95,7 +95,7 @@ static bool test_add_start(Test* test)
     AftStringSlice inner = aft_string_slice_from_c_string(egg);
     ASSERT(outer.valid);
 
-    bool combined = aft_string_add(&outer.value, &inner, 0);
+    bool combined = aft_string_add(&outer.value, inner, 0);
     ASSERT(combined);
 
     const char* contents = aft_string_get_contents_const(&outer.value);
@@ -337,23 +337,19 @@ static bool test_copy(Test* test)
 {
     const char* reference = u8"a猫🍌";
 
-    AftMaybeString original =
-            aft_string_copy_c_string_with_allocator(reference,
-                    &test->allocator);
-    AftMaybeString copy = aft_string_copy(&original.value);
+    AftMaybeString original = aft_string_copy_c_string_with_allocator(reference, &test->allocator);
+    AftMaybeString copy = aft_string_copy_with_allocator(&original.value, &test->allocator);
     ASSERT(original.valid);
     ASSERT(copy.valid);
 
-    const char* original_contents =
-            aft_string_get_contents_const(&original.value);
+    const char* original_contents = aft_string_get_contents_const(&original.value);
     const char* copy_contents = aft_string_get_contents_const(&copy.value);
 
     int original_count = aft_string_get_count(&original.value);
     int copy_count = aft_string_get_count(&copy.value);
     bool size_correct = original_count == copy_count;
     bool result = strings_match(original_contents, copy_contents)
-            && size_correct
-            && original.value.allocator == copy.value.allocator;
+            && size_correct;
 
     aft_string_destroy(&original.value);
     aft_string_destroy(&copy.value);
@@ -387,46 +383,6 @@ static bool test_copy_c_string_empty(Test* test)
     return result;
 }
 
-static bool test_copy_range(Test* test)
-{
-    const char* reference = "9876543210";
-    AftMaybeString string = aft_string_copy_c_string_with_allocator(reference, &test->allocator);
-    ASSERT(string.valid);
-
-    AftStringRange range = {3, 6};
-    AftMaybeString middle = aft_string_copy_range(&string.value, &range);
-    ASSERT(middle.valid);
-
-    const char* contents = aft_string_get_contents_const(&middle.value);
-    bool result = strings_match(contents, "654")
-            && string.value.allocator == &test->allocator;
-
-    aft_string_destroy(&string.value);
-    aft_string_destroy(&middle.value);
-
-    return result;
-}
-
-static bool test_copy_range_nothing(Test* test)
-{
-    const char* reference = "9876543210";
-    AftMaybeString string = aft_string_copy_c_string_with_allocator(reference, &test->allocator);
-    ASSERT(string.valid);
-
-    AftStringRange range = {3, 3};
-    AftMaybeString middle = aft_string_copy_range(&string.value, &range);
-    ASSERT(middle.valid);
-
-    const char* contents = aft_string_get_contents_const(&middle.value);
-    bool result = strings_match(contents, "")
-            && string.value.allocator == &test->allocator;
-
-    aft_string_destroy(&string.value);
-    aft_string_destroy(&middle.value);
-
-    return result;
-}
-
 static bool test_destroy(Test* test)
 {
     const char* reference = "Moist";
@@ -451,7 +407,7 @@ static bool test_ends_with(Test* test)
     AftStringSlice string = aft_string_slice_from_c_string(a);
     AftStringSlice ending = aft_string_slice_from_c_string(b);
 
-    bool result = aft_string_slice_ends_with(&string, &ending);
+    bool result = aft_string_slice_ends_with(string, ending);
 
     return result;
 }
@@ -463,7 +419,7 @@ static bool test_ends_with_missing(Test* test)
     AftStringSlice string = aft_string_slice_from_c_string(a);
     AftStringSlice ending = aft_string_slice_from_c_string(b);
 
-    bool result = !aft_string_slice_ends_with(&string, &ending);
+    bool result = !aft_string_slice_ends_with(string, ending);
 
     return result;
 }
@@ -474,7 +430,7 @@ static bool test_ends_with_nothing(Test* test)
     AftStringSlice string = aft_string_slice_from_c_string(a);
     AftStringSlice ending = aft_string_slice_from_c_string("");
 
-    bool result = aft_string_slice_ends_with(&string, &ending);
+    bool result = aft_string_slice_ends_with(string, ending);
 
     return result;
 }
@@ -484,7 +440,7 @@ static bool test_ends_with_self(Test* test)
     const char* a = u8"a猫🍌";
     AftStringSlice slice = aft_string_slice_from_c_string(a);
 
-    bool result = aft_string_slice_ends_with(&slice, &slice);
+    bool result = aft_string_slice_ends_with(slice, slice);
 
     return result;
 }
@@ -495,7 +451,7 @@ static bool test_find_first_char(Test* test)
     int known_index = 2;
     AftStringSlice slice = aft_string_slice_from_c_string(a);
 
-    AftMaybeInt index = aft_string_slice_find_first_char(&slice, 'A');
+    AftMaybeInt index = aft_string_slice_find_first_char(slice, 'A');
 
     bool result = index.value == known_index;
 
@@ -507,7 +463,7 @@ static bool test_find_first_char_missing(Test* test)
     const char* a = "a A AA s";
     AftStringSlice slice = aft_string_slice_from_c_string(a);
 
-    AftMaybeInt index = aft_string_slice_find_first_char(&slice, 'X');
+    AftMaybeInt index = aft_string_slice_find_first_char(slice, 'X');
 
     bool result = !index.valid && index.value == 0;
 
@@ -523,7 +479,7 @@ static bool test_find_first_string(Test* test)
     AftStringSlice string = aft_string_slice_from_c_string(a);
     AftStringSlice target = aft_string_slice_from_c_string(b);
 
-    AftMaybeInt index = aft_string_slice_find_first_string(&string, &target);
+    AftMaybeInt index = aft_string_slice_find_first_string(string, target);
 
     bool result = index.value == known_index;
 
@@ -538,7 +494,7 @@ static bool test_find_first_string_missing(Test* test)
     AftStringSlice string = aft_string_slice_from_c_string(a);
     AftStringSlice target = aft_string_slice_from_c_string(b);
 
-    AftMaybeInt index = aft_string_slice_find_first_string(&string, &target);
+    AftMaybeInt index = aft_string_slice_find_first_string(string, target);
 
     bool result = !index.valid;
 
@@ -550,7 +506,7 @@ static bool test_find_first_string_self(Test* test)
     const char* a = u8"وَالشَّمْسُ تَجْرِي لِمُسْتَقَرٍّ لَّهَا ذَٰلِكَ تَقْدِيرُ الْعَزِيزِ الْعَلِيمِ";
     AftStringSlice slice = aft_string_slice_from_c_string(a);
 
-    AftMaybeInt index = aft_string_slice_find_first_string(&slice, &slice);
+    AftMaybeInt index = aft_string_slice_find_first_string(slice, slice);
 
     bool result = index.valid && index.value == 0;
 
@@ -564,7 +520,7 @@ static bool test_find_last_char(Test* test)
 
     AftStringSlice string = aft_string_slice_from_c_string(a);
 
-    AftMaybeInt index = aft_string_slice_find_last_char(&string, 'A');
+    AftMaybeInt index = aft_string_slice_find_last_char(string, 'A');
 
     bool result = index.value == known_index;
 
@@ -577,7 +533,7 @@ static bool test_find_last_char_missing(Test* test)
 
     AftStringSlice string = aft_string_slice_from_c_string(a);
 
-    AftMaybeInt index = aft_string_slice_find_last_char(&string, '\n');
+    AftMaybeInt index = aft_string_slice_find_last_char(string, '\n');
 
     bool result = !index.valid && index.value == 0;
 
@@ -593,7 +549,7 @@ static bool test_find_last_string(Test* test)
     AftStringSlice string = aft_string_slice_from_c_string(a);
     AftStringSlice target = aft_string_slice_from_c_string(b);
 
-    AftMaybeInt index = aft_string_slice_find_last_string(&string, &target);
+    AftMaybeInt index = aft_string_slice_find_last_string(string, target);
 
     bool result = (index.value == known_index);
 
@@ -608,7 +564,7 @@ static bool test_find_last_string_missing(Test* test)
     AftStringSlice string = aft_string_slice_from_c_string(a);
     AftStringSlice target = aft_string_slice_from_c_string(b);
 
-    AftMaybeInt index = aft_string_slice_find_last_string(&string, &target);
+    AftMaybeInt index = aft_string_slice_find_last_string(string, target);
 
     bool result = !index.valid;
 
@@ -620,7 +576,7 @@ static bool test_find_last_string_self(Test* test)
     const char* a = u8"My 1st page הדף מספר 2 שלי My 3rd page";
     AftStringSlice slice = aft_string_slice_from_c_string(a);
 
-    AftMaybeInt index = aft_string_slice_find_last_string(&slice, &slice);
+    AftMaybeInt index = aft_string_slice_find_last_string(slice, slice);
 
     bool result = index.valid && index.value == 0;
 
@@ -630,9 +586,7 @@ static bool test_find_last_string_self(Test* test)
 static bool test_get_contents(Test* test)
 {
     const char* reference = "Test me in the most basic way possible.";
-    AftMaybeString string =
-            aft_string_copy_c_string_with_allocator(reference,
-                    &test->allocator);
+    AftMaybeString string = aft_string_copy_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
     char* contents = aft_string_get_contents(&string.value);
@@ -647,8 +601,7 @@ static bool test_get_contents(Test* test)
 static bool test_get_contents_const(Test* test)
 {
     const char* original = u8"👌🏼";
-    AftMaybeString string =
-            aft_string_copy_c_string_with_allocator(original, &test->allocator);
+    AftMaybeString string = aft_string_copy_c_string_with_allocator(original, &test->allocator);
     ASSERT(string.valid);
 
     const char* after = aft_string_get_contents_const(&string.value);
@@ -671,9 +624,7 @@ static bool test_initialise(Test* test)
 static bool test_iterator_next(Test* test)
 {
     const char* reference = u8"Бума́га всё сте́рпит.";
-    AftMaybeString string =
-            aft_string_copy_c_string_with_allocator(reference,
-                    &test->allocator);
+    AftMaybeString string = aft_string_copy_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
     AftCodepointIterator it;
@@ -697,9 +648,7 @@ static bool test_iterator_next(Test* test)
 static bool test_iterator_prior(Test* test)
 {
     const char* reference = u8"Бума́га всё сте́рпит.";
-    AftMaybeString string =
-            aft_string_copy_c_string_with_allocator(reference,
-                    &test->allocator);
+    AftMaybeString string = aft_string_copy_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
     AftCodepointIterator it;
@@ -724,9 +673,7 @@ static bool test_iterator_prior(Test* test)
 static bool test_iterator_set_string(Test* test)
 {
     const char* reference = "9876543210";
-    AftMaybeString string =
-            aft_string_copy_c_string_with_allocator(reference,
-                    &test->allocator);
+    AftMaybeString string = aft_string_copy_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
     AftCodepointIterator it;
@@ -744,13 +691,10 @@ static bool test_iterator_set_string(Test* test)
 static bool test_remove_end(Test* test)
 {
     const char* reference = "9876543210";
-    AftMaybeString string =
-            aft_string_copy_c_string_with_allocator(reference,
-                    &test->allocator);
+    AftMaybeString string = aft_string_copy_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
-    AftStringRange range = {7, 10};
-    aft_string_remove(&string.value, &range);
+    aft_string_remove(&string.value, 7, 10);
     const char* contents = aft_string_get_contents_const(&string.value);
     bool result = strings_match(contents, "9876543");
 
@@ -762,13 +706,10 @@ static bool test_remove_end(Test* test)
 static bool test_remove_everything(Test* test)
 {
     const char* reference = "9876543210";
-    AftMaybeString string =
-            aft_string_copy_c_string_with_allocator(reference,
-                    &test->allocator);
+    AftMaybeString string = aft_string_copy_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
-    AftStringRange range = {0, aft_string_get_count(&string.value)};
-    aft_string_remove(&string.value, &range);
+    aft_string_remove(&string.value, 0, aft_string_get_count(&string.value));
 
     const char* contents = aft_string_get_contents_const(&string.value);
     bool result = strings_match(contents, "");
@@ -781,13 +722,10 @@ static bool test_remove_everything(Test* test)
 static bool test_remove_middle(Test* test)
 {
     const char* reference = "9876543210";
-    AftMaybeString string =
-            aft_string_copy_c_string_with_allocator(reference,
-                    &test->allocator);
+    AftMaybeString string = aft_string_copy_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
-    AftStringRange range = {3, 6};
-    aft_string_remove(&string.value, &range);
+    aft_string_remove(&string.value, 3, 6);
     const char* contents = aft_string_get_contents_const(&string.value);
     bool result = strings_match(contents, "9873210");
 
@@ -799,13 +737,10 @@ static bool test_remove_middle(Test* test)
 static bool test_remove_nothing(Test* test)
 {
     const char* reference = "9876543210";
-    AftMaybeString string =
-            aft_string_copy_c_string_with_allocator(reference,
-                    &test->allocator);
+    AftMaybeString string = aft_string_copy_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
-    AftStringRange range = {3, 3};
-    aft_string_remove(&string.value, &range);
+    aft_string_remove(&string.value, 3, 3);
     const char* contents = aft_string_get_contents_const(&string.value);
     bool result = strings_match(contents, "9876543210");
 
@@ -819,8 +754,7 @@ static bool test_remove_nothing_from_nothing(Test* test)
     AftString string;
     aft_string_initialise_with_allocator(&string, &test->allocator);
 
-    AftStringRange range = {0, 0};
-    aft_string_remove(&string, &range);
+    aft_string_remove(&string, 0, 0);
     const char* contents = aft_string_get_contents_const(&string);
     bool result = strings_match(contents, "");
 
@@ -832,13 +766,10 @@ static bool test_remove_nothing_from_nothing(Test* test)
 static bool test_remove_start(Test* test)
 {
     const char* reference = "9876543210";
-    AftMaybeString string =
-            aft_string_copy_c_string_with_allocator(reference,
-                    &test->allocator);
+    AftMaybeString string = aft_string_copy_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
-    AftStringRange range = {0, 3};
-    aft_string_remove(&string.value, &range);
+    aft_string_remove(&string.value, 0, 3);
     const char* contents = aft_string_get_contents_const(&string.value);
     bool result = strings_match(contents, "6543210");
 
@@ -855,8 +786,7 @@ static bool test_replace(Test* test)
     AftStringSlice replacement = aft_string_slice_from_c_string(insert);
     ASSERT(string.valid);
 
-    AftStringRange range = {3, 6};
-    bool replaced = aft_string_replace(&string.value, &range, &replacement);
+    bool replaced = aft_string_replace(&string.value, 3, 6, replacement);
     ASSERT(replaced);
 
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -875,8 +805,7 @@ static bool test_replace_everything(Test* test)
     AftStringSlice replacement = aft_string_slice_from_c_string(insert);
     ASSERT(string.valid);
 
-    AftStringRange range = {0, aft_string_get_count(&string.value)};
-    bool replaced = aft_string_replace(&string.value, &range, &replacement);
+    bool replaced = aft_string_replace(&string.value, 0, aft_string_get_count(&string.value), replacement);
     ASSERT(replaced);
 
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -894,8 +823,7 @@ static bool test_replace_nothing(Test* test)
     aft_string_initialise_with_allocator(&string, &test->allocator);
     AftStringSlice replacement = aft_string_slice_from_c_string(insert);
 
-    AftStringRange range = {0, 0};
-    bool replaced = aft_string_replace(&string, &range, &replacement);
+    bool replaced = aft_string_replace(&string, 0, 0, replacement);
 
     const char* contents = aft_string_get_contents_const(&string);
     bool contents_match = strings_match(contents, insert);
@@ -913,8 +841,7 @@ static bool test_replace_nothing_with_nothing(Test* test)
     aft_string_initialise_with_allocator(&string, &test->allocator);
     AftStringSlice replacement = aft_string_slice_from_c_string("");
 
-    AftStringRange range = {0, 0};
-    bool replaced = aft_string_replace(&string, &range, &replacement);
+    bool replaced = aft_string_replace(&string, 0, 0, replacement);
 
     const char* contents = aft_string_get_contents_const(&string);
     bool result = replaced && strings_match(contents, "");
@@ -931,8 +858,7 @@ static bool test_replace_self_middle(Test* test)
     ASSERT(string.valid);
     AftStringSlice slice = aft_string_slice_from_string(&string.value);
 
-    AftStringRange range = {3, 6};
-    bool replaced = aft_string_replace(&string.value, &range, &slice);
+    bool replaced = aft_string_replace(&string.value, 3, 6, slice);
     ASSERT(replaced);
 
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -950,8 +876,7 @@ static bool test_replace_with_nothing(Test* test)
     AftStringSlice replacement = aft_string_slice_from_c_string("");
     ASSERT(string.valid);
 
-    AftStringRange range = {3, 6};
-    bool replaced = aft_string_replace(&string.value, &range, &replacement);
+    bool replaced = aft_string_replace(&string.value, 3, 6, replacement);
     ASSERT(replaced);
 
     const char* contents = aft_string_get_contents_const(&string.value);
@@ -984,7 +909,7 @@ static bool test_starts_with(Test* test)
     AftStringSlice string = aft_string_slice_from_c_string(a);
     AftStringSlice ending = aft_string_slice_from_c_string(b);
 
-    bool result = aft_string_slice_starts_with(&string, &ending);
+    bool result = aft_string_slice_starts_with(string, ending);
 
     return result;
 }
@@ -996,7 +921,7 @@ static bool test_starts_with_missing(Test* test)
     AftStringSlice string = aft_string_slice_from_c_string(a);
     AftStringSlice beginning = aft_string_slice_from_c_string(b);
 
-    bool result = !aft_string_slice_starts_with(&string, &beginning);
+    bool result = !aft_string_slice_starts_with(string, beginning);
 
     return result;
 }
@@ -1008,7 +933,7 @@ static bool test_starts_with_nothing(Test* test)
     AftStringSlice string = aft_string_slice_from_c_string(a);
     AftStringSlice beginning = aft_string_slice_from_c_string(b);
 
-    bool result = aft_string_slice_starts_with(&string, &beginning);
+    bool result = aft_string_slice_starts_with(string, beginning);
 
     return result;
 }
@@ -1018,22 +943,18 @@ static bool test_starts_with_self(Test* test)
     const char* a = u8"a猫🍌 ";
     AftStringSlice slice = aft_string_slice_from_c_string(a);
 
-    bool result = aft_string_slice_starts_with(&slice, &slice);
+    bool result = aft_string_slice_starts_with(slice, slice);
 
     return result;
 }
 
-static bool test_to_c_string(Test* test)
+static bool test_c_string_copy_string(Test* test)
 {
     const char* reference = "It's okay.";
-    AftMaybeString string =
-            aft_string_copy_c_string_with_allocator(reference,
-                    &test->allocator);
+    AftMaybeString string = aft_string_copy_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
-    char* copy =
-            aft_string_to_c_string_with_allocator(&string.value,
-                    &test->allocator);
+    char* copy = aft_c_string_copy_string_with_allocator(&string.value, &test->allocator);
     bool result = strings_match(copy, reference);
 
     aft_string_destroy(&string.value);
@@ -1042,17 +963,13 @@ static bool test_to_c_string(Test* test)
     return result;
 }
 
-static bool test_to_c_string_empty(Test* test)
+static bool test_c_string_copy_string_empty(Test* test)
 {
     const char* reference = "";
-    AftMaybeString string =
-            aft_string_copy_c_string_with_allocator(reference,
-                    &test->allocator);
+    AftMaybeString string = aft_string_copy_c_string_with_allocator(reference, &test->allocator);
     ASSERT(string.valid);
 
-    char* copy =
-            aft_string_to_c_string_with_allocator(&string.value,
-                    &test->allocator);
+    char* copy = aft_c_string_copy_string_with_allocator(&string.value, &test->allocator);
     bool result = strings_match(copy, reference);
 
     aft_string_destroy(&string.value);
@@ -1081,11 +998,11 @@ int main(int argc, const char** argv)
     add_test(&suite, test_assign, "Assign");
     add_test(&suite, test_assign_nothing, "Assign Nothing");
     add_test(&suite, test_assign_self, "Assign Self");
+    add_test(&suite, test_c_string_copy_string, "C String Copy String");
+    add_test(&suite, test_c_string_copy_string_empty, "C String Copy String Empty");
     add_test(&suite, test_copy, "Copy");
     add_test(&suite, test_copy_c_string, "Copy C String");
     add_test(&suite, test_copy_c_string_empty, "Copy C String Empty");
-    add_test(&suite, test_copy_range, "Copy Range");
-    add_test(&suite, test_copy_range_nothing, "Copy Range Nothing");
     add_test(&suite, test_destroy, "Destroy");
     add_test(&suite, test_ends_with, "Ends With");
     add_test(&suite, test_ends_with_missing, "Ends With Missing");
@@ -1124,8 +1041,6 @@ int main(int argc, const char** argv)
     add_test(&suite, test_starts_with_missing, "Starts With Missing");
     add_test(&suite, test_starts_with_nothing, "Starts With Nothing");
     add_test(&suite, test_starts_with_self, "Starts With Self");
-    add_test(&suite, test_to_c_string, "To C String");
-    add_test(&suite, test_to_c_string_empty, "To C String Empty");
 
     bool success = run_tests(&suite);
     return !success;

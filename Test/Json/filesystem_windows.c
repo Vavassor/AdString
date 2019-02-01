@@ -166,7 +166,7 @@ bool aft_write_file_sync(AftFile* file, const void* data, uint64_t bytes)
     return wrote && (uint64_t) bytes_written == bytes;
 }
 
-void aft_write_to_error_output(const AftStringSlice* slice)
+void aft_write_to_error_output(AftStringSlice slice)
 {
     HANDLE handle = GetStdHandle(STD_ERROR_HANDLE);
 
@@ -176,7 +176,7 @@ void aft_write_to_error_output(const AftStringSlice* slice)
     WriteFile(handle, start, count, &bytes_written, NULL);
 }
 
-void aft_write_to_standard_output(const AftStringSlice* slice)
+void aft_write_to_standard_output(AftStringSlice slice)
 {
     HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
     

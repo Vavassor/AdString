@@ -70,9 +70,9 @@ static uint32_t hexadecimal_digit_to_int(char digit)
     }
 }
 
-static char32_t four_digit_hex_to_codepoint(const AftStringSlice* slice)
+static char32_t four_digit_hex_to_codepoint(AftStringSlice slice)
 {
-    ASSERT(slice->count == 4);
+    ASSERT(slice.count == 4);
 
     const char* contents = aft_string_slice_start(slice);
 
@@ -122,16 +122,16 @@ static bool read_keyword(Lexer* lexer, const char* keyword, TokenKind kind)
 {
     int keyword_count = string_size(keyword);
 
-    if(aft_string_slice_count(lexer->slice) < keyword_count)
+    if(aft_string_slice_count(*lexer->slice) < keyword_count)
     {
         lexer->error = JSON_ERROR_INVALID_TOKEN;
         return false;
     }
 
-    AftStringSlice slice = aft_string_slice(lexer->slice, 0, keyword_count);
+    AftStringSlice slice = aft_string_slice(*lexer->slice, 0, keyword_count);
     AftStringSlice keyword_slice = aft_string_slice_from_buffer(keyword, keyword_count);
 
-    if(!aft_string_slice_matches(&slice, &keyword_slice))
+    if(!aft_string_slice_matches(slice, keyword_slice))
     {
         lexer->error = JSON_ERROR_INVALID_TOKEN;
         return false;
@@ -145,17 +145,17 @@ static bool read_keyword(Lexer* lexer, const char* keyword, TokenKind kind)
 
 static bool has_char(Lexer* lexer, char c)
 {
-    return aft_string_slice_count(lexer->slice) > 1
-            && aft_string_slice_start(lexer->slice)[0] == c;
+    return aft_string_slice_count(*lexer->slice) > 1
+            && aft_string_slice_start(*lexer->slice)[0] == c;
 }
 
 static bool read_digits(Lexer* lexer)
 {
     bool digit_found = false;
 
-    while(aft_string_slice_count(lexer->slice) != 0)
+    while(aft_string_slice_count(*lexer->slice) != 0)
     {
-        const char* start = aft_string_slice_start(lexer->slice);
+        const char* start = aft_string_slice_start(*lexer->slice);
 
         if(!aft_ascii_is_numeric(start[0]))
         {
@@ -223,7 +223,7 @@ static bool read_string(Lexer* lexer)
 
     while(!string_ended)
     {
-        int slice_left = aft_string_slice_count(lexer->slice);
+        int slice_left = aft_string_slice_count(*lexer->slice);
 
         if(slice_left == 0)
         {
@@ -231,7 +231,7 @@ static bool read_string(Lexer* lexer)
             return false;
         }
 
-        const char* start = aft_string_slice_start(lexer->slice);
+        const char* start = aft_string_slice_start(*lexer->slice);
 
         switch(start[0])
         {
@@ -313,9 +313,9 @@ static void next_token(Lexer* lexer)
 
     while(!token_found && lexer->error == JSON_ERROR_NONE)
     {
-        const char* start = aft_string_slice_start(lexer->slice);
+        const char* start = aft_string_slice_start(*lexer->slice);
 
-        if(aft_string_slice_count(lexer->slice) == 0)
+        if(aft_string_slice_count(*lexer->slice) == 0)
         {
             lexer->token.kind = TOKEN_KIND_END_OF_SLICE;
             lexer->token.slice = aft_string_slice_from_buffer(start, 0);
@@ -408,7 +408,7 @@ static void next_token(Lexer* lexer)
             }
         }
 
-        int count = (int) (aft_string_slice_start(lexer->slice) - start);
+        int count = (int) (aft_string_slice_start(*lexer->slice) - start);
         lexer->token.slice = aft_string_slice_from_buffer(start, count);
     }
 }
@@ -526,7 +526,7 @@ static JsonElement parse_number(Parser* parser)
     JsonElement element;
     element.kind = JSON_ELEMENT_KIND_NUMBER;
 
-    AftMaybeDouble result = aft_ascii_to_double(&parser->lexer.token.slice);
+    AftMaybeDouble result = aft_ascii_to_double(parser->lexer.token.slice);
     ASSERT(result.valid);
     element.number = result.value;
 
@@ -544,8 +544,8 @@ static JsonElement parse_string(Parser* parser)
     AftStringSlice slice = parser->lexer.token.slice;
     aft_string_slice_remove_start(&slice, 1);
     aft_string_slice_remove_end(&slice, 1);
-    const char* contents = aft_string_slice_start(&slice);
-    int count = aft_string_slice_count(&slice);
+    const char* contents = aft_string_slice_start(slice);
+    int count = aft_string_slice_count(slice);
 
     for(int char_index = 0;
             char_index < count;
@@ -608,7 +608,7 @@ static JsonElement parse_string(Parser* parser)
                     char_index += 1;
                     ASSERT(count - char_index >= 4);
                     AftStringSlice slice = aft_string_slice_from_buffer(&contents[char_index], 4);
-                    char32_t codepoint = four_digit_hex_to_codepoint(&slice);
+                    char32_t codepoint = four_digit_hex_to_codepoint(slice);
                     appended = aft_utf8_append_codepoint(&element.string, codepoint);
                     char_index += 4;
                     break;

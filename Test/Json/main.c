@@ -35,7 +35,7 @@ int main(const char* argv, int argc)
             aft_string_append(&message, aft_path_get_string_const(&path.value));
             aft_string_append_c_string(&message, ".\n");
             AftStringSlice slice = aft_string_slice_from_string(&message);
-            aft_write_to_error_output(&slice);
+            aft_write_to_error_output(slice);
             aft_string_destroy(&message);
 
             return -1;
@@ -51,7 +51,7 @@ int main(const char* argv, int argc)
         if(result.error != JSON_ERROR_NONE)
         {
             AftStringSlice slice = aft_string_slice_from_c_string("Failed to parse json.\n");
-            aft_write_to_error_output(&slice);
+            aft_write_to_error_output(slice);
         }
         else
         {
@@ -60,7 +60,7 @@ int main(const char* argv, int argc)
             if(!serialized.valid)
             {
                 AftStringSlice slice = aft_string_slice_from_c_string("Failed to serialize the resulting json.\n");
-                aft_write_to_error_output(&slice);
+                aft_write_to_error_output(slice);
             }
             else
             {
@@ -68,7 +68,7 @@ int main(const char* argv, int argc)
                 aft_string_append(&message, &serialized.value);
                 aft_string_append_c_string(&message, "\n");
                 AftStringSlice slice = aft_string_slice_from_string(&message);
-                aft_write_to_standard_output(&slice);
+                aft_write_to_standard_output(slice);
                 aft_string_destroy(&message);
 
                 aft_string_destroy(&serialized.value);
@@ -89,7 +89,7 @@ int main(const char* argv, int argc)
         aft_string_append_c_string(&message, " bytes were not deallocated. \n");
 
         AftStringSlice slice = aft_string_slice_from_string(&message);
-        aft_write_to_error_output(&slice);
+        aft_write_to_error_output(slice);
 
         aft_string_destroy(&message);
         aft_string_destroy(&bytes);

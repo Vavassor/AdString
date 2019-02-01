@@ -186,21 +186,12 @@ static void zero_memory(void* memory, uint64_t bytes)
 }
 
 
-bool aft_ascii_check(const AftString* string)
+bool aft_ascii_check(AftStringSlice slice)
 {
-    int count = aft_string_get_count(string);
-    AftStringRange range = {0, count};
-    return aft_ascii_check_range(string, &range);
-}
+    const char* contents = aft_string_slice_start(slice);
+    int count = aft_string_slice_count(slice);
 
-bool aft_ascii_check_range(const AftString* string, const AftStringRange* range)
-{
-    AFT_ASSERT(string);
-    AFT_ASSERT(range);
-
-    const char* contents = aft_string_get_contents_const(string);
-
-    for(int char_index = range->start; char_index < range->end; char_index += 1)
+    for(int char_index = 0; char_index < count; char_index += 1)
     {
         if(contents[char_index] & 0x80)
         {
@@ -294,17 +285,17 @@ bool aft_ascii_is_whitespace(char c)
 
 void aft_ascii_reverse(AftString* string)
 {
-    AftStringRange range = {0, aft_string_get_count(string)};
-    aft_ascii_reverse_range(string, &range);
+    aft_ascii_reverse_range(string, 0, aft_string_get_count(string));
 }
 
-void aft_ascii_reverse_range(AftString* string, const AftStringRange* range)
+void aft_ascii_reverse_range(AftString* string, int range_start, int range_end)
 {
     AFT_ASSERT(string);
+    AFT_ASSERT(aft_string_range_check(string, range_start, range_end));
 
     char* contents = aft_string_get_contents(string);
 
-    for(int start = range->start, end = range->end - 1;
+    for(int start = range_start, end = range_end - 1;
             start < end;
             start += 1, end -= 1)
     {
@@ -365,6 +356,30 @@ char aft_ascii_to_uppercase_char(char c)
 }
 
 
+char* aft_c_string_copy_string(const AftString* string)
+{
+    return aft_c_string_copy_string_with_allocator(string, NULL);
+}
+
+char* aft_c_string_copy_string_with_allocator(const AftString* string, void* allocator)
+{
+    AFT_ASSERT(string);
+
+    int count = aft_string_get_count(string);
+    AftMemoryBlock block = aft_allocate(allocator, count + 1);
+    char* result = block.memory;
+
+    if(!result)
+    {
+        return NULL;
+    }
+
+    const char* contents = aft_string_get_contents_const(string);
+    copy_memory(result, contents, count);
+    result[count] = '\0';
+    return result;
+}
+
 bool aft_c_string_deallocate(char* string)
 {
     return aft_c_string_deallocate_with_allocator(NULL, string);
@@ -381,13 +396,12 @@ bool aft_c_string_deallocate_with_allocator(void* allocator, char* string)
 }
 
 
-bool aft_string_add(AftString* to, const AftStringSlice* from, int index)
+bool aft_string_add(AftString* to, AftStringSlice from, int index)
 {
     int to_count = aft_string_get_count(to);
     int from_count = aft_string_slice_count(from);
 
     AFT_ASSERT(to);
-    AFT_ASSERT(from);
     AFT_ASSERT(index >= 0 && index <= to_count);
 
     bool adding_to_self = aft_string_slice_in_string(from, to);
@@ -427,8 +441,9 @@ bool aft_string_add(AftString* to, const AftStringSlice* from, int index)
 
 bool aft_string_append(AftString* to, const AftString* from)
 {
-    AftStringRange range = {0, aft_string_get_count(from)};
-    return aft_string_append_range(to, from, &range);
+    AftStringSlice slice = aft_string_slice_from_string(from);
+
+    return aft_string_append_slice(to, slice);
 }
 
 bool aft_string_append_c_string(AftString* to, const char* from)
@@ -481,13 +496,15 @@ bool aft_string_append_char(AftString* to, char from)
     return true;
 }
 
-bool aft_string_append_range(AftString* to, const AftString* from, const AftStringRange* range)
+bool aft_string_append_slice(AftString* to, AftStringSlice from)
 {
     AFT_ASSERT(to);
-    AFT_ASSERT(from);
+
+    const char* to_contents_before_reserve = aft_string_get_contents_const(to);
+    bool self_append = aft_string_slice_in_string(from, to);
 
     int to_count = aft_string_get_count(to);
-    int from_count = aft_string_range_count(range);
+    int from_count = aft_string_slice_count(from);
     int count = to_count + from_count;
     bool reserved = aft_string_reserve(to, count);
 
@@ -499,8 +516,15 @@ bool aft_string_append_range(AftString* to, const AftString* from, const AftStri
     int prior_count = to_count;
     aft_string_set_count(to, count);
     char* to_contents = aft_string_get_contents(to);
-    const char* from_contents = aft_string_get_contents_const(from);
-    copy_memory(&to_contents[prior_count], &from_contents[range->start], from_count);
+
+    const char* from_contents = aft_string_slice_start(from);
+    if(self_append)
+    {
+        ptrdiff_t start_index = from_contents - to_contents_before_reserve;
+        from_contents = to_contents + start_index;
+    }
+
+    copy_memory(&to_contents[prior_count], from_contents, from_count);
     to_contents[count] = '\0';
 
     AFT_ASSERT(aft_string_check_uncorrupted(to));
@@ -535,13 +559,18 @@ bool aft_string_assign(AftString* to, const AftString* from)
 
 AftMaybeString aft_string_copy(AftString* string)
 {
+    return aft_string_copy_with_allocator(string, NULL);
+}
+
+AftMaybeString aft_string_copy_with_allocator(AftString* string, void* allocator)
+{
     AFT_ASSERT(string);
 
     int count = aft_string_get_count(string);
 
     AftMaybeString result;
     result.valid = true;
-    result.value.allocator = string->allocator;
+    result.value.allocator = allocator;
     result.value.cap = AFT_STRING_SMALL_CAP;
     aft_string_set_count(&result.value, count);
     aft_string_set_uncorrupted(&result.value);
@@ -608,27 +637,16 @@ AftMaybeString aft_string_copy_c_string_with_allocator(const char* original, voi
     return result;
 }
 
-AftMaybeString aft_string_copy_range(const AftString* string, const AftStringRange* range)
-{
-    AFT_ASSERT(string);
-    AFT_ASSERT(range);
-    AFT_ASSERT(aft_string_range_check(string, range));
-
-    const char* contents = aft_string_get_contents_const(string);
-    const char* start = &contents[range->start];
-    int count = aft_string_range_count(range);
-    AftStringSlice slice = aft_string_slice_from_buffer(start, count);
-    return aft_string_copy_slice_with_allocator(&slice, string->allocator);
-}
-
-AftMaybeString aft_string_copy_slice(const AftStringSlice* slice)
+AftMaybeString aft_string_copy_slice(AftStringSlice slice)
 {
     return aft_string_copy_slice_with_allocator(slice, NULL);
 }
 
-AftMaybeString aft_string_copy_slice_with_allocator(const AftStringSlice* slice, void* allocator)
+AftMaybeString aft_string_copy_slice_with_allocator(AftStringSlice slice, void* allocator)
 {
-    int cap = slice->count + 1;
+    const char* contents = aft_string_slice_start(slice);
+    int count = aft_string_slice_count(slice);
+    int cap = count + 1;
 
     AftMaybeString result;
     result.valid = true;
@@ -647,18 +665,18 @@ AftMaybeString aft_string_copy_slice_with_allocator(const AftStringSlice* slice,
             return result;
         }
 
-        copy_memory(copy, slice->contents, slice->count);
-        copy[slice->count] = '\0';
+        copy_memory(copy, contents, count);
+        copy[count] = '\0';
         result.value.big.contents = copy;
         result.value.cap = cap;
-        aft_string_set_count(&result.value, slice->count);
+        aft_string_set_count(&result.value, count);
     }
     else
     {
-        copy_memory(result.value.small.contents, slice->contents, slice->count);
-        result.value.small.contents[slice->count] = '\0';
+        copy_memory(result.value.small.contents, contents, count);
+        result.value.small.contents[count] = '\0';
         result.value.cap = AFT_STRING_SMALL_CAP;
-        aft_string_set_count(&result.value, slice->count);
+        aft_string_set_count(&result.value, count);
     }
 
     return result;
@@ -683,27 +701,6 @@ bool aft_string_destroy(AftString* string)
     aft_string_initialise_with_allocator(string, string->allocator);
 
     return result;
-}
-
-bool aft_string_ends_with(const AftString* string, const AftStringSlice* lookup)
-{
-    AFT_ASSERT(string);
-    AFT_ASSERT(lookup);
-
-    int lookup_count = aft_string_slice_count(lookup);
-    int string_count = aft_string_get_count(string);
-
-    if(lookup_count > string_count)
-    {
-        return false;
-    }
-    else
-    {
-        const char* string_contents = aft_string_get_contents_const(string);
-        const char* lookup_contents = aft_string_slice_start(lookup);
-        const char* near_end = &string_contents[string_count - lookup_count];
-        return memory_matches(near_end, lookup_contents, lookup_count);
-    }
 }
 
 int aft_string_get_capacity(const AftString* string)
@@ -775,17 +772,17 @@ void aft_string_initialise_with_allocator(AftString* string, void* allocator)
     aft_string_set_uncorrupted(string);
 }
 
-void aft_string_remove(AftString* string, const AftStringRange* range)
+void aft_string_remove(AftString* string, int start, int end)
 {
     AFT_ASSERT(string);
-    AFT_ASSERT(aft_string_range_check(string, range));
+    AFT_ASSERT(aft_string_range_check(string, start, end));
 
     int count = aft_string_get_count(string);
-    int copied_bytes = count - range->end;
-    int removed_bytes = aft_string_range_count(range);
+    int copied_bytes = count - end;
+    int removed_bytes = end - start;
 
     char* contents = aft_string_get_contents(string);
-    copy_memory(&contents[range->start], &contents[range->end], copied_bytes);
+    copy_memory(&contents[start], &contents[end], copied_bytes);
     count -= removed_bytes;
     aft_string_set_count(string, count);
     contents[count] = '\0';
@@ -793,17 +790,15 @@ void aft_string_remove(AftString* string, const AftStringRange* range)
     AFT_ASSERT(aft_string_check_uncorrupted(string));
 }
 
-bool aft_string_replace(AftString* to, const AftStringRange* range, const AftStringSlice* from)
+bool aft_string_replace(AftString* to, int start, int end, AftStringSlice from)
 {
     AFT_ASSERT(to);
-    AFT_ASSERT(range);
-    AFT_ASSERT(from);
-    AFT_ASSERT(aft_string_range_check(to, range));
+    AFT_ASSERT(aft_string_range_check(to, start, end));
 
     const char* to_contents_before_reserve = aft_string_get_contents_const(to);
     bool self_replace = aft_string_slice_in_string(from, to);
 
-    int view_bytes = aft_string_range_count(range);
+    int view_bytes = end - start;
     int to_count = aft_string_get_count(to);
     int from_count = aft_string_slice_count(from);
     int count = to_count - view_bytes + from_count;
@@ -824,11 +819,11 @@ bool aft_string_replace(AftString* to, const AftStringRange* range, const AftStr
         from_contents = to_contents + start_index;
     }
 
-    int inserted_end = range->start + from_count;
-    int moved_bytes = to_count - range->end;
-    copy_memory(&to_contents[inserted_end], &to_contents[range->end], moved_bytes);
+    int inserted_end = start + from_count;
+    int moved_bytes = to_count - end;
+    copy_memory(&to_contents[inserted_end], &to_contents[end], moved_bytes);
 
-    copy_memory(&to_contents[range->start], from_contents, from_count);
+    copy_memory(&to_contents[start], from_contents, from_count);
     aft_string_set_count(to, count);
     to_contents[count] = '\0';
 
@@ -890,73 +885,21 @@ bool aft_string_reserve(AftString* string, int space)
     return true;
 }
 
-bool aft_string_starts_with(const AftString* string, const AftStringSlice* lookup)
-{
-    AFT_ASSERT(string);
-    AFT_ASSERT(lookup);
 
-    int string_count = aft_string_get_count(string);
-    int lookup_count = aft_string_slice_count(lookup);
-
-    if(lookup_count > string_count)
-    {
-        return false;
-    }
-    else
-    {
-        const char* string_contents = aft_string_get_contents_const(string);
-        const char* lookup_contents = aft_string_slice_start(lookup);
-        return memory_matches(string_contents, lookup_contents, lookup_count);
-    }
-}
-
-char* aft_string_to_c_string(const AftString* string)
-{
-    return aft_string_to_c_string_with_allocator(string, NULL);
-}
-
-char* aft_string_to_c_string_with_allocator(const AftString* string, void* allocator)
+bool aft_string_range_check(const AftString* string, int start, int end)
 {
     AFT_ASSERT(string);
 
     int count = aft_string_get_count(string);
-    AftMemoryBlock block = aft_allocate(allocator, count + 1);
-    char* result = block.memory;
 
-    if(!result)
-    {
-        return NULL;
-    }
-
-    const char* contents = aft_string_get_contents_const(string);
-    copy_memory(result, contents, count);
-    result[count] = '\0';
-    return result;
+    return start <= end
+            && start >= 0
+            && end >= 0
+            && end <= count;
 }
 
 
-bool aft_string_range_check(const AftString* string, const AftStringRange* range)
-{
-    AFT_ASSERT(string);
-    AFT_ASSERT(range);
-
-    int count = aft_string_get_count(string);
-
-    return range->start <= range->end
-            && range->start >= 0
-            && range->end >= 0
-            && range->end <= count;
-}
-
-int aft_string_range_count(const AftStringRange* range)
-{
-    AFT_ASSERT(range);
-
-    return range->end - range->start;
-}
-
-
-AftStringSlice aft_string_slice(const AftStringSlice* slice, int start, int end)
+AftStringSlice aft_string_slice(AftStringSlice slice, int start, int end)
 {
     if(end < 0)
     {
@@ -965,28 +908,25 @@ AftStringSlice aft_string_slice(const AftStringSlice* slice, int start, int end)
 
     AftStringSlice result =
     {
-        .contents = slice->contents + start,
+        .contents = slice.contents + start,
         .count = end - start,
     };
 
     return result;
 }
 
-int aft_string_slice_count(const AftStringSlice* slice)
+int aft_string_slice_count(AftStringSlice slice)
 {
-    return slice->count;
+    return slice.count;
 }
 
-const char* aft_string_slice_end(const AftStringSlice* slice)
+const char* aft_string_slice_end(AftStringSlice slice)
 {
-    return slice->contents + slice->count;
+    return slice.contents + slice.count;
 }
 
-bool aft_string_slice_ends_with(const AftStringSlice* slice, const AftStringSlice* lookup)
+bool aft_string_slice_ends_with(AftStringSlice slice, AftStringSlice lookup)
 {
-    AFT_ASSERT(slice);
-    AFT_ASSERT(lookup);
-
     int lookup_count = aft_string_slice_count(lookup);
     int string_count = aft_string_slice_count(slice);
 
@@ -1003,10 +943,8 @@ bool aft_string_slice_ends_with(const AftStringSlice* slice, const AftStringSlic
     }
 }
 
-AftMaybeInt aft_string_slice_find_first_char(const AftStringSlice* string, char c)
+AftMaybeInt aft_string_slice_find_first_char(AftStringSlice string, char c)
 {
-    AFT_ASSERT(string);
-
     AftMaybeInt result;
 
     const char* contents = aft_string_slice_start(string);
@@ -1027,11 +965,8 @@ AftMaybeInt aft_string_slice_find_first_char(const AftStringSlice* string, char 
     return result;
 }
 
-AftMaybeInt aft_string_slice_find_first_string(const AftStringSlice* string, const AftStringSlice* lookup)
+AftMaybeInt aft_string_slice_find_first_string(AftStringSlice string, AftStringSlice lookup)
 {
-    AFT_ASSERT(string);
-    AFT_ASSERT(lookup);
-
     AftMaybeInt result;
 
     const char* string_contents = aft_string_slice_start(string);
@@ -1056,10 +991,8 @@ AftMaybeInt aft_string_slice_find_first_string(const AftStringSlice* string, con
     return result;
 }
 
-AftMaybeInt aft_string_slice_find_last_char(const AftStringSlice* string, char c)
+AftMaybeInt aft_string_slice_find_last_char(AftStringSlice string, char c)
 {
-    AFT_ASSERT(string);
-
     AftMaybeInt result;
 
     const char* contents = aft_string_slice_start(string);
@@ -1080,11 +1013,8 @@ AftMaybeInt aft_string_slice_find_last_char(const AftStringSlice* string, char c
     return result;
 }
 
-AftMaybeInt aft_string_slice_find_last_string(const AftStringSlice* string, const AftStringSlice* lookup)
+AftMaybeInt aft_string_slice_find_last_string(AftStringSlice string, AftStringSlice lookup)
 {
-    AFT_ASSERT(string);
-    AFT_ASSERT(lookup);
-
     AftMaybeInt result;
 
     const char* string_contents = aft_string_slice_start(string);
@@ -1128,31 +1058,33 @@ AftStringSlice aft_string_slice_from_string(const AftString* string)
     return aft_string_slice_from_buffer(contents, count);
 }
 
-bool aft_string_slice_in_string(const AftStringSlice* slice, const AftString* string)
+bool aft_string_slice_in_string(AftStringSlice slice, const AftString* string)
 {
     const char* start = aft_string_slice_start(slice);
     const char* end = aft_string_slice_end(slice);
 
     AftStringSlice other = aft_string_slice_from_string(string);
-    const char* other_start = aft_string_slice_start(&other);
-    const char* other_end = aft_string_slice_end(&other);
+    const char* other_start = aft_string_slice_start(other);
+    const char* other_end = aft_string_slice_end(other);
 
     return start >= other_start && end <= other_end;
 }
 
-bool aft_string_slice_matches(const AftStringSlice* a, const AftStringSlice* b)
+bool aft_string_slice_matches(AftStringSlice a, AftStringSlice b)
 {
-    AFT_ASSERT(a);
-    AFT_ASSERT(b);
+    const char* a_contents = aft_string_slice_start(a);
+    const char* b_contents = aft_string_slice_start(b);
+    int a_count = aft_string_slice_count(a);
+    int b_count = aft_string_slice_count(b);
 
-    if(a->count != b->count)
+    if(a_count != b_count)
     {
         return false;
     }
 
-    for(int char_index = 0; char_index < a->count; char_index += 1)
+    for(int char_index = 0; char_index < a_count; char_index += 1)
     {
-        if(a->contents[char_index] != b->contents[char_index])
+        if(a_contents[char_index] != b_contents[char_index])
         {
             return false;
         }
@@ -1176,16 +1108,13 @@ void aft_string_slice_remove_start(AftStringSlice* slice, int count)
     slice->count -= count;
 }
 
-const char* aft_string_slice_start(const AftStringSlice* slice)
+const char* aft_string_slice_start(AftStringSlice slice)
 {
-    return slice->contents;
+    return slice.contents;
 }
 
-bool aft_string_slice_starts_with(const AftStringSlice* slice, const AftStringSlice* lookup)
+bool aft_string_slice_starts_with(AftStringSlice slice, AftStringSlice lookup)
 {
-    AFT_ASSERT(slice);
-    AFT_ASSERT(lookup);
-
     int string_count = aft_string_slice_count(slice);
     int lookup_count = aft_string_slice_count(lookup);
 
@@ -1199,6 +1128,13 @@ bool aft_string_slice_starts_with(const AftStringSlice* slice, const AftStringSl
         const char* lookup_contents = aft_string_slice_start(lookup);
         return memory_matches(string_contents, lookup_contents, lookup_count);
     }
+}
+
+AftStringSlice aft_string_slice_string(const AftString* string, int start, int end)
+{
+    AftStringSlice slice = aft_string_slice_from_string(string);
+
+    return aft_string_slice(slice, start, end);
 }
 
 
@@ -1416,7 +1352,7 @@ void aft_codepoint_iterator_end(AftCodepointIterator* it)
 {
     AFT_ASSERT(it);
 
-    it->index = it->range.end;
+    it->index = it->end;
 }
 
 int aft_codepoint_iterator_get_index(AftCodepointIterator* it)
@@ -1438,7 +1374,7 @@ AftMaybeChar32 aft_codepoint_iterator_next(AftCodepointIterator* it)
     AFT_ASSERT(it);
     AFT_ASSERT(it->string);
 
-    if(it->index < it->range.end)
+    if(it->index < it->end)
     {
         char32_t codepoint = 0;
 
@@ -1446,7 +1382,7 @@ AftMaybeChar32 aft_codepoint_iterator_next(AftCodepointIterator* it)
         uint32_t state = 0;
 
         for(int byte_index = it->index;
-                byte_index < it->range.end;
+                byte_index < it->end;
                 byte_index += 1)
         {
             uint32_t byte = (uint8_t) contents[byte_index];
@@ -1493,15 +1429,15 @@ AftMaybeChar32 aft_codepoint_iterator_prior(AftCodepointIterator* it)
     AFT_ASSERT(it);
     AFT_ASSERT(it->string);
 
-    if(it->index - 1 >= it->range.start)
+    if(it->index - 1 >= it->start)
     {
         char32_t codepoint = 0;
 
         const char* contents = aft_string_get_contents_const(it->string);
-        int codepoint_index = it->range.start;
+        int codepoint_index = it->start;
 
         for(int byte_index = it->index - 1;
-                byte_index >= it->range.start;
+                byte_index >= it->start;
                 byte_index -= 1)
         {
             if(is_heading_byte(contents[byte_index]))
@@ -1514,7 +1450,7 @@ AftMaybeChar32 aft_codepoint_iterator_prior(AftCodepointIterator* it)
         uint32_t state = 0;
 
         for(int byte_index = codepoint_index;
-                byte_index < it->range.end;
+                byte_index < it->end;
                 byte_index += 1)
         {
             uint32_t byte = (uint8_t) contents[byte_index];
@@ -1550,8 +1486,8 @@ void aft_codepoint_iterator_set_string(AftCodepointIterator* it, AftString* stri
     AFT_ASSERT(string);
 
     it->string = string;
-    it->range.start = 0;
-    it->range.end = aft_string_get_count(it->string);
+    it->start = 0;
+    it->end = aft_string_get_count(it->string);
     aft_codepoint_iterator_start(it);
 }
 
@@ -1559,5 +1495,5 @@ void aft_codepoint_iterator_start(AftCodepointIterator* it)
 {
     AFT_ASSERT(it);
 
-    it->index = it->range.start;
+    it->index = it->start;
 }

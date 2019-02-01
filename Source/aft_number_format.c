@@ -303,8 +303,8 @@ static void append_pattern(AftString* string, const AftString* pattern, const Af
             }
             default:
             {
-                AftStringRange range = {prior_index, index};
-                aft_string_append_range(string, pattern, &range);
+                AftStringSlice slice = aft_string_slice_string(pattern, prior_index, index);
+                aft_string_append_slice(string, slice);
                 break;
             }
         }
@@ -959,8 +959,10 @@ AftMaybeString aft_ascii_from_uint64_with_allocator(uint64_t value, const AftBas
 // a simpler but less speedy traditional implementation using big integers
 // as outlined here
 // https://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/.
-AftMaybeDouble aft_ascii_to_double(const AftStringSlice* slice)
+AftMaybeDouble aft_ascii_to_double(AftStringSlice slice)
 {
+    AFT_ASSERT(aft_ascii_check(slice));
+
     AftMaybeDouble result;
     result.valid = false;
     result.value = 0.0;
@@ -1096,30 +1098,20 @@ AftMaybeDouble aft_ascii_to_double(const AftStringSlice* slice)
     return result;
 }
 
-AftMaybeUint64 aft_ascii_uint64_from_string(const AftString* string)
+AftMaybeUint64 aft_ascii_to_uint64(AftStringSlice slice)
 {
-    int count = aft_string_get_count(string);
-    AftStringRange range = {0, count};
-    return aft_ascii_uint64_from_string_range(string, &range);
-}
-
-AftMaybeUint64 aft_ascii_uint64_from_string_range(const AftString* string, const AftStringRange* range)
-{
-    AFT_ASSERT(string);
-    AFT_ASSERT(range);
-    AFT_ASSERT(aft_string_range_check(string, range));
-    AFT_ASSERT(aft_ascii_check_range(string, range));
+    AFT_ASSERT(aft_ascii_check(slice));
 
     AftMaybeUint64 result;
     result.valid = true;
     result.value = 0;
 
-    const char* contents = aft_string_get_contents_const(string);
+    const char* contents = aft_string_slice_start(slice);
+    int count = aft_string_slice_count(slice);
 
-    int count = range->end - range->start;
     int power_index = AFT_UINT64_MAX_DECIMAL_DIGITS - count;
 
-    for(int char_index = range->start; char_index < range->end; char_index += 1)
+    for(int char_index = 0; char_index < count; char_index += 1)
     {
         uint64_t character = contents[char_index];
         uint64_t digit = character - '0';
@@ -1389,7 +1381,7 @@ AftMaybeString aft_string_from_int64_with_allocator(int64_t value, const AftDeci
         value = -value;
     }
 
-    return string_from_uint64_and_sign((uint64_t) sign, sign, format, allocator);
+    return string_from_uint64_and_sign((uint64_t) value, sign, format, allocator);
 }
 
 AftMaybeString aft_string_from_uint64(uint64_t value, const AftDecimalFormat* format)

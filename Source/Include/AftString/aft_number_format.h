@@ -108,9 +108,8 @@ AftMaybeString aft_ascii_from_double(double value);
 AftMaybeString aft_ascii_from_double_with_allocator(double value, void* allocator);
 AftMaybeString aft_ascii_from_uint64(uint64_t value, const AftBaseFormat* format);
 AftMaybeString aft_ascii_from_uint64_with_allocator(uint64_t value, const AftBaseFormat* format, void* allocator);
-AftMaybeDouble aft_ascii_to_double(const AftStringSlice* slice);
-AftMaybeUint64 aft_ascii_uint64_from_string(const AftString* string);
-AftMaybeUint64 aft_ascii_uint64_from_string_range(const AftString* string, const AftStringRange* range);
+AftMaybeDouble aft_ascii_to_double(AftStringSlice slice);
+AftMaybeUint64 aft_ascii_to_uint64(AftStringSlice slice);
 
 bool aft_decimal_format_default(AftDecimalFormat* format);
 bool aft_decimal_format_default_with_allocator(AftDecimalFormat* format, void* allocator);

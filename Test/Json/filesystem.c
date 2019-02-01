@@ -52,7 +52,7 @@ AftMaybeString aft_load_text_file(const AftPath* path, void* allocator)
     }
 
     AftStringSlice slice = aft_string_slice_from_buffer(block.memory, (int) block.bytes);
-    result = aft_string_from_slice_with_allocator(&slice, allocator);
+    result = aft_string_copy_slice_with_allocator(slice, allocator);
 
     aft_deallocate(allocator, block);
 
@@ -86,9 +86,9 @@ AftMaybePath aft_path_from_c_string_with_allocator(const char* path, void* alloc
     return result;
 }
 
-AftMaybePath aft_path_from_slice_with_allocator(const AftStringSlice* path, void* allocator)
+AftMaybePath aft_path_from_slice_with_allocator(AftStringSlice path, void* allocator)
 {
-    AftMaybeString string = aft_string_from_slice_with_allocator(path, allocator);
+    AftMaybeString string = aft_string_copy_slice_with_allocator(path, allocator);
 
     AftMaybePath result;
     result.valid = string.valid;
@@ -117,13 +117,12 @@ void aft_path_initialise_with_allocator(AftPath* path, void* allocator)
 void aft_path_remove_basename(AftPath* path)
 {
     AftStringSlice slice = aft_string_slice_from_string(&path->string);
-    AftMaybeInt slash = aft_string_slice_find_last_char(&slice, '/');
+    AftMaybeInt slash = aft_string_slice_find_last_char(slice, '/');
 
     if(slash.valid)
     {
         int count = aft_string_get_count(&path->string);
-        AftStringRange range = {slash.value, count};
-        aft_string_remove(&path->string, &range);
+        aft_string_remove(&path->string, slash.value, count);
     }
 }
 
