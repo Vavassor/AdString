@@ -4,8 +4,8 @@
 
 int main(int argc, const char** argv)
 {
-    AftString readout = aft_string_from_c_string("Date: ").value;
-    AftString date = aft_string_from_c_string("2018-12-09").value;
+    AftString readout = aft_string_copy_c_string("Date: ").value;
+    AftString date = aft_string_copy_c_string("2018-12-09").value;
     aft_string_append(&readout, &date);
     
     const char* message = aft_string_get_contents_const(&readout);

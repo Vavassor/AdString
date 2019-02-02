@@ -27,19 +27,6 @@ don't need to use this.
 
 The allocator is set only when the string is created and should not be changed.
 This is to ensure the same allocator is used for allocating and deallocating a
-memory block.
-
-.. _allocator-propagation:
-
-Allocator Propagation
-^^^^^^^^^^^^^^^^^^^^^
-
-Some string operations, such as copying or taking a substring will propagate the
-allocator. This means the new string will inherit the allocator associated with
-the original string. For example, in the case of substring, the new substring
-will be associated with the same allocator as the string it came from.
-
-Generally this would be fine, but it may be a detail to consider because
-transferring ownership of a string between allocators after it's created is
-prevented by design. If transfer is needed, use :c:func:`aft_string_assign`.
+memory block. If an allocator needs to be transferred, use
+:c:func:`aft_string_assign`.
 

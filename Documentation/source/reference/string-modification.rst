@@ -16,6 +16,7 @@ Calling any of these functions on the string would be a modification.
 - :c:func:`aft_string_append`
 - :c:func:`aft_string_append_c_string`
 - :c:func:`aft_string_append_char`
+- :c:func:`aft_string_append_slice`
 - :c:func:`aft_string_assign`
 - :c:func:`aft_string_destroy`
 - :c:func:`aft_string_remove`

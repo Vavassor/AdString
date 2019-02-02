@@ -1,7 +1,7 @@
-aft_string_to_c_string_with_allocator
-=====================================
+aft_c_string_copy_string_with_allocator
+=======================================
 
-.. c:function:: char* aft_string_to_c_string_with_allocator( \
+.. c:function:: char* aft_c_string_copy_string_with_allocator( \
         const AftString* string, void* allocator)
 
     Create a copy of a string as a :term:`C string` and

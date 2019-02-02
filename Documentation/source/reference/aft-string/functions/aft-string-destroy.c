@@ -4,7 +4,7 @@
 
 int main(int argc, const char** argv)
 {
-    AftString string = aft_string_from_c_string("unseen text").value;
+    AftString string = aft_string_copy_c_string("unseen text").value;
 
     aft_string_destroy(&string);
     aft_string_append_c_string(&string, "shown instead");

@@ -1,7 +1,7 @@
-aft_string_from_c_string_with_allocator
+aft_string_copy_c_string_with_allocator
 =======================================
 
-.. c:function:: AftMaybeString aft_string_from_c_string_with_allocator( \
+.. c:function:: AftMaybeString aft_string_copy_c_string_with_allocator( \
         const char* original, void* allocator)
 
     Create a string from a :term:`C string` and associate it with an

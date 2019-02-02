@@ -1,10 +1,9 @@
 aft_ascii_check
 ===============
 
-.. c:function:: bool aft_ascii_check(const AftString* string)
+.. c:function:: bool aft_ascii_check(AftStringSlice slice)
 
-    Determine if a string is entirely :term:`ASCII` encoded.
+    Determine if a slice is entirely :term:`ASCII` encoded.
 
-    :param string: the string
-    :return: true if the string is valid ASCII
-
+    :param slice: the slice
+    :return: true if the slice is valid ASCII

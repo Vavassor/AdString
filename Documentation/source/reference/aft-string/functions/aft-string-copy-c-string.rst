@@ -1,7 +1,7 @@
-aft_string_from_c_string
+aft_string_copy_c_string
 ========================
 
-.. c:function:: AftMaybeString aft_string_from_c_string(const char* original)
+.. c:function:: AftMaybeString aft_string_copy_c_string(const char* original)
 
     Create a string from a :term:`C string`.
 

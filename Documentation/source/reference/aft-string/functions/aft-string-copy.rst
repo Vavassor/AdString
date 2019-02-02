@@ -5,8 +5,7 @@ aft_string_copy
 
     Create a copy of a string.
 
-    The copy inherits the :term:`allocator` associated with the original string.
-    See also :ref:`allocator-propagation`.
+    The resulting string is not associated with an :term:`allocator`.
 
     :param string: the string
     :return: a copy

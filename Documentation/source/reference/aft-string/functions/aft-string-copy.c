@@ -4,7 +4,7 @@
 
 int main(int argc, const char** argv)
 {
-    AftString me = aft_string_from_c_string("It's me!").value;
+    AftString me = aft_string_copy_c_string("It's me!").value;
 
     AftString clone = aft_string_copy(&me).value;
 
