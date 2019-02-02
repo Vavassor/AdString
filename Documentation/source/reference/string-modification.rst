@@ -22,3 +22,10 @@ Calling any of these functions on the string would be a modification.
 - :c:func:`aft_string_remove`
 - :c:func:`aft_string_replace`
 
+If a string and a slice of that string are both passed to these functions, the
+slice will be invalid afterward.
+
+- :c:func:`aft_string_add`
+- :c:func:`aft_string_append_slice`
+- :c:func:`aft_string_remove`
+- :c:func:`aft_string_replace`
