@@ -120,12 +120,24 @@ String Slice
 .. toctree::
     :maxdepth: 1
 
+    functions/aft-string-slice
+    functions/aft-string-slice-count
+    functions/aft-string-slice-end
+    functions/aft-string-slice-ends-with
     functions/aft-string-slice-find-first-char
     functions/aft-string-slice-find-first-string
     functions/aft-string-slice-find-last-char
     functions/aft-string-slice-find-last-string
-    functions/aft-string-slice-ends-with
+    functions/aft-string-slice-from-buffer
+    functions/aft-string-slice-from-c-string
+    functions/aft-string-slice-from-string
+    functions/aft-string-slice-in-string
+    functions/aft-string-slice-matches
+    functions/aft-string-slice-remove-end
+    functions/aft-string-slice-remove-start
+    functions/aft-string-slice-start
     functions/aft-string-slice-starts-with
+    functions/aft-string-slice-string
 
 Strings
 ^^^^^^^
