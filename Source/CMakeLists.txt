@@ -1,7 +1,30 @@
 cmake_minimum_required(VERSION 3.0)
 project(AftString VERSION 1.0.0)
 
+if(CONAN_EXPORTED)
+    include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    conan_basic_setup()
+endif()
+
 include(GNUInstallDirs)
+
+
+option(USE_CUSTOM_ALLOCATOR "Use custom memory allocation with static linking." OFF)
+if(USE_CUSTOM_ALLOCATOR)
+    set(AFT_STRING_USE_CUSTOM_ALLOCATOR 1)
+else()
+    set(AFT_STRING_USE_CUSTOM_ALLOCATOR 0)
+endif()
+
+
+configure_file(
+    "${PROJECT_SOURCE_DIR}/aft_string_config.h.in"
+    "${PROJECT_BINARY_DIR}/aft_string_config.h"
+)
+
+# solely for finding aft_string_config.h
+include_directories("${PROJECT_BINARY_DIR}")
+
 
 add_library(AftString "")
 
@@ -39,6 +62,7 @@ target_sources(
     big_int.c
     floating_point_format.c
 )
+
 
 install(
     TARGETS AftString

@@ -6,13 +6,12 @@
 #include <uchar.h>
 
 
-#if defined(__cpluplus)
+#if defined(__cplusplus)
 extern "C" {
 #endif
 
 
 #define AFT_STRING_SMALL_CAP sizeof(AftStringBig)
-#define AFT_USE_CUSTOM_ALLOCATOR
 
 #if !defined(NDEBUG)
 #define AFT_CHECK_CORRUPTION

@@ -1,6 +1,4 @@
-Build
-Documentation/build
+.vs/
+Build/
 .cproject
 .project
-
-.vs/

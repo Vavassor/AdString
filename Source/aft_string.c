@@ -1,5 +1,7 @@
 #include <AftString/aft_string.h>
 
+#include "aft_string_config.h"
+
 #include <assert.h>
 #include <stddef.h>
 
@@ -7,7 +9,7 @@
     assert(expression)
 
 
-#if !defined(AFT_USE_CUSTOM_ALLOCATOR)
+#if !defined(AFT_USE_CUSTOM_ALLOCATOR) || AFT_USE_CUSTOM_ALLOCATOR == 0
 
 #include <stdlib.h>
 
