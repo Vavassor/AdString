@@ -70,7 +70,7 @@ typedef struct AftUtf32String
 
 typedef struct AftCodepointIterator
 {
-    AftString* string;
+    AftStringSlice slice;
     int end;
     int index;
     int start;
@@ -138,10 +138,10 @@ bool aft_c_string_deallocate_with_allocator(void* allocator, char* string);
 
 void aft_codepoint_iterator_end(AftCodepointIterator* it);
 int aft_codepoint_iterator_get_index(AftCodepointIterator* it);
-AftString* aft_codepoint_iterator_get_string(AftCodepointIterator* it);
+AftStringSlice aft_codepoint_iterator_get_string(AftCodepointIterator* it);
 AftMaybeChar32 aft_codepoint_iterator_next(AftCodepointIterator* it);
 AftMaybeChar32 aft_codepoint_iterator_prior(AftCodepointIterator* it);
-void aft_codepoint_iterator_set_string(AftCodepointIterator* it, AftString* string);
+void aft_codepoint_iterator_set_string(AftCodepointIterator* it, AftStringSlice slice);
 void aft_codepoint_iterator_start(AftCodepointIterator* it);
 
 AftMemoryBlock aft_allocate(void* allocator, uint64_t bytes);

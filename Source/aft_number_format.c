@@ -253,7 +253,7 @@ static bool separate_group_at_location(const AftDecimalFormat* format, int index
 static void append_pattern(AftString* string, const AftString* pattern, const AftDecimalFormat* format)
 {
     AftCodepointIterator it;
-    aft_codepoint_iterator_set_string(&it, (AftString*) pattern);
+    aft_codepoint_iterator_set_string(&it, aft_string_slice_from_string(pattern));
 
     int prior_index = 0;
 

@@ -628,7 +628,7 @@ static bool test_iterator_next(Test* test)
     ASSERT(string.valid);
 
     AftCodepointIterator it;
-    aft_codepoint_iterator_set_string(&it, &string.value);
+    aft_codepoint_iterator_set_string(&it, aft_string_slice_from_string(&string.value));
     aft_codepoint_iterator_next(&it);
 
     int before_index = aft_codepoint_iterator_get_index(&it);
@@ -652,7 +652,7 @@ static bool test_iterator_prior(Test* test)
     ASSERT(string.valid);
 
     AftCodepointIterator it;
-    aft_codepoint_iterator_set_string(&it, &string.value);
+    aft_codepoint_iterator_set_string(&it, aft_string_slice_from_string(&string.value));
     aft_codepoint_iterator_end(&it);
     aft_codepoint_iterator_prior(&it);
 
@@ -674,13 +674,16 @@ static bool test_iterator_set_string(Test* test)
 {
     const char* reference = "9876543210";
     AftMaybeString string = aft_string_copy_c_string_with_allocator(reference, &test->allocator);
+    AftStringSlice slice = aft_string_slice_from_string(&string.value);
     ASSERT(string.valid);
 
     AftCodepointIterator it;
-    aft_codepoint_iterator_set_string(&it, &string.value);
+    aft_codepoint_iterator_set_string(&it, slice);
+    AftStringSlice got = aft_codepoint_iterator_get_string(&it);
 
     bool result =
-            aft_codepoint_iterator_get_string(&it) == &string.value
+            aft_string_slice_start(got) == aft_string_slice_start(slice)
+            && aft_string_slice_count(got) == aft_string_slice_count(slice)
             && aft_codepoint_iterator_get_index(&it) == 0;
 
     aft_string_destroy(&string.value);

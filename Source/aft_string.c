@@ -1364,23 +1364,22 @@ int aft_codepoint_iterator_get_index(AftCodepointIterator* it)
     return it->index;
 }
 
-AftString* aft_codepoint_iterator_get_string(AftCodepointIterator* it)
+AftStringSlice aft_codepoint_iterator_get_string(AftCodepointIterator* it)
 {
     AFT_ASSERT(it);
 
-    return it->string;
+    return it->slice;
 }
 
 AftMaybeChar32 aft_codepoint_iterator_next(AftCodepointIterator* it)
 {
     AFT_ASSERT(it);
-    AFT_ASSERT(it->string);
 
     if(it->index < it->end)
     {
         char32_t codepoint = 0;
 
-        const char* contents = aft_string_get_contents_const(it->string);
+        const char* contents = aft_string_slice_start(it->slice);
         uint32_t state = 0;
 
         for(int byte_index = it->index;
@@ -1429,13 +1428,12 @@ AftMaybeChar32 aft_codepoint_iterator_next(AftCodepointIterator* it)
 AftMaybeChar32 aft_codepoint_iterator_prior(AftCodepointIterator* it)
 {
     AFT_ASSERT(it);
-    AFT_ASSERT(it->string);
 
     if(it->index - 1 >= it->start)
     {
         char32_t codepoint = 0;
 
-        const char* contents = aft_string_get_contents_const(it->string);
+        const char* contents = aft_string_slice_start(it->slice);
         int codepoint_index = it->start;
 
         for(int byte_index = it->index - 1;
@@ -1482,14 +1480,13 @@ AftMaybeChar32 aft_codepoint_iterator_prior(AftCodepointIterator* it)
     return result;
 }
 
-void aft_codepoint_iterator_set_string(AftCodepointIterator* it, AftString* string)
+void aft_codepoint_iterator_set_string(AftCodepointIterator* it, AftStringSlice slice)
 {
     AFT_ASSERT(it);
-    AFT_ASSERT(string);
 
-    it->string = string;
+    it->slice = slice;
     it->start = 0;
-    it->end = aft_string_get_count(it->string);
+    it->end = aft_string_slice_count(it->slice);
     aft_codepoint_iterator_start(it);
 }
 
